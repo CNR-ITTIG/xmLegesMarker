@@ -36,3 +36,7 @@ delimiters
 `';:,.?!\{}[]\\|/<>-_°
 toss_delimiters
 1
+replace_diacritics
+0
+norm_diacritics
+àaèeéeìiòoùu
