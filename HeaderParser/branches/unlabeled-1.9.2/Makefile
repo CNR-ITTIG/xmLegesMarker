@@ -9,6 +9,7 @@ LIBS=-L$(LIBDIR) -lFeatureExtractor -llexer -lhmm
 OBJECTS = HeaderParser.o
 CFLAGS=-ggdb -Wno-deprecated -I$(INCLUDEDIR)
 COMPILEXX = g++ -O3 $(CFLAGS)
+
 TARGETBIN = HeaderParser
 
 all : default ${TARGETBIN} lib
