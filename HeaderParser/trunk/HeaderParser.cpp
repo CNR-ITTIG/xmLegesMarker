@@ -244,6 +244,7 @@ int HeaderParser::parseHeader(const std::string& header, ostream& out)
 	vector<int> pub_sequence;
 	copyElements(sequence, pub_sequence, 0, first-1);
 	header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
+	savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, header_pubblicazione_tags);
 	if(hasCorrectStates(pub_states, pub_sequence.size()))
 	  last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, out, header_pubblicazione_tags, &notes);     
 	if(last < first-1)
@@ -271,6 +272,7 @@ int HeaderParser::parseHeader(const std::string& header, ostream& out)
 	vector<int> pub_sequence;
 	copyElements(sequence, pub_sequence, 0, first-1);
 	header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
+	savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, header_pubblicazione_tags);
 	last = saveTitle(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, out, found, header_pubblicazione_tags, &notes);
 	last++;
 	delete[] pub_states;
@@ -292,6 +294,7 @@ int HeaderParser::parseHeader(const std::string& header, ostream& out)
     }
     else{ // search pubblicazione, otherwise put all in titolodoc
       header_pubblicazione_model.viterbiPath(sequence, states, sequence.size());
+      savePubblicazione(strbuffer, states, sequence.size(), offsets, offset, header_pubblicazione_tags);
       last = saveTitle(strbuffer, states, sequence.size(), offsets, offset, last, out, found, header_pubblicazione_tags, &notes);
       removeProcessedElements(sequence, last);
       offset += last + 1;
@@ -350,6 +353,40 @@ unsigned int HeaderParser::saveTitle(const string& strbuffer,
     closeTag(intestazione,out);
     return saveTags(strbuffer, states, statesnumber, offsets, offset, first, out, tags, id);    
   }
+}
+
+void HeaderParser::savePubblicazione(const string& strbuffer, 
+				     int * states, 
+				     unsigned int statesnumber,
+				     const vector<int>& offsets, 
+				     unsigned int offset, 
+				     const hash_map<int,pair<int,int> >& tags)
+
+{
+  if(!hasCorrectStates(states, statesnumber))
+    return;
+
+  int found = 0, maxfound = 3;
+  unsigned int trimmed;
+  string data, num;
+  for (unsigned int i = 0; i < statesnumber && found < maxfound; i++){
+    hash_map<int,pair<int,int> >::const_iterator k = tags.find(states[i]);
+    assert(k != tags.end());
+    if((k->second).first == datapubbl){
+      data = normalizeDate(strbuffer.substr(offsets[offset+i],offsets[offset+i+3]-offsets[offset+i]));
+      i+=2;
+      found++;
+    }
+    else if((k->second).first == numpubbl){
+      num = trimEnd(strbuffer.substr(offsets[offset+i],offsets[offset+i+1]-offsets[offset+i]), &trimmed);
+      found++;      
+    }
+    else if((k->second).first == sopubbl){
+      num += "/" + trimEnd(strbuffer.substr(offsets[offset+i],offsets[offset+i+1]-offsets[offset+i]), &trimmed);
+      found++;
+    }
+  }
+  //cout << "<pubblicazione tipo=\"GU\" num=\"" << num << "\" norm=\"" << data << "\"/>" << endl;
 }
 
 void copyElements(const vector<int>& src, 
@@ -570,6 +607,7 @@ void HeaderParser::findPubblicazione(const string& strbuffer,
   vector<int> pub_sequence;
   copyElements(sequence, pub_sequence, 0, first-1);
   header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
+  savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, header_pubblicazione_tags);
   if(hasCorrectStates(pub_states, pub_sequence.size()))
     last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, 0, out, header_pubblicazione_tags, notes);     
   if(last < first-1)
@@ -644,7 +682,9 @@ unsigned int HeaderParser::saveTags(const string& strbuffer,
   for(int state=initstate; state <= last; state++){
     statetag = tags.find(states[state]);
     assert(statetag != tags.end());
-    if((state == initstate || states[state] != states[state-1]) && ((statetag->second).second > 0 || (statetag->second).first != currtag)){
+    if((state == initstate || states[state] != states[state-1]) && 
+	((statetag->second).second > -2) &&
+	((statetag->second).second > 0 || (statetag->second).first != currtag)){
       if(currtag != -1)
 	saveTag(currtag, start, offsets[state+offset], strbuffer, out, ((currstatetag->second).second > -1), id);
       currstatetag = statetag;
@@ -654,7 +694,7 @@ unsigned int HeaderParser::saveTags(const string& strbuffer,
     if (state == last){
       if(currtag != -1){
 	//if(last < statesnumber-1)
-	  saveTag(currtag, start, offsets[state+offset+1], strbuffer, out, ((currstatetag->second).second > -1), id);
+	  saveTag(currtag, start, offsets[state+offset+1], strbuffer, out, ((currstatetag->second).second != -1), id);
 	  //else
 	  //saveTag(currtag, start, strbuffer.length(), strbuffer, out, ((currstatetag->second).second > -1));
       }
@@ -710,6 +750,14 @@ void HeaderParser::saveTag(int tagvalue,
   }
   else if(tagvalue == formulafinale)
     out << "<h:p> " << buffer.substr(start,buffer.find_last_not_of(" \r\n\t", end-1)-start+1) << " </h:p>\n";
+  else if(trimmedTag(tagvalue) && withtags){
+    unsigned int trimmed = 0;
+    out << trimEnd(buffer.substr(start,end-start), &trimmed);
+    closeTag(tagvalue, out);
+    if (trimmed < end-start)
+      out << buffer.substr(start+trimmed,end-start-trimmed);
+    return;
+  }
   else
     out << buffer.substr(start,end-start);
   if(withtags)
@@ -729,7 +777,11 @@ string normalizeDate(const string& buffer)
   if (beg == string::npos) return "";
   end = buffer.find_first_of(" \r\t\n", beg);
   if (end == string::npos) return "";
-  string month = MonthMapping[lowercase(buffer.substr(beg, end - beg))];
+  string month = buffer.substr(beg, end - beg);
+  if(month.find_first_not_of("0123456789") != string::npos)
+    month = MonthMapping[lowercase(month)];
+  else if(month.length() == 1)
+    month = "0" + month;
   if (month == "") return "";
   beg = buffer.find_first_of("0123456789", end);
   if (beg == string::npos) return "";
@@ -750,6 +802,11 @@ string lowercase(const string& word)
   return lower;
 }
 
+string trimEnd(const string& buf, unsigned int * trimmed)
+{
+  *trimmed = buf.find_last_not_of("`';:,.?!\{}[]\\|/<>-_°() \r\t\n") + 1;
+  return buf.substr(0,*trimmed);
+}
 
 string HeaderParser::addSemicolumnFormatTags(string text) const
 {
@@ -806,8 +863,16 @@ void SqueezeWords(string& buf)
 bool HeaderParser::errorTag(int tagvalue) const
 {
   switch(tagTipo(tagvalue)){
-  case sconosciuto:
-  case varie: return true;
+  case sconosciuto: return true;
+  default: return false;
+  }
+}
+
+bool HeaderParser::trimmedTag(int tagvalue) const
+{
+  switch(tagTipo(tagvalue)){
+  case numdoc:
+  case datadoc: return true;
   default: return false;
   }
 }
@@ -827,6 +892,7 @@ bool HeaderParser::noteTag(int tagvalue) const
 bool HeaderParser::ignoreTag(int tagvalue) const
 {
   switch(tagTipo(tagvalue)){
+  case varie: return true;
   default: return false;
   }
 }

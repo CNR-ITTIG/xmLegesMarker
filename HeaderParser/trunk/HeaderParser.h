@@ -34,6 +34,7 @@ class Month{
     return (k == mapping.end()) ? "" : k->second;
   }
 };
+
 std::string normalizeDate(const std::string& buffer);
 std::string lowercase(const std::string& word);
 void copyElements(const vector<int>& src, 
@@ -41,6 +42,7 @@ void copyElements(const vector<int>& src,
 		  unsigned int start, 
 		  unsigned int end);
 void SqueezeWords(string& buf);
+std::string trimEnd(const std::string& buf, unsigned int * trimmed);
 
 class HeaderParser
 {
@@ -108,6 +110,7 @@ class HeaderParser
 	       int * id = 0) const;
   void closeTag(int tagvalue, std::ostream& out) const;
   bool ignoreTag(int tagvalue) const;
+  bool trimmedTag(int tagvalue) const;
   bool errorTag(int tagvalue) const;
   bool noteTag(int tagvalue) const;
   bool formatTag(int tagvalue) const;
@@ -151,6 +154,13 @@ class HeaderParser
 			 unsigned int offset, 
 			 ostream& out,
 			 int * notes);
+  void savePubblicazione(const string& strbuffer, 
+			 int * states, 
+			 unsigned int statesnumber,
+			 const vector<int>& offsets, 
+			 unsigned int offset, 
+			 const hash_map<int,pair<int,int> >& tags);
+
 };
 
 #endif
