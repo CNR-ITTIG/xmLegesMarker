@@ -2,7 +2,7 @@
 #include <cassert>
 #include <cmath>
 #include <fstream>
-
+#define MAXFLOAT      3.40282347e+38F
 using namespace std;
 
 void HMM::train(vector<int> ** data, int numdata, double tolerance)
