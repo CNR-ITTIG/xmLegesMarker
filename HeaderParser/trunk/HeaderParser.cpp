@@ -133,6 +133,11 @@ void HeaderParser::init(istream& in)
 {
   int state,tag,open;
   string buf;
+  in >> buf >> m_ted >> ws;
+  if(buf != "TED"){
+    cerr << "ERROR in reading parser config file" << endl;
+    exit(1);
+  }
   if(!getline(in,buf) || buf != "HEADER"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
@@ -214,21 +219,38 @@ int HeaderParser::parseHeader(istream& in, ostream& out)
   return parseHeader(header, out);
 }
 
+string HeaderParser::removeTeds(const std::string& header, vector<string>& teds)
+{
+  if(!m_ted)
+    return header;
+  string buf = "";
+  int end = 0,beg = 0;
+  while((beg = header.find("||",end)) != string::npos){
+    buf += header.substr(end, beg - end);
+    end =  header.find("||",beg+1);
+    teds.push_back(header.substr(beg,end-beg+2));
+    end+=2;
+  }
+  buf += header.substr(end);
+  return buf;
+}
+
 int HeaderParser::parseHeader(const std::string& header, ostream& out) 
 {
-  string strbuffer = header;
+  vector<string> teds;
+  string strbuffer = removeTeds(header, teds);
   SqueezeWords(strbuffer);
   const char * buffer = strbuffer.c_str();
-  
+
   bool found = false;
   unsigned int last = 0, first = 0, offset = 0;
   int * states = NULL, * pub_states = NULL;
-  int notes = 1;
+  int notes = 1, curr_ted = 0;
 
   // extract terms
   vector<int> sequence, offsets;
   if(!header_extractor.buildExample(sequence, offsets, buffer, strlen(buffer), 0)){
-    defaultHeader(buffer, out);	
+    defaultHeader(header, out);	
     return notes;
   }
 
@@ -246,14 +268,14 @@ int HeaderParser::parseHeader(const std::string& header, ostream& out)
 	header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
 	savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, header_pubblicazione_tags);
 	if(hasCorrectStates(pub_states, pub_sequence.size()))
-	  last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, out, header_pubblicazione_tags, &notes);     
+	  last = saveTags(strbuffer, teds, &curr_ted, pub_states, pub_sequence.size(), offsets, offset, last, out, header_pubblicazione_tags, &notes);     
 	if(last < first-1)
-	  saveTag(sconosciuto, offsets[last], offsets[first], strbuffer, out); 	
+	  saveTag(sconosciuto, offsets[last], offsets[first], strbuffer, teds, &curr_ted, out); 	
 	last = first;
 	delete[] pub_states;
       }
       openTag(intestazione, out);
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, out, header_intestazione_tags);      
+      last = saveTags(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, header_intestazione_tags);      
       removeProcessedElements(sequence, last);
       offset += last + 1;
     }
@@ -273,7 +295,7 @@ int HeaderParser::parseHeader(const std::string& header, ostream& out)
 	copyElements(sequence, pub_sequence, 0, first-1);
 	header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
 	savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, header_pubblicazione_tags);
-	last = saveTitle(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, out, found, header_pubblicazione_tags, &notes);
+	last = saveTitle(strbuffer, teds, &curr_ted, pub_states, pub_sequence.size(), offsets, offset, last, out, found, header_pubblicazione_tags, &notes);
 	last++;
 	delete[] pub_states;
       }
@@ -286,7 +308,7 @@ int HeaderParser::parseHeader(const std::string& header, ostream& out)
 	}	  
       }
       openTag(formulainiziale,out);
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, out, header_formulainiziale_tags);      
+      last = saveTags(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, header_formulainiziale_tags);      
       closeTag(formulainiziale,out);
       removeProcessedElements(sequence, last);
       offset += last + 1;
@@ -295,7 +317,7 @@ int HeaderParser::parseHeader(const std::string& header, ostream& out)
     else{ // search pubblicazione, otherwise put all in titolodoc
       header_pubblicazione_model.viterbiPath(sequence, states, sequence.size());
       savePubblicazione(strbuffer, states, sequence.size(), offsets, offset, header_pubblicazione_tags);
-      last = saveTitle(strbuffer, states, sequence.size(), offsets, offset, last, out, found, header_pubblicazione_tags, &notes);
+      last = saveTitle(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, found, header_pubblicazione_tags, &notes);
       removeProcessedElements(sequence, last);
       offset += last + 1;
       found = true;
@@ -305,18 +327,20 @@ int HeaderParser::parseHeader(const std::string& header, ostream& out)
 
   // if nothing found print default header
   if(!found){
-    defaultHeader(buffer, out);	
+    defaultHeader(header, out);	
     return notes;
   }
   
   // put remains in error tag
   if (offset < offsets.size())
-    saveTag(sconosciuto, offsets[offset], strbuffer.length(), strbuffer, out); 
+    saveTag(sconosciuto, offsets[offset], strbuffer.length(), strbuffer, teds, &curr_ted, out); 
 
   return notes;
 }
 
 unsigned int HeaderParser::saveTitle(const string& strbuffer, 
+				     vector<string>& teds,
+				     int * curr_ted,
 				     int * states, 
 				     unsigned int statesnumber,
 				     const vector<int>& offsets, 
@@ -331,27 +355,27 @@ unsigned int HeaderParser::saveTitle(const string& strbuffer,
   // if no pubblicazione found
   if ((first = getFirstMatchingState(states, statesnumber, tags)) == statesnumber){
     if (found){ // if tipo previously found, consider text as title
-      saveTag(titolodoc, offsets[offset], offsets[offset+first], strbuffer, out); 	
+      saveTag(titolodoc, offsets[offset], offsets[offset+first], strbuffer, teds, curr_ted, out); 	
       closeTag(intestazione,out);
     }
     else{
       out << DEFAULT_INTESTAZIONE << endl;
-      saveTag(sconosciuto, offsets[offset], offsets[offset+first], strbuffer, out); 	
+      saveTag(sconosciuto, offsets[offset], offsets[offset+first], strbuffer, teds, curr_ted, out); 	
     }
     return first-1;
   }
   // else choose as title the longer part either before or after match
   last = getLastMatchingState(states, statesnumber, tags);
   if((statesnumber - last) > first){
-    saveTags(strbuffer, states, statesnumber, offsets, offset, state, out, tags, id);    
-    saveTag(titolodoc,offsets[offset+last+1], offsets[offset+statesnumber], strbuffer, out); 
+    saveTags(strbuffer, teds, curr_ted, states, statesnumber, offsets, offset, state, out, tags, id);    
+    saveTag(titolodoc,offsets[offset+last+1], offsets[offset+statesnumber], strbuffer, teds, curr_ted, out); 
     closeTag(intestazione,out);
     return statesnumber-1;
   }
   else{
-    saveTag(titolodoc,offsets[offset], offsets[offset+first], strbuffer, out); 
+    saveTag(titolodoc,offsets[offset], offsets[offset+first], strbuffer, teds, curr_ted, out); 
     closeTag(intestazione,out);
-    return saveTags(strbuffer, states, statesnumber, offsets, offset, first, out, tags, id);    
+    return saveTags(strbuffer, teds, curr_ted, states, statesnumber, offsets, offset, first, out, tags, id);    
   }
 }
 
@@ -407,17 +431,21 @@ int HeaderParser::parseFooter(istream& in, ostream& out, int notes)
   return parseFooter(footer.c_str(), out, notes);
 }
 
-int HeaderParser::parseFooter(const char * buffer, ostream& out, int notes) 
+int HeaderParser::parseFooter(const char * footer, ostream& out, int notes) 
 {
+  vector<string> teds;
+  string strbuffer = removeTeds((string)footer, teds);
+  SqueezeWords(strbuffer);
+  const char * buffer = strbuffer.c_str();
+
   bool found = false;
   unsigned int last = 0, offset = 0;
-  int * states = NULL;
+  int * states = NULL, curr_ted = 0;
 
   // extract terms
-  string strbuffer = buffer;
   vector<int> sequence, offsets, header_sequence, header_offsets;
   if(!footer_extractor.buildExample(sequence, offsets, buffer, strlen(buffer), 0)){
-    defaultFooter(buffer, out);	
+    defaultFooter(footer, out);	
     return notes;
   }
   header_extractor.buildExample(header_sequence, header_offsets, buffer, strlen(buffer), 0);
@@ -428,11 +456,11 @@ int HeaderParser::parseFooter(const char * buffer, ostream& out, int notes)
     footer_formulafinale_model.viterbiPath(sequence, states, sequence.size());
     if (hasCorrectStates(states, sequence.size())){
       if (!found){
-	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_formulafinale_tags, 
+	last = saveLastComma(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, out, footer_formulafinale_tags, 
 			     header_sequence, header_offsets, &notes);
 	found = true;
       }
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, out, footer_formulafinale_tags);
+      last = saveTags(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, footer_formulafinale_tags);
       removeProcessedElements(sequence, last);
       removeProcessedElements(header_sequence, last);
       offset += last + 1;
@@ -448,7 +476,7 @@ int HeaderParser::parseFooter(const char * buffer, ostream& out, int notes)
     if (hasCorrectStates(states, sequence.size())){
       last = 0;
       if (!found){
-	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_dataeluogo_tags,
+	last = saveLastComma(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, out, footer_dataeluogo_tags,
 			     header_sequence, header_offsets, &notes);
 	found = true;
 	openTag(formulafinale, out);
@@ -457,9 +485,9 @@ int HeaderParser::parseFooter(const char * buffer, ostream& out, int notes)
       }
       else{ // search for pubblicazione
 	last = getFirstMatchingState(states, sequence.size(), footer_dataeluogo_tags); 
-	findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, out, &notes);
+	findPubblicazione(strbuffer, teds, &curr_ted, header_sequence, last, header_offsets, offset, out, &notes);
       }
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, out, footer_dataeluogo_tags);
+      last = saveTags(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, footer_dataeluogo_tags);
       removeProcessedElements(sequence, last);
       removeProcessedElements(header_sequence, last);
       offset += last + 1;
@@ -474,7 +502,7 @@ int HeaderParser::parseFooter(const char * buffer, ostream& out, int notes)
     if (hasCorrectStates(states, sequence.size())){
       last = 0;
       if (!found){
-	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_sottoscrizioni_tags,
+	last = saveLastComma(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, out, footer_sottoscrizioni_tags,
 			     header_sequence, header_offsets, &notes);
 	found = true;
 	openTag(formulafinale, out);
@@ -483,10 +511,10 @@ int HeaderParser::parseFooter(const char * buffer, ostream& out, int notes)
       }      
       else{ // search for pubblicazione
 	last = getFirstMatchingState(states, sequence.size(), footer_sottoscrizioni_tags); 
-	findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, out, &notes);
+	findPubblicazione(strbuffer, teds, &curr_ted, header_sequence, last, header_offsets, offset, out, &notes);
       }
       openTag(sottoscrizioni, out);
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, out, footer_sottoscrizioni_tags);
+      last = saveTags(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, footer_sottoscrizioni_tags);
       found = true;
       if (!hasVisto(states, sequence.size())){
 	openTag(visto, out);
@@ -511,16 +539,16 @@ int HeaderParser::parseFooter(const char * buffer, ostream& out, int notes)
     if (hasCorrectStates(states, sequence.size())){
       last = 0;
       if (!found){
-	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_annessi_tags,
+	last = saveLastComma(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, out, footer_annessi_tags,
 			     header_sequence, header_offsets, &notes);
 	found = true;
 	out << DEFAULT_FOOTER << endl;
       }
       else{ // search for pubblicazione
 	last = getFirstMatchingState(states, sequence.size(), footer_annessi_tags); 
-	findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, out, &notes);
+	findPubblicazione(strbuffer, teds, &curr_ted, header_sequence, last, header_offsets, offset, out, &notes);
       }
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, out, footer_annessi_tags, &notes);
+      last = saveTags(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, footer_annessi_tags, &notes);
       found = true;
       removeProcessedElements(sequence, last);
       removeProcessedElements(header_sequence, last);
@@ -531,13 +559,13 @@ int HeaderParser::parseFooter(const char * buffer, ostream& out, int notes)
 
   // if nothing found print default footer
   if(!found){
-    defaultFooter(buffer, out);	
+    defaultFooter(footer, out);	
     return notes;
   }
   
   // put remains (annessi) in error tag
   if (offset < offsets.size())
-    saveTag(sconosciuto, offsets[offset], strbuffer.length(), strbuffer, out); 
+    saveTag(sconosciuto, offsets[offset], strbuffer.length(), strbuffer, teds, &curr_ted, out); 
   
   return notes;
 }
@@ -592,12 +620,14 @@ int HeaderParser::getLastMatchingState(int * states,
 }
 
 void HeaderParser::findPubblicazione(const string& strbuffer, 
-				    const vector<int>& sequence, 
-				    int first,
-				    const vector<int>& offsets, 
-				    unsigned int offset, 
-				    ostream& out,
-				    int * notes)
+				     vector<string>& teds,
+				     int * curr_ted,
+				     const vector<int>& sequence, 
+				     int first,
+				     const vector<int>& offsets, 
+				     unsigned int offset, 
+				     ostream& out,
+				     int * notes)
 {
   if (first == 0)
     return;
@@ -609,13 +639,15 @@ void HeaderParser::findPubblicazione(const string& strbuffer,
   header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
   savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, header_pubblicazione_tags);
   if(hasCorrectStates(pub_states, pub_sequence.size()))
-    last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, 0, out, header_pubblicazione_tags, notes);     
+    last = saveTags(strbuffer, teds, curr_ted, pub_states, pub_sequence.size(), offsets, offset, 0, out, header_pubblicazione_tags, notes);     
   if(last < first-1)
-    saveTag(sconosciuto, offsets[offset+last], offsets[offset+first], strbuffer, out); 	
+    saveTag(sconosciuto, offsets[offset+last], offsets[offset+first], strbuffer, teds, curr_ted, out); 	
   delete[] pub_states;
 }   
 
 unsigned int HeaderParser::saveLastComma(const string& strbuffer, 
+					 vector<string>& teds,
+					 int * curr_ted,
 					 int * states, 
 					 unsigned int statesnumber,
 					 const vector<int>& offsets, 
@@ -638,12 +670,12 @@ unsigned int HeaderParser::saveLastComma(const string& strbuffer,
   header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
   int first = getFirstMatchingState(pub_states, pub_sequence.size(), header_pubblicazione_tags);
   if (first == pub_sequence.size())
-    out <<  "<comma>" << strbuffer.substr(offsets[offset], offsets[offset+state]-offsets[offset]) << "\n</comma>\n";
+    out <<  "<comma>" << addTeds(strbuffer.substr(offsets[offset], offsets[offset+state]-offsets[offset]), teds, curr_ted) << "\n</comma>\n";
   else{
-    out <<  "<comma>" << strbuffer.substr(offsets[offset], offsets[offset+first]-offsets[offset]) << "\n</comma>\n";
-    int last = saveTags(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, first, out, header_pubblicazione_tags, notes);     
+    out <<  "<comma>" << addTeds(strbuffer.substr(offsets[offset], offsets[offset+first]-offsets[offset]), teds, curr_ted) << "\n</comma>\n";
+    int last = saveTags(strbuffer, teds, curr_ted, pub_states, pub_sequence.size(), header_offsets, offset, first, out, header_pubblicazione_tags, notes);     
     if(last < state-1)
-      saveTag(sconosciuto, offsets[offset+last], offsets[offset+state], strbuffer, out); 	
+      saveTag(sconosciuto, offsets[offset+last], offsets[offset+state], strbuffer, teds, curr_ted, out); 	
   }
   delete[] pub_states;
   return state;
@@ -657,6 +689,8 @@ void HeaderParser::removeProcessedElements(vector<int>& sequence, int last)
 }
 
 unsigned int HeaderParser::saveTags(const string& strbuffer, 
+				    vector<string>& teds,
+				    int * curr_ted,
 				    int * states, 
 				    unsigned int statesnumber,
 				    const vector<int>& offsets, 
@@ -686,7 +720,7 @@ unsigned int HeaderParser::saveTags(const string& strbuffer,
 	((statetag->second).second > -2) &&
 	((statetag->second).second > 0 || (statetag->second).first != currtag)){
       if(currtag != -1)
-	saveTag(currtag, start, offsets[state+offset], strbuffer, out, ((currstatetag->second).second > -1), id);
+	saveTag(currtag, start, offsets[state+offset], strbuffer, teds, curr_ted, out, ((currstatetag->second).second > -1), id);
       currstatetag = statetag;
       currtag = (statetag->second).first;
       start = offsets[state+offset];
@@ -694,7 +728,7 @@ unsigned int HeaderParser::saveTags(const string& strbuffer,
     if (state == last){
       if(currtag != -1){
 	//if(last < statesnumber-1)
-	  saveTag(currtag, start, offsets[state+offset+1], strbuffer, out, ((currstatetag->second).second != -1), id);
+	  saveTag(currtag, start, offsets[state+offset+1], strbuffer, teds, curr_ted, out, ((currstatetag->second).second != -1), id);
 	  //else
 	  //saveTag(currtag, start, strbuffer.length(), strbuffer, out, ((currstatetag->second).second > -1));
       }
@@ -705,8 +739,10 @@ unsigned int HeaderParser::saveTags(const string& strbuffer,
 
 void  HeaderParser::defaultFooter(std::string footer, ostream& out) const
 {
-  unsigned int dot = footer.find('.');
+  unsigned int dot = footer.find('.'), ted = 0;
   if(dot != string::npos){  
+    if(m_ted)
+      dot = footer.find("\n",dot);
     out <<  "<comma>" << footer.substr(0, dot+1) << "\n</comma>\n";
     if (footer.substr(dot+1).find_first_not_of(" \n\t\r") != string::npos)
       out << "<?error\n" << footer.substr(dot+1) << "\n?>\n"; 
@@ -728,38 +764,46 @@ void HeaderParser::saveTag(int tagvalue,
 			   int start,
 			   int end,
 			   const string& buffer,
+			   vector<string>& teds,
+			   int * curr_ted,
 			   ostream& out,
 			   bool withtags,
 			   int * id) const 
 {
   if(errorTag(tagvalue) || noteTag(tagvalue)){
-    out <<  "<?error\n" << buffer.substr(start,end-start) << "\n?>" << endl;
+    out <<  "<?error\n" << addTeds(buffer.substr(start,end-start), teds, curr_ted) << "\n?>" << endl;
     return;
   }
   if(ignoreTag(tagvalue)){
-    out << buffer.substr(start,end-start) << endl;
+    out << addTeds(buffer.substr(start,end-start), teds, curr_ted) << endl;
     return;
   }
   if(withtags)
     openTag(tagvalue, out, buffer.substr(start,end-start), id);
   if(formatTag(tagvalue)){
     if(tagvalue == preambolo)
-      out << addSemicolumnFormatTags(buffer.substr(start,end-start));
+      out << addSemicolumnFormatTags(buffer.substr(start,end-start), teds, curr_ted);
     else
-      out << addFormatTags(buffer.substr(start,end-start));
+      out << addFormatTags(buffer.substr(start,end-start), teds, curr_ted);
   }
-  else if(tagvalue == formulafinale)
-    out << "<h:p> " << buffer.substr(start,buffer.find_last_not_of(" \r\n\t", end-1)-start+1) << " </h:p>\n";
+  else if(tagvalue == formulafinale){
+    int last = buffer.find_last_not_of(" \r\n\t", end-1);
+    out << "<h:p> " << buffer.substr(start,last-start+1) << " </h:p>";
+    if(m_ted && teds.size() > 0)   
+      out << teds[(*curr_ted)++];
+    out << endl;
+    out << addTeds(buffer.substr(last+1, end-last-1), teds, curr_ted);
+  }
   else if(trimmedTag(tagvalue) && withtags){
     unsigned int trimmed = 0;
     out << trimEnd(buffer.substr(start,end-start), &trimmed);
     closeTag(tagvalue, out);
     if (trimmed < end-start)
-      out << buffer.substr(start+trimmed,end-start-trimmed);
+      out << addTeds(buffer.substr(start+trimmed,end-start-trimmed), teds, curr_ted);
     return;
   }
   else
-    out << buffer.substr(start,end-start);
+    out << addTeds(buffer.substr(start,end-start), teds, curr_ted);
   if(withtags)
     closeTag(tagvalue, out);
 }
@@ -808,7 +852,7 @@ string trimEnd(const string& buf, unsigned int * trimmed)
   return buf.substr(0,*trimmed);
 }
 
-string HeaderParser::addSemicolumnFormatTags(string text) const
+string HeaderParser::addSemicolumnFormatTags(string text, vector<string>& teds, int * curr_ted) const
 {
   istringstream in(text);
   string line, out, buf;
@@ -817,7 +861,10 @@ string HeaderParser::addSemicolumnFormatTags(string text) const
   while(getline(in, line)){
     unsigned int semicolumn = line.find(";");
     if(semicolumn != string::npos){
-      out += "<h:p> " + buf + line.substr(0,semicolumn+1) + " </h:p>\n";
+      out += "<h:p> " + buf + line.substr(0,semicolumn+1) + " </h:p>";
+      if(m_ted && teds.size() > 0)
+	out += teds[(*curr_ted)++];
+      out += "\n";
       if(semicolumn < line.length()-1)
 	buf = line.substr(semicolumn+1);
       else
@@ -825,22 +872,42 @@ string HeaderParser::addSemicolumnFormatTags(string text) const
       continue;
     }
     if (line.find_first_not_of(" \n\t\r") != string::npos)
-      buf += line + "\n";
+      buf += line;
+    if(m_ted && teds.size() > 0)
+      (*curr_ted)++;
   }
   if ((end = buf.find_last_not_of(" \n\t\r")) != string::npos)
     out += "<h:p> " + buf.substr(0,end+1) + " </h:p>\n";
   return out;
 }
 
-string HeaderParser::addFormatTags(string buf) const
+string HeaderParser::addFormatTags(string buf, vector<string>& teds, int * curr_ted) const
 {
   istringstream in(buf);
   string line, out;
 
   while(getline(in, line))
-    if (line.find_first_not_of(" \n\t\r") != string::npos)
-      out += "<h:p> " + line + " </h:p>\n";
+    if (line.find_first_not_of(" \n\t\r") != string::npos){
+      out += "<h:p> " + line + " </h:p>";
+      if(m_ted && teds.size() > 0)
+	out += teds[(*curr_ted)++];
+      out += "\n";
+    }
   return out;
+}
+
+string HeaderParser::addTeds(string buf, vector<string>& teds, int * curr_ted) const
+{
+  if (!m_ted || teds.size() == 0 )
+    return buf;
+  
+  int beg = 0;
+  while((beg = buf.find("\n", beg)) != string::npos){
+    string ted = teds[(*curr_ted)++];
+    buf.insert(beg, ted);
+    beg += ted.size() + 1;
+  } 
+  return buf;
 }
 
 

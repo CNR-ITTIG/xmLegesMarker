@@ -8,7 +8,8 @@ ARLIBS=${LIBDIR}/liblexer.a $(LIBDIR)/libFeatureExtractor.a $(LIBDIR)/libhmm.a
 LIBS=-L$(LIBDIR) -lFeatureExtractor -llexer -lhmm
 OBJECTS = HeaderParser.o
 CFLAGS=-ggdb -Wno-deprecated -I$(INCLUDEDIR)
-COMPILEXX = g++ -O3 $(CFLAGS)
+OPT = -O3
+COMPILEXX = g++ $(OPT) $(CFLAGS)
 TARGETBIN = HeaderParser
 
 all : default ${TARGETBIN} lib

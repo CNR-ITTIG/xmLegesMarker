@@ -46,6 +46,7 @@ std::string trimEnd(const std::string& buf, unsigned int * trimmed);
 
 class HeaderParser
 {
+  bool m_ted;
   HMM header_intestazione_model;
   HMM header_pubblicazione_model;
   HMM header_formulainiziale_model;
@@ -88,6 +89,8 @@ class HeaderParser
     
  protected:
   unsigned int saveTitle(const string& strbuffer, 
+			 vector<string>& teds,
+			 int * curr_ted,
 			 int * states, 
 			 unsigned int statesnumber,
 			 const vector<int>& offsets, 
@@ -101,6 +104,8 @@ class HeaderParser
 	       int start,
 	       int end,
 	       const std::string& buffer,
+	       vector<string>& teds,
+	       int * curr_ted,
 	       std::ostream& out,
 	       bool withtags = true, 
 	       int * id = 0) const;
@@ -116,12 +121,18 @@ class HeaderParser
   bool formatTag(int tagvalue) const;
   void openContextTags(int tagvalue, ostream& out) const;
   void closeContextTags(int tagvalue, ostream& out) const;
-  std::string addFormatTags(std::string buf) const;
-  std::string addSemicolumnFormatTags(std::string buf) const;
+  std::string addFormatTags(std::string buf,
+			    vector<string>& teds,
+			    int * curr_ted) const;
+  std::string addSemicolumnFormatTags(std::string buf,
+				      vector<string>& teds,
+				      int * curr_ted) const;
   void init(std::istream& in);
   void defaultFooter(std::string footer, std::ostream& out) const;
   void defaultHeader(std::string header, ostream& out) const;
   unsigned int saveLastComma(const std::string& strbuffer, 
+			     vector<string>& teds,
+			     int * curr_ted,			  
 			     int * states, 
 			     unsigned int statesnumber,
 			     const std::vector<int>& offsets, 
@@ -132,6 +143,8 @@ class HeaderParser
 			     const vector<int>& header_offsets, 
 			     int * notes) const;
   unsigned int saveTags(const std::string& strbuffer, 
+			vector<string>& teds,
+			int * curr_ted,
 			int * states, 
 			unsigned int statesnumber,
 			const std::vector<int>& offsets, 
@@ -148,6 +161,8 @@ class HeaderParser
 			   unsigned int statesnumber,
 			   const hash_map<int,pair<int,int> >& tags) const;
   void findPubblicazione(const string& strbuffer, 
+			 vector<string>& teds,
+			 int * curr_ted,
 			 const vector<int>& sequence, 
 			 int first,
 			 const vector<int>& offsets, 
@@ -160,7 +175,8 @@ class HeaderParser
 			 const vector<int>& offsets, 
 			 unsigned int offset, 
 			 const hash_map<int,pair<int,int> >& tags);
-
+  string removeTeds(const std::string& header, vector<string>& teds);
+  string addTeds(string buf, vector<string>& teds, int * curr_ted) const;
 };
 
 #endif
