@@ -11,14 +11,7 @@ CFLAGS=-ggdb -Wall -I$(INCLUDEDIR)
 COMPILEXX = g++ -O3 $(CFLAGS)
 TARGETBIN = HeaderParser
 
-#all : featExt hmm ${TARGETBIN} lib
 all : ${TARGETBIN} lib
-
-featExt:
-	cd ../FeatureExtractor && $(MAKE) install
-
-hmm:
-	cd ../HMM && $(MAKE) install
 
 lib : ${OBJECTS}
 	${MAKELIB} ${TARGETLIB} $+ $(ARLIBS)
@@ -39,5 +32,3 @@ install : all
 
 clean:
 	rm *.o *.a ${TARGETBIN} -f  *~
-	cd ../FeatureExtractor && $(MAKE) clean
-	cd ../HMM && $(MAKE) clean
