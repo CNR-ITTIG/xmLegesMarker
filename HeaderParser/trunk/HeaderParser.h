@@ -52,15 +52,6 @@ class HeaderParser
   hash_map<int,pair<int,bool> > footer_sottoscrizioni_tags;
 
  public:
-  HeaderParser(const char * header_model_file,
-		  const char * footer_formulafinale_model_file,
-		  const char * footer_dataeluogo_model_file,
-		  const char * footer_sottoscrizioni_model_file,
-		  const char * header_extractor_model_file,
-		  const char * header_extractor_config_file,
-		  const char * footer_extractor_model_file,
-		  const char * footer_extractor_config_file,
-		  const char * parser_config_file);
   HeaderParser(std::string model_dir,
 	       std::string header_model_file = "header_model",
 	       std::string footer_formulafinale_model_file = "footer_formulafinale_model",

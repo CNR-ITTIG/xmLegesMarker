@@ -11,7 +11,10 @@ CFLAGS=-ggdb -Wall -I$(INCLUDEDIR)
 COMPILEXX = g++ -O3 $(CFLAGS)
 TARGETBIN = HeaderParser
 
-all : ${TARGETBIN} lib
+all : default ${TARGETBIN} lib
+
+default :
+	./loadDefaults.sh
 
 lib : ${OBJECTS}
 	${MAKELIB} ${TARGETLIB} $+ $(ARLIBS)

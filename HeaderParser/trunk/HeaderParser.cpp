@@ -2,6 +2,7 @@
 #include "../ParserStruttura/tag.h"
 #include <fstream>
 #include <assert.h>
+#include "Default.h"
 
 using namespace std;
 
@@ -19,97 +20,80 @@ HeaderParser::HeaderParser(std::string modeldir,
 			   std::string parser_config_file)
 {
   ifstream in((modeldir + "/" + header_model_file).c_str());
-  assert(in.good());
-  in >> header_model;
-  in.close();
+  if(in.good()){
+    in >> header_model;
+    in.close();
+  }
+  else{
+    istringstream in_s(header_model_default);
+    in_s >> header_model;
+  }
 
   ifstream in2((modeldir + "/" + footer_formulafinale_model_file).c_str());
-  assert(in2.good());
-  in2 >> footer_formulafinale_model;
-  in2.close();
+  if(in2.good()){
+    in2 >> footer_formulafinale_model;
+    in2.close();
+  }
+  else{
+    istringstream in_s(footer_formulafinale_model_default);
+    in_s >> footer_formulafinale_model;
+  }
 
   ifstream in6((modeldir + "/" + footer_dataeluogo_model_file).c_str());
-  assert(in6.good());
-  in6 >> footer_dataeluogo_model;
-  in6.close();
+  if(in6.good()){
+    in6 >> footer_dataeluogo_model;
+    in6.close();
+  }
+  else{
+    istringstream in_s(footer_dataeluogo_model_default);
+    in_s >> footer_dataeluogo_model;
+  }
 
   ifstream in7((modeldir + "/" + footer_sottoscrizioni_model_file).c_str());
-  assert(in7.good());
-  in7 >> footer_sottoscrizioni_model;
-  in7.close();
+  if(in7.good()){
+    in7 >> footer_sottoscrizioni_model;
+    in7.close();
+  }
+  else{
+    istringstream in_s(footer_sottoscrizioni_model_default);
+    in_s >> footer_sottoscrizioni_model;
+  }
 
   ifstream in3((modeldir + "/" + header_extractor_model_file).c_str());
-  assert(in3.good());
   ifstream in3_config((modeldir + "/" + header_extractor_config_file).c_str());
-  assert(in3_config.good());
-  header_extractor(in3_config, in3);
-  in3.close();
-  in3_config.close();
-
+  if(in3.good() && in3_config.good()){
+    header_extractor(in3_config, in3);
+    in3.close();
+    in3_config.close();
+  }
+  else{
+    istringstream in_s(header_extractor_model_default);
+    istringstream in_sc(header_extractor_config_default);
+    header_extractor(in_sc, in_s);
+  }
+  
   ifstream in4((modeldir + "/" + footer_extractor_model_file).c_str());
-  assert(in4.good());
   ifstream in4_config((modeldir + "/" + footer_extractor_config_file).c_str());
-  assert(in4_config.good());
-  footer_extractor(in4_config, in4);
-  in4.close();
-  in4_config.close();
+  if(in4.good() && in4_config.good()){
+    footer_extractor(in4_config, in4);
+    in4.close();
+    in4_config.close();
+  }
+  else{
+    istringstream in_s(footer_extractor_model_default);
+    istringstream in_sc(footer_extractor_config_default);
+    footer_extractor(in_sc, in_s);
+  }
 
   ifstream in5_config((modeldir + "/" + parser_config_file).c_str());
-  assert(in5_config.good());
-  init(in5_config);
-  in5_config.close();
-}
-
-HeaderParser::HeaderParser(const char * header_model_file,
-			   const char * footer_formulafinale_model_file,
-			   const char * footer_dataeluogo_model_file,
-			   const char * footer_sottoscrizioni_model_file,
-			   const char * header_extractor_model_file,
-			   const char * header_extractor_config_file,
-			   const char * footer_extractor_model_file,
-			   const char * footer_extractor_config_file,
-			   const char * parser_config_file)
-{
-  ifstream in(header_model_file);
-  assert(in.good());
-  in >> header_model;
-  in.close();
-
-  ifstream in2(footer_formulafinale_model_file);
-  assert(in2.good());
-  in2 >> footer_formulafinale_model;
-  in2.close();
-
-  ifstream in6(footer_dataeluogo_model_file);
-  assert(in6.good());
-  in6 >> footer_dataeluogo_model;
-  in6.close();
-
-  ifstream in7(footer_sottoscrizioni_model_file);
-  assert(in7.good());
-  in7 >> footer_sottoscrizioni_model;
-  in7.close();
-
-  ifstream in3(header_extractor_model_file);
-  assert(in3.good());
-  ifstream in3_config(header_extractor_config_file);
-  assert(in3_config.good());
-  header_extractor(in3_config, in3);
-  in3.close();
-  in3_config.close();
-
-  ifstream in4(footer_extractor_model_file);
-  assert(in4.good());
-  ifstream in4_config(footer_extractor_config_file);
-  assert(in4_config.good());
-  footer_extractor(in4_config, in4);
-  in4.close();
-  in4_config.close();
-
-  ifstream in5_config(parser_config_file);
-  assert(in5_config.good());
-  init(in5_config);
-  in5_config.close();
+  if(in5_config.good()){
+    init(in5_config);
+    in5_config.close();
+  }
+  else{
+    istringstream in_sc(parser_config_default);
+    init(in_sc);
+  }
 }
 
 void HeaderParser::init(istream& in)
@@ -576,7 +560,7 @@ int main(int argc, char* argv[]) {
   char *r = rindex(argv[0], '/');
   if (r) *r = 0; else r = rindex(argv[0], '\\');
   if (r) *r = 0;
-  string workdir = argv[0];
+  string workdir = (string)argv[0] + "/Models";
   string config_files[] = { "header_model",
 			    "footer_formulafinale_model",
 			    "footer_dataeluogo_model",
@@ -607,16 +591,16 @@ int main(int argc, char* argv[]) {
 	 while(++arg < argc)
 	   config_files[i++] = argv[arg];
        }
-
-       HeaderParser parser((workdir + "/" + config_files[0]).c_str(),
-			   (workdir + "/" + config_files[1]).c_str(),
-			   (workdir + "/" + config_files[2]).c_str(),
-			   (workdir + "/" + config_files[3]).c_str(),
-			   (workdir + "/" + config_files[4]).c_str(),
-			   (workdir + "/" + config_files[5]).c_str(),
-			   (workdir + "/" + config_files[6]).c_str(),
-			   (workdir + "/" + config_files[7]).c_str(),
-			   (workdir + "/" + config_files[8]).c_str());
+       
+       HeaderParser parser(workdir,
+			   config_files[1],
+			   config_files[2],
+			   config_files[3],
+			   config_files[4],
+			   config_files[5],
+			   config_files[6],
+			   config_files[7],
+			   config_files[8]);
 
        if (!strcmp(command, "-header"))
 	 parser.parseHeader(cin, cout);
