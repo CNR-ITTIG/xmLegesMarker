@@ -4,6 +4,8 @@
 #include <HMM.h>
 #include <TextSequenceFeatureExtractor.h>
 
+#define THRESHOLD -1e10
+
 using namespace std;
 
 class HeaderParser
@@ -34,11 +36,15 @@ class HeaderParser
 	       int start,
 	       int end,
 	       const std::string& buffer) const;
-  void parse(const char * buffer, 
+  void openTag(int tagvalue) const;
+  void closeTag(int tagvalue) const;
+  bool ignoreTag(int tagvalue) const;
+  bool parse(const char * buffer, 
 	     int offset, 
 	     const HMM& model, 
 	     const hash_map<int,int>& tags,
-	     TextSequenceFeatureExtractor& extractor);
+	     TextSequenceFeatureExtractor& extractor,
+	     bool header = true);
   void init(std::istream& in);
 
 };

@@ -66,20 +66,24 @@ void HeaderParser::init(istream& in)
 
 void HeaderParser::parseHeader(const char * header) 
 {
-  parse(header, 0, header_model, header_tags, header_extractor);
+  if (!parse(header, 0, header_model, header_tags, header_extractor))
+    cout << header;
 }
 
 void HeaderParser::parseHeader(istream& in) 
 {
   string header,buf;
   while(getline(in, buf))
-    header += buf + "\n";  
-  parse(header.c_str(), 0, header_model, header_tags, header_extractor);
+    header += buf + "\n";
+  parseHeader(header.c_str());
 }
 
 void HeaderParser::parseFooter(const char * footer, int offset) 
 {
-  parse(footer, offset, footer_model, footer_tags, footer_extractor); 
+  if (parse(footer, offset, footer_model, footer_tags, footer_extractor, false))
+    closeTag(conclusione);
+  else
+    cout << footer;
 }
 
 void HeaderParser::parseFooter(istream& in, int offset) 
@@ -87,24 +91,27 @@ void HeaderParser::parseFooter(istream& in, int offset)
   string footer,buf;
   while(getline(in, buf))
     footer += buf + "\n";  
-  parse(footer.c_str(), offset, footer_model, footer_tags, footer_extractor);
+  parseFooter(footer.c_str(), offset);
 }
 
-void HeaderParser::parse(const char * buffer, 
-			    int offset, 
-			    const HMM& model, 
-			    const hash_map<int,int>& tags,
-			    TextSequenceFeatureExtractor& extractor) 
+bool HeaderParser::parse(const char * buffer, 
+			 int offset, 
+			 const HMM& model, 
+			 const hash_map<int,int>& tags,
+			 TextSequenceFeatureExtractor& extractor,
+			 bool header) 
 {
   string strbuffer = buffer;
   vector<int> sequence, offsets;
-  if(!extractor.buildExample(sequence, offsets, buffer, strlen(buffer), 0)){
-    cerr << "ERROR: couldn't parse sequence\n" << buffer << endl;
-    exit(1);
-  }
+  if(!extractor.buildExample(sequence, offsets, buffer, strlen(buffer), 0))
+    return false;
   int states[sequence.size()];
-  model.viterbiPath(sequence, states, sequence.size());
+  if (model.viterbiPath(sequence, states, sequence.size()) < THRESHOLD)
+    return false;
   int currtag = -1, start = -1;
+
+  if(header)
+    openTag(intestazione);
 
   for(int i = 0; i < sequence.size(); i++){
     hash_map<int,int>::const_iterator statetag = tags.find(states[i]);
@@ -112,7 +119,7 @@ void HeaderParser::parse(const char * buffer,
       cerr << "ERROR: state " << states[i] << " has no matching tag" << endl;
       exit(1);
     }
-    if((statetag->second != currtag) || (i == sequence.size()-1)){
+    if(statetag->second != currtag){
       if(currtag != -1){
 #ifndef HEADERPARSER
 	saveTag(currtag, start, offset + offsets[i]-1, strbuffer);
@@ -123,7 +130,17 @@ void HeaderParser::parse(const char * buffer,
       currtag = statetag->second;
       start = offset + offsets[i];
     }
+    if (i == sequence.size()-1){
+      if(currtag != -1){
+#ifndef HEADERPARSER
+	saveTag(currtag, start, offset + strlen(buffer)-1, strbuffer);
+#else
+	saveTag(currtag, start-offset, strlen(buffer)-1, strbuffer);
+#endif
+      }
+    }
   }
+  return true;
 }
 
 void HeaderParser::saveTag(int tagvalue,
@@ -131,15 +148,48 @@ void HeaderParser::saveTag(int tagvalue,
 			   int end,
 			   const string& buffer) const 
 {
+  if(ignoreTag(tagvalue)){
+    cout <<  buffer.substr(start,end-start+1) << endl;
+    return;
+  }
 #ifndef HEADERPARSER
   tag * tagstruct = tagInit(tagTipo(tagvalue), start, end, 0.);
   tagMemorizza(tagstruct);
 #else
-  cout << "<" << tagName(tagvalue) << ">" 
+  cout << "<" << tagName(tagvalue) << ">" << endl
        << buffer.substr(start,end-start+1) 
        << "</" << tagName(tagvalue) << ">" << endl;
+  if(tagvalue == titolodoc)
+    closeTag(intestazione);
+  if(tagvalue == formulafinale)
+    openTag(conclusione);
 #endif
 }
+
+
+bool HeaderParser::ignoreTag(int tagvalue) const
+{
+  switch(tagTipo(tagvalue)){
+  case varie:
+  case pubblicazione: return true;
+  default: return false;
+  }
+}
+
+void HeaderParser::openTag(int tagvalue) const
+{
+#ifdef HEADERPARSER
+  cout << "<" << tagName(tagvalue) << ">" << endl;
+#endif
+}
+
+void HeaderParser::closeTag(int tagvalue) const
+{
+#ifdef HEADERPARSER
+  cout << "</" << tagName(tagvalue) << ">" << endl;
+#endif
+}
+
 
 const char * HeaderParser::tagName(int tagvalue)
 {
@@ -167,7 +217,10 @@ const char * HeaderParser::tagName(int tagvalue)
   case sottoscrizioni: return "sottoscrizioni";
   case pubblicazione: return "pubblicazione";
   case emanante: return "emanante";
-  case varie:
+  case conclusione: return "conclusione";
+  case intestazione: return "intestazione";
+  case annessi: return "annessi";
+  case varie: return "varie";
   default: return "";
   }
 }
