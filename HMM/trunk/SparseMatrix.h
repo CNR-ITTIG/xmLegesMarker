@@ -1,6 +1,6 @@
 #ifndef __SPARSEMATRIX_H
 #define __SPARSEMATRIX_H
-#include <values.h>
+#include <limits.h>
 #include <iostream>
 #include <sstream>
 #include <vector>
