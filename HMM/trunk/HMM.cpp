@@ -14,7 +14,49 @@ void HMM::train(vector<int> ** data, int numdata, double tolerance)
   computeLogs(A);
   computeLogs(B);
   computeLogs(S);
-  
+}
+
+void HMM::trainLabelled(std::istream& in)
+{
+  std::string buf;
+  int row = 0;
+  while(getline(in, buf)){
+    int beg = 0, end = 0, oldstate = -1, newstate = -1;
+    cout << "Processing row " << row++ << endl;
+    while(beg < buf.length()){
+      end = buf.find(":", beg);
+      if (end == string::npos) break;
+      newstate = atoi(buf.substr(beg, end-beg).c_str());
+      // if first state in row add to begin probabilities
+      if(oldstate == -1)
+	(S(newstate,0))+=1;
+      // else add to transition probabilities
+      else
+	(A(oldstate,newstate))+=1;
+      beg = end+1;
+      end = buf.find(" ", beg);
+      if (end == string::npos) end = buf.length();
+      int value = atoi(buf.substr(beg, end-beg).c_str());
+      // add to emission probabilities
+      (B(newstate,value))+=1;
+      beg = end+1;
+      oldstate = newstate;
+    }
+    // add last state to endstates 
+    if(isLeftRightModel && newstate != -1)
+      endState.insert(newstate);
+  }
+  computeProbabilities();
+}
+
+void HMM::computeProbabilities()
+{
+  A = A.NormR();
+  B = B.NormR();
+  S = S.NormC();
+  computeLogs(A);
+  computeLogs(B);
+  computeLogs(S);
 }
 
 void HMM::test(vector<int> ** data, int numdata) const
@@ -276,6 +318,8 @@ double HMM::viterbiPath(const vector<int>& sequence, int * states, int T) const
   SparseMatrix<int> psi;
   for(SparseMatrix<Element>::SparseMapConstIterator k = S.elements_map_.begin();  k != S.elements_map_.end(); k++){
     Element b = B((k->first).r,sequence[0]);
+    if(b.value == 0) //if symbol has zero probability try default emission probability (0)
+      b = B((k->first).r,0);
     if(b.value != 0)
       delta.insert(make_pair((k->first).r,(k->second).logvalue+b.logvalue));
   }
@@ -285,10 +329,18 @@ double HMM::viterbiPath(const vector<int>& sequence, int * states, int T) const
   // termination
   float max = -MAXFLOAT;
   if(isLeftRightModel){
-    hash_map<int,float>::iterator k = delta.find(endState);
-    if(k != delta.end())
-      max = k->second;
-    states[T-1] = endState;
+    for(hash_set<int>::const_iterator s = endState.begin(); s != endState.end(); s++){
+      hash_map<int,float>::iterator k = delta.find(*s);
+      if(k != delta.end() && k->second > max){
+	max = k->second;
+	states[T-1] = *s;
+      }
+    }
+    if (max == -MAXFLOAT){
+      for (int t = T - 1; t >= 0; t--)
+	states[t] = -1;
+      return max;
+    }
   }
   else{
     for(hash_map<int, float>::iterator k = delta.begin(); k != delta.end(); k++)
@@ -310,6 +362,8 @@ double HMM::viterbiPath(int* sequence, int * states, int T) const
   SparseMatrix<int> psi;
   for(SparseMatrix<Element>::SparseMapConstIterator k = S.elements_map_.begin();  k != S.elements_map_.end(); k++){
     Element b = B((k->first).r,sequence[0]);
+    if(b.value == 0) //if symbol has zero probability try default emission probability (0)
+      b = B((k->first).r,0);
     if(b.value != 0)
       delta.insert(make_pair((k->first).r,(k->second).logvalue+b.logvalue));
   }
@@ -319,10 +373,18 @@ double HMM::viterbiPath(int* sequence, int * states, int T) const
   // termination
   float max = -MAXFLOAT;
   if(isLeftRightModel){
-    hash_map<int,float>::iterator k = delta.find(endState);
-    if(k != delta.end())
-      max = k->second;
-    states[T-1] = endState;
+    for(hash_set<int>::const_iterator s = endState.begin(); s != endState.end(); s++){
+      hash_map<int,float>::iterator k = delta.find(*s);
+      if(k != delta.end() && k->second > max){
+	max = k->second;
+	states[T-1] = *s;
+      }
+    }
+    if (max == -MAXFLOAT){
+      for (int t = T - 1; t >= 0; t--)
+	states[t] = -1;
+      return max;
+    }
   }
   else{
     for(hash_map<int, float>::iterator k = delta.begin(); k != delta.end(); k++)
@@ -341,7 +403,10 @@ ostream & operator<<(ostream &out, const HMM& hmm)
     hmm.A.Write(out);
     hmm.B.Write(out);
     hmm.S.Write(out);
-    out << hmm.isLeftRightModel << " " << hmm.endState;
+    out << hmm.isLeftRightModel << " " << hmm.endState.size() << endl;
+    for(hash_set<int>::const_iterator s = hmm.endState.begin(); s != hmm.endState.end(); s++)
+      out << *s << " ";
+    out << endl;
     return out;
 }
 
@@ -350,7 +415,13 @@ istream & operator>>(std::istream &in, HMM& hmm)
   hmm.A.Read(in);
   hmm.B.Read(in);
   hmm.S.Read(in);
-  in >> hmm.isLeftRightModel >> hmm.endState;
+  int endstates = 0, endstate = 0;
+  in >> hmm.isLeftRightModel >> endstates >> ws;
+  for(int i = 0; i < endstates; i++){
+    in >> endstate;
+    hmm.endState.insert(endstate);
+  }
+  in >> ws;
   return in;
 }
 
@@ -358,6 +429,12 @@ void HMM::viterbiPath(int symbol, SparseMatrix<int>& psi, hash_map<int,float>& d
 {
   hash_map<int,float> delta_new;
   hash_map<int,Element> col = B.getCol(symbol);
+  // add default emission probabilities for states with emission for symbol
+  hash_map<int,Element> defaultCol = B.getCol(0);
+  for(hash_map<int,Element>::iterator h = defaultCol.begin(); h != defaultCol.end(); h++){    
+    if(col.find(h->first) == col.end())
+      col.insert(*h);
+  }
   for(hash_map<int,Element>::iterator h = col.begin(); h != col.end(); h++){    
     float max = -MAXFLOAT;
     for(hash_map<int, float>::iterator k = delta.begin(); k != delta.end(); k++){
@@ -388,7 +465,7 @@ std::vector<int> ** HMM::loadData(std::istream& in, int & numdata) const
   while(getline(in, buf)){
     data[currdata] = new vector<int>;
     int offset = -1;
-    while(true){
+    while(buf.find_first_of("0123456789", offset+1) != string::npos){
       int end = buf.find_first_of(" ",offset+1);
       if(end == string::npos){
 	long value = atol(buf.substr(offset+1).c_str());
@@ -412,6 +489,7 @@ const option CommandLineOption::optionNames[] =
   { "test",      required_argument,  0, 'T'},
   { "model",     required_argument,  0, 'm'},
   { "epsilon", required_argument,  0, 'e'},
+  { "labelled",   no_argument,        0, 'l'},
   { "help",       no_argument,        0, '?'},
   { 0,            0,                  0, 0  }
 };
@@ -422,7 +500,8 @@ CommandLineOption::CommandLineOption(int argc, char *argv[]) :
   trainfile(""),
   testfile(""),
   modelfile(""),
-  epsilon(1e-3)
+  epsilon(1e-3),
+  labelled(false)
 {
   int c;
   int* opti = 0;
@@ -430,7 +509,7 @@ CommandLineOption::CommandLineOption(int argc, char *argv[]) :
   // you must put ':' only after parameters that require an argument
   // so after 'a' and '?' we don't put ':'
 
-  while ((c = getopt_long(argc, argv, "t:T:m:e:?", optionNames, opti)) != -1) {
+  while ((c = getopt_long(argc, argv, "t:T:m:e:l?", optionNames, opti)) != -1) {
     switch(c) {
     case 't':
       trainfile = optarg;
@@ -443,6 +522,9 @@ CommandLineOption::CommandLineOption(int argc, char *argv[]) :
       break;
     case 'e':
       epsilon = atof(optarg);
+      break;     
+    case 'l':
+      labelled = true;
       break;     
     case '?':
     default:
@@ -457,6 +539,7 @@ void CommandLineOption::usage(char* progname) {
   cerr << "\t-T --test: testfile" << endl;
   cerr << "\t-m --model: modelfile (REQUIRED)" << endl;
   cerr << "\t-e --epsilon: tolerance (default=1e-3)" << endl;
+  cerr << "\t-l --labelled: train labelled data (default=false)" << endl;
   cerr << "\t-?, --help: this message" << endl;
   exit(0);
 }
@@ -484,13 +567,17 @@ int main(int argc, char ** argv){
     assert(in_model.good() && in_data.good());
     in_model >> hmm;
     in_model.close(); 
-    int numdata;
-    vector<int> ** data = hmm.loadData(in_data, numdata); 
-    hmm.train(data, numdata, options.epsilon);
+    if (options.labelled)
+      hmm.trainLabelled(in_data);
+    else{
+      int numdata;
+      vector<int> ** data = hmm.loadData(in_data, numdata); 
+      hmm.train(data, numdata, options.epsilon);
+      delete[] data;
+    }
     ofstream out_model(options.modelfile);
     assert(out_model.good());
     out_model << hmm;
-    delete[] data;
   }
    
   if(options.testfile != ""){

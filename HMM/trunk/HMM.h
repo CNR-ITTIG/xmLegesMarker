@@ -3,6 +3,7 @@
 #define HMM_H
 
 #include <hash_map.h>
+#include <hash_set.h>
 #include <iostream>
 #include <vector>
 #include "SparseMatrix.h"
@@ -29,12 +30,13 @@ class HMM{
       return out;
     }
     Element& operator +=(const HMM::Element& op2){
-      Element res(*this);
-      res.value += op2.value;
+      value += op2.value;
+      return (*this);
     }
-    Element& operator /(const HMM::Element& op2){
+    Element operator /(const HMM::Element& op2){
       Element res(*this);
       res.value /= op2.value;
+      return res;
     }
     operator float() const{
       return this->value;
@@ -46,7 +48,7 @@ class HMM{
 
   SparseMatrix<Element> A,B,S;
   bool isLeftRightModel;
-  int endState;
+  std::hash_set<int> endState;
 
  public:
 
@@ -55,6 +57,7 @@ class HMM{
   double sequenceLogLikelihood(int * sequence, int T) const;
   double sequenceLogLikelihood(const vector<int>& sequence, int T) const;
   void train(std::vector<int> ** data, int numdata, double tolerance = 1e-3);
+  void trainLabelled(std::istream& in);
   void test(std::vector<int> ** data, int numdata) const;
   friend std::ostream & operator<<(std::ostream &out, const HMM& hmm);
   friend std::istream & operator>>(std::istream &in, HMM& hmm);
@@ -68,6 +71,7 @@ class HMM{
   SparseMatrix<double> computeAlpha(int t, const vector<int>& sequence, double * norm) const;
   SparseMatrix<double> computeBeta(int t, const vector<int>& sequence, double * norm, int T) const;
   bool EM(std::vector<int> ** data, int numdata, double tolerance = 1e-3);
+  void computeProbabilities();
   void computeLogs(SparseMatrix<Element>& matrix);
 };
 
@@ -82,6 +86,7 @@ private:
   const char * testfile;
   const char * modelfile;
   double epsilon;
+  bool labelled;
 
   CommandLineOption(int argc = 0, char *argv[]=NULL);
   void usage(char* progname);
