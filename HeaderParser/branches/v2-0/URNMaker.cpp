@@ -16,38 +16,38 @@ void URNMaker::operator()(istream& in_conversions,
 void URNMaker::loadConversions(istream& in)
 {
   string buf,src,dst;
-  if(!getline(in,buf) || buf != "ABBREVIATIONS"){
+  if(!Lexer::getLine(in,buf) || buf != "ABBREVIATIONS"){
     cerr << "ERROR in reading URNMaker conversions file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> src >> dst >> ws;
     m_abbreviations[src] = dst;
   }
-  if(!getline(in,buf) || buf != "PROVVEDIMENTO2AUTORITA"){
+  if(!Lexer::getLine(in,buf) || buf != "PROVVEDIMENTO2AUTORITA"){
     cerr << "ERROR in reading URNMaker conversions file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> src >> dst >> ws;
     m_provvedimento2autorita[src] = dst;
   }
-  if(!getline(in,buf) || buf != "PROVVEDIMENTO2PROVVEDIMENTO"){
+  if(!Lexer::getLine(in,buf) || buf != "PROVVEDIMENTO2PROVVEDIMENTO"){
     cerr << "ERROR in reading URNMaker conversions file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> src >> dst >> ws;
     m_provvedimento2provvedimento[src] = dst;
   }
-  if(!getline(in,buf) || buf != "AUTORITA2AUTORITA"){
+  if(!Lexer::getLine(in,buf) || buf != "AUTORITA2AUTORITA"){
     cerr << "ERROR in reading URNMaker conversions file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> src >> dst >> ws;
     m_autorita2autorita[src] = dst;

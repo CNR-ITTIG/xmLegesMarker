@@ -10,48 +10,48 @@
 #define THRESHOLD -1e15
 using namespace std;
 
-typedef enum _tagTipo {
-	libro=0,
-	parte=1,
-	titolo=2,
-	capo=3,
-	sezione=4,
-	articolo=5,
-	comma=6,
-	lettera=7,
-	numero=8,
-	num=9,
-	corpo=10,
-	alinea=11,
-	rubrica=12,
-	tipodoc=13,
-	datadoc=14,
-	numdoc=15,
-	titolodoc=16,
-	formulainiziale=17,
-	formulafinale=18,
-	dataeluogo=19,
-	sottoscrizioni=20,
-	pubblicazione=21,
-	emanante=22,
-	intestazione=23,
-	conclusione=24,
-	annessi=25,
-	varie=26,
-	sottoscrivente=27,
-	visto=28,
-	sconosciuto=29,
-	preambolo=30,
-	registrazione=31,
-	nota=32,
-	lavoripreparatori=33,
-	mod=34,
-	virgolette=35,
-	datapubbl=36,
-	numpubbl=37,
-	sopubbl=38} tagTipo;
+typedef enum HeaderParser_tagTipo {
+	hp_libro=0,
+	hp_parte=1,
+	hp_titolo=2,
+	hp_capo=3,
+	hp_sezione=4,
+	hp_articolo=5,
+	hp_comma=6,
+	hp_lettera=7,
+	hp_numero=8,
+	hp_num=9,
+	hp_corpo=10,
+	hp_alinea=11,
+	hp_rubrica=12,
+	hp_tipodoc=13,
+	hp_datadoc=14,
+	hp_numdoc=15,
+	hp_titolodoc=16,
+	hp_formulainiziale=17,
+	hp_formulafinale=18,
+	hp_dataeluogo=19,
+	hp_sottoscrizioni=20,
+	hp_pubblicazione=21,
+	hp_emanante=22,
+	hp_intestazione=23,
+	hp_conclusione=24,
+	hp_annessi=25,
+	hp_varie=26,
+	hp_sottoscrivente=27,
+	hp_visto=28,
+	hp_sconosciuto=29,
+	hp_preambolo=30,
+	hp_registrazione=31,
+	hp_nota=32,
+	hp_lavoripreparatori=33,
+	hp_mod=34,
+	hp_virgolette=35,
+	hp_datapubbl=36,
+	hp_numpubbl=37,
+	hp_sopubbl=38} HP_tagTipo;
 
-#define TAGTIPODIM 39
+//#define TAGTIPODIM 39
 
 class Month{
   
@@ -135,6 +135,8 @@ class HeaderParser
 		  xmlNodePtr conclusione,
 		  int notes); 
   static const char * tagName(int tagvalue);
+  static const char * tagIdName(int tagvalue);
+
   static bool hasCorrectStates(int * states, int statesnumber);
   static void removeProcessedElements(std::vector<int>& sequence, int last);
   void setRootNode(xmlNodePtr node) { root_node = node;};

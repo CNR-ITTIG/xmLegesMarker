@@ -132,73 +132,73 @@ void HeaderParser::init(istream& in)
 {
   int state,tag,open;
   string buf;
-  if(!getline(in,buf) || buf != "HEADER"){
+  if(!Lexer::getLine(in,buf) || buf != "HEADER"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  if(!getline(in,buf) || buf != "INTESTAZIONE"){
+  if(!Lexer::getLine(in,buf) || buf != "INTESTAZIONE"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     header_intestazione_tags[state] = make_pair(tag,open);
   }
-  if(!getline(in,buf) || buf != "PUBBLICAZIONE"){
+  if(!Lexer::getLine(in,buf) || buf != "PUBBLICAZIONE"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     header_pubblicazione_tags[state] = make_pair(tag,open);
   }
-  if(!getline(in,buf) || buf != "FORMULAINIZIALE"){
+  if(!Lexer::getLine(in,buf) || buf != "FORMULAINIZIALE"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     header_formulainiziale_tags[state] = make_pair(tag,open);
   }
-  if(!getline(in,buf) || buf != "FOOTER"){
+  if(!Lexer::getLine(in,buf) || buf != "FOOTER"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  if(!getline(in,buf) || buf != "FORMULAFINALE"){
+  if(!Lexer::getLine(in,buf) || buf != "FORMULAFINALE"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     footer_formulafinale_tags[state] = make_pair(tag,open);
   }
-  if(!getline(in,buf) || buf != "DATAELUOGO"){
+  if(!Lexer::getLine(in,buf) || buf != "DATAELUOGO"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     footer_dataeluogo_tags[state] = make_pair(tag,open);
   }
-  if(!getline(in,buf) || buf != "SOTTOSCRIZIONI"){
+  if(!Lexer::getLine(in,buf) || buf != "SOTTOSCRIZIONI"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     footer_sottoscrizioni_tags[state] = make_pair(tag,open);
   }
-  if(!getline(in,buf) || buf != "ANNESSI"){
+  if(!Lexer::getLine(in,buf) || buf != "ANNESSI"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     footer_annessi_tags[state] = make_pair(tag,open);
@@ -249,7 +249,7 @@ int HeaderParser::parseHeader(std::string& header,
 	if(pub_found)
 	  last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, meta ,header_pubblicazione_tags, &notes, NULL, intestazione);     
 	if(last < first-1)
-	  saveTag(sconosciuto, offsets[last], offsets[first], strbuffer, root_node, NULL, intestazione); 	
+	  saveTag(hp_sconosciuto, offsets[last], offsets[first], strbuffer, root_node, NULL, intestazione); 	
 	last = first;
 	delete[] pub_states;
       }
@@ -332,7 +332,7 @@ void  HeaderParser::defaultHeader(xmlNodePtr descrittori, xmlNodePtr intestazion
   xmlNewProp(pubblicazione, BAD_CAST "norm", BAD_CAST "");
   xmlNodePtr urn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", BAD_CAST "");
   xmlNodePtr vigenza = xmlNewChild(descrittori, NULL, BAD_CAST "vigenza", NULL);
-  xmlNewProp(vigenza, BAD_CAST "id", BAD_CAST "");
+  xmlNewProp(vigenza, BAD_CAST "id", BAD_CAST "v1");
   xmlNodePtr tipodoc = xmlNewChild(intestazione, NULL, BAD_CAST "tipoDoc", BAD_CAST "");
   xmlNodePtr datadoc = xmlNewChild(intestazione, NULL, BAD_CAST "dataDoc", BAD_CAST "");
   xmlNewProp(datadoc, BAD_CAST "norm", BAD_CAST "");  
@@ -358,23 +358,23 @@ unsigned int HeaderParser::saveTitle(const string& strbuffer,
   // if no pubblicazione found
   if ((first = getFirstMatchingState(states, statesnumber, tags)) == statesnumber){
     if (found) // if tipo previously found, consider text as title
-      saveTag(titolodoc, offsets[offset], offsets[offset+first], strbuffer, intestazione); 	
+      saveTag(hp_titolodoc, offsets[offset], offsets[offset+first], strbuffer, intestazione); 	
     else{
       defaultHeader(descrittori, intestazione);
-      saveTag(sconosciuto, offsets[offset], offsets[offset+first], strbuffer, root_node, intestazione, NULL); 	
+      saveTag(hp_sconosciuto, offsets[offset], offsets[offset+first], strbuffer, root_node, intestazione, NULL); 	
     }
     return first-1;
   }
   // else choose as title the longer part either before or after match
   last = getLastMatchingState(states, statesnumber, tags);
   if((statesnumber - last) > first){
-    xmlNodePtr titlenode = saveTag(titolodoc,offsets[offset+last+1], offsets[offset+statesnumber], strbuffer, intestazione);     
+    xmlNodePtr titlenode = saveTag(hp_titolodoc,offsets[offset+last+1], offsets[offset+statesnumber], strbuffer, intestazione);     
     saveTags(strbuffer, states, statesnumber, offsets, offset, state, meta, tags, id, NULL, titlenode);    
     
     return statesnumber-1;
   }
   else{
-    xmlNodePtr titlenode = saveTag(titolodoc,offsets[offset], offsets[offset+first], strbuffer, intestazione); 
+    xmlNodePtr titlenode = saveTag(hp_titolodoc,offsets[offset], offsets[offset+first], strbuffer, intestazione); 
     return saveTags(strbuffer, states, statesnumber, offsets, offset, first, meta, tags, id, titlenode, NULL);    
   }
 }
@@ -398,16 +398,16 @@ bool HeaderParser::savePubblicazione(const string& strbuffer,
   for (unsigned int i = 0; i < statesnumber && found < maxfound; i++){
     hash_map<int,pair<int,int> >::const_iterator k = tags.find(states[i]);
     assert(k != tags.end());
-    if((k->second).first == datapubbl){
+    if((k->second).first == hp_datapubbl){
       data = normalizeDate(strbuffer.substr(offsets[offset+i],offsets[offset+i+3]-offsets[offset+i]));
       i+=2;
       found++;
     }
-    else if((k->second).first == numpubbl){
+    else if((k->second).first == hp_numpubbl){
       num = trimEnd(strbuffer.substr(offsets[offset+i],offsets[offset+i+1]-offsets[offset+i]), &trimmed);
       found++;      
     }
-    else if((k->second).first == sopubbl){
+    else if((k->second).first == hp_sopubbl){
       num += "/" + trimEnd(strbuffer.substr(offsets[offset+i],offsets[offset+i+1]-offsets[offset+i]), &trimmed);
       found++;
     }
@@ -554,7 +554,7 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
   else{
     // put remains (annessi) in error tag
     if (offset < offsets.size())
-      saveTag(sconosciuto, offsets[offset], strbuffer.length(), strbuffer, root_node); 
+      saveTag(hp_sconosciuto, offsets[offset], strbuffer.length(), strbuffer, root_node); 
   }
   
   // save URN
@@ -575,7 +575,7 @@ void  HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) cons
     footer = footer.substr(dot+1);
   }
   if (footer.find_first_not_of(" \n\t\r") != string::npos)
-    saveTag(sconosciuto, 0, footer.length(), footer, root_node, NULL, NULL, false, NULL);
+    saveTag(hp_sconosciuto, 0, footer.length(), footer, root_node, NULL, NULL, false, NULL);
 }
 
 
@@ -625,7 +625,7 @@ void HeaderParser::addMissingMeta(xmlNodePtr descrittori) const
   xmlNodePtr urn = addChildIfMissing("urn", &added, descrittori); 
   xmlNodePtr vigenza = addChildIfMissing("vigenza", &added, descrittori, NULL); 
   if(added)
-    xmlNewProp(vigenza, BAD_CAST "id", BAD_CAST "");
+    xmlNewProp(vigenza, BAD_CAST "id", BAD_CAST "v1");
 }
 
 bool HeaderParser::hasCorrectStates(int * states, int statesnumber)
@@ -687,7 +687,7 @@ void HeaderParser::findPubblicazione(const string& strbuffer,
   if(hasCorrectStates(pub_states, pub_sequence.size()))
     last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, 0, meta, header_pubblicazione_tags, notes, curr_node);     
   if(last < first-1)
-    saveTag(sconosciuto, offsets[offset+last], offsets[offset+first], strbuffer, curr_node);
+    saveTag(hp_sconosciuto, offsets[offset+last], offsets[offset+first], strbuffer, curr_node);
   delete[] pub_states;
 }   
 
@@ -719,7 +719,7 @@ unsigned int HeaderParser::saveLastComma(const string& strbuffer,
     savePubblicazione(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, findChild("descrittori", meta), header_pubblicazione_tags);
     int last = saveTags(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, first, meta, header_pubblicazione_tags, notes, lastcomma, NULL);     
     if(last < state-1)
-      saveTag(sconosciuto, offsets[offset+last], offsets[offset+state], strbuffer, lastcomma);
+      saveTag(hp_sconosciuto, offsets[offset+last], offsets[offset+state], strbuffer, lastcomma);
   }
   delete[] pub_states;
   return state;
@@ -794,12 +794,13 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
   if(errorTag(tagvalue)){
     xmlNodePtr errornode = xmlNewPI(BAD_CAST "error", BAD_CAST buffer.substr(start,end-start).c_str());
     if(prev_node != NULL)
-      xmlAddSibling(prev_node, errornode);
-    else if (subs_node != NULL)
-      xmlAddPrevSibling(subs_node, errornode);
-    else
-      xmlAddChild(startnode, errornode);
-    return errornode;
+		xmlAddNextSibling(prev_node, errornode);
+	else if (subs_node != NULL)
+		xmlAddPrevSibling(subs_node, errornode);
+	else
+		xmlAddChild(startnode, errornode);
+
+	  return errornode;
   }
   if(ignoreTag(tagvalue)){
     xmlAddChild(startnode, xmlNewText(BAD_CAST buffer.substr(start,end-start).c_str()));
@@ -807,12 +808,12 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
   }
   xmlNodePtr currnode = (withtags) ? openTag(tagvalue, startnode, buffer.substr(start,end-start), id) : startnode;
   if(formatTag(tagvalue)){
-    if(tagvalue == preambolo)
+    if(tagvalue == hp_preambolo)
       addSemicolumnFormatTags(buffer.substr(start,end-start), currnode);
     else
       addFormatTags(buffer.substr(start,end-start), currnode);
   }
-  else if(tagvalue == formulafinale)
+  else if(tagvalue == hp_formulafinale)
     xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST buffer.substr(start,buffer.find_last_not_of(" \r\n\t", end-1)-start+1).c_str());
   else if(trimmedTag(tagvalue) && withtags){
     unsigned int trimmed = 0;
@@ -839,13 +840,13 @@ xmlNodePtr HeaderParser::openTag(int tagvalue,
 xmlNodePtr HeaderParser::openContextTags(int tagvalue, xmlNodePtr startnode) const 
 {
   xmlNodePtr contextnode = startnode;
-  switch(tagTipo(tagvalue)){
-  case pubblicazione: 
-  case datapubbl:
-  case numpubbl:
-  case sopubbl:
-  case nota:
-  case registrazione:
+  switch(HP_tagTipo(tagvalue)){
+  case hp_pubblicazione: 
+  case hp_datapubbl:
+  case hp_numpubbl:
+  case hp_sopubbl:
+  case hp_nota:
+  case hp_registrazione:
     contextnode = addChildIfMissing("redazionale", NULL, startnode);    
   }
   return contextnode;
@@ -856,22 +857,23 @@ void HeaderParser::addTagAttributes(int tagvalue,
 				    xmlNodePtr tagnode, 
 				    int * id) const
 {
-  switch(tagTipo(tagvalue)){
-  case datadoc:
+  switch(HP_tagTipo(tagvalue)){
+  case hp_datadoc:
     xmlNewProp(tagnode, BAD_CAST "norm", BAD_CAST normalizeDate(tagcontent).c_str());
     break;
-  case dataeluogo:
+  case hp_dataeluogo:
     xmlNewProp(tagnode, BAD_CAST "norm", BAD_CAST normalizeDate(tagcontent).c_str());
     xmlNewProp(tagnode, BAD_CAST "codice", BAD_CAST "00100");
     break;
-  case pubblicazione:
-  case datapubbl:
-  case numpubbl:
-  case sopubbl:
-  case nota:
-  case registrazione:{
+  case hp_pubblicazione:
+  case hp_datapubbl:
+  case hp_numpubbl:
+  case hp_sopubbl:
+  case hp_nota:
+  case hp_registrazione:{
     ostringstream attr;
-    attr << (*id)++;
+    attr << tagIdName(HP_tagTipo(tagvalue)) << (*id)++;
+    //attr << (*id)++;
     xmlNewProp(tagnode, BAD_CAST "id", BAD_CAST attr.str().c_str());
     break;
   }
@@ -884,7 +886,7 @@ void HeaderParser::addSemicolumnFormatTags(string text, xmlNodePtr startnode) co
   string line, buf;
   unsigned int end = 0;
 
-  while(getline(in, line)){
+  while(Lexer::getLine(in, line)){
     unsigned int semicolumn = line.find(";");
     if(semicolumn != string::npos){
       xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST (buf + line.substr(0,semicolumn+1)).c_str());
@@ -906,7 +908,7 @@ void HeaderParser::addFormatTags(string buf, xmlNodePtr startnode) const
   istringstream in(buf);
   string line, out;
 
-  while(getline(in, line))
+  while(Lexer::getLine(in, line))
     if (line.find_first_not_of(" \n\t\r") != string::npos)
       xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST line.c_str());
 }
@@ -973,101 +975,114 @@ void SqueezeWords(string& buf)
 
 bool HeaderParser::errorTag(int tagvalue) const
 {
-  switch(tagTipo(tagvalue)){
-  case annessi:
-  case sconosciuto: return true;
+  switch(HP_tagTipo(tagvalue)){
+  case hp_annessi:
+  case hp_sconosciuto: return true;
   default: return false;
   }
 }
 
 bool HeaderParser::trimmedTag(int tagvalue) const
 {
-  switch(tagTipo(tagvalue)){
-  case numdoc:
-  case datadoc: return true;
+  switch(HP_tagTipo(tagvalue)){
+  case hp_numdoc:
+  case hp_datadoc: return true;
   default: return false;
   }
 }
 
 bool HeaderParser::noteTag(int tagvalue) const
 {
-  switch(tagTipo(tagvalue)){
-  case pubblicazione: 
-  case datapubbl:
-  case numpubbl:
-  case sopubbl:
-  case nota:
-  case registrazione:
-  case lavoripreparatori: return true;
+  switch(HP_tagTipo(tagvalue)){
+  case hp_pubblicazione: 
+  case hp_datapubbl:
+  case hp_numpubbl:
+  case hp_sopubbl:
+  case hp_nota:
+  case hp_registrazione:
+  case hp_lavoripreparatori: return true;
   default: return false;
   }
 }
 
 bool HeaderParser::ignoreTag(int tagvalue) const
 {
-  switch(tagTipo(tagvalue)){
-  case varie: return true;
+  switch(HP_tagTipo(tagvalue)){
+  case hp_varie: return true;
   default: return false;
   }
 }
 
 bool HeaderParser::formatTag(int tagvalue) const
 {
-  switch(tagTipo(tagvalue)){
-  case nota:
-  case datapubbl:
-  case numpubbl:
-  case sopubbl:
-  case registrazione:
-  case lavoripreparatori:
-  case annessi:
-  case pubblicazione: 
-  case formulainiziale:
-  case preambolo: return true;
+  switch(HP_tagTipo(tagvalue)){
+  case hp_nota:
+  case hp_datapubbl:
+  case hp_numpubbl:
+  case hp_sopubbl:
+  case hp_registrazione:
+  case hp_lavoripreparatori:
+  case hp_annessi:
+  case hp_pubblicazione: 
+  case hp_formulainiziale:
+  case hp_preambolo: return true;
   default: return false;
   }
 }
 
+const char * HeaderParser::tagIdName(int tagvalue)
+{
+	switch(HP_tagTipo(tagvalue)){
+		case hp_pubblicazione:	return "n";
+		case hp_datapubbl:		return "n";
+		case hp_numpubbl:			return "n";
+		case hp_sopubbl:			return "n";
+		case hp_nota:				return "n";
+		case hp_registrazione:	return "n";
+		default:	return "???";
+	}
+}
+
 const char * HeaderParser::tagName(int tagvalue)
 {
-  switch(tagTipo(tagvalue)){
-  case libro:	return "libro";
-  case parte:	return "parte";
-  case titolo:	return "titolo";
-  case capo:	return "capo";
-  case sezione:	return "sezione";
-  case articolo: return "articolo";
-  case comma:	return "comma";
-  case lettera:	return "el";
-  case numero:	return "en";
-  case num:	return "num";
-  case corpo:	return "corpo";
-  case alinea:	return "alinea";
-  case rubrica:	return "rubrica";
-  case tipodoc: return "tipoDoc";
-  case datadoc: return "dataDoc";
-  case numdoc:  return "numDoc";
-  case titolodoc: return "titoloDoc";
-  case formulainiziale: return "formulainiziale";
-  case formulafinale: return "formulafinale";
-  case dataeluogo: return "dataeluogo";
-  case sottoscrizioni: return "sottoscrizioni";
-  case pubblicazione: return "nota";
-  case emanante: return "emanante";
-  case conclusione: return "conclusione";
-  case intestazione: return "intestazione";
-  case annessi: return "nota";
-  case nota: return "nota";
-  case registrazione: return "nota";
-  case lavoripreparatori: return "lavoripreparatori";
-  case varie: return "varie";
-  case sottoscrivente: return "sottoscrivente";
-  case visto: return "visto";
-  case sconosciuto: return "";
-  case preambolo: return "preambolo";
-  case datapubbl: return "nota";
-  case numpubbl: return "nota";
-  case sopubbl: return "nota";
+  switch(HP_tagTipo(tagvalue)){
+  case hp_libro:	return "libro";
+  case hp_parte:	return "parte";
+  case hp_titolo:	return "titolo";
+  case hp_capo:	return "capo";
+  case hp_sezione:	return "sezione";
+  case hp_articolo: return "articolo";
+  case hp_comma:	return "comma";
+  case hp_lettera:	return "el";
+  case hp_numero:	return "en";
+  case hp_num:	return "num";
+  case hp_corpo:	return "corpo";
+  case hp_alinea:	return "alinea";
+  case hp_rubrica:	return "rubrica";
+  case hp_tipodoc: return "tipoDoc";
+  case hp_datadoc: return "dataDoc";
+  case hp_numdoc:  return "numDoc";
+  case hp_titolodoc: return "titoloDoc";
+  case hp_formulainiziale: return "formulainiziale";
+  case hp_formulafinale: return "formulafinale";
+  case hp_dataeluogo: return "dataeluogo";
+  case hp_sottoscrizioni: return "sottoscrizioni";
+  case hp_pubblicazione: return "nota";
+  case hp_emanante: return "emanante";
+  case hp_conclusione: return "conclusione";
+  case hp_intestazione: return "intestazione";
+  case hp_annessi: return "nota";
+  case hp_nota: return "nota";
+  case hp_registrazione: return "nota";
+  case hp_lavoripreparatori: return "lavoripreparatori";
+  case hp_varie: return "varie";
+  case hp_sottoscrivente: return "sottoscrivente";
+  case hp_visto: return "visto";
+  case hp_sconosciuto: return "";
+  case hp_preambolo: return "preambolo";
+  case hp_datapubbl: return "nota";
+  case hp_numpubbl: return "nota";
+  case hp_sopubbl: return "nota";
   default: return "";
   }
 }
@@ -1085,15 +1100,6 @@ string  extractURN(string& strbuffer)
   }
   return "";
 }
-
-
-
-
-
-
-
-
-
 
 
 

@@ -37,7 +37,7 @@ int main(int argc, char **argv)
     ifstream in(argv[1]);
     assert(in.good());
     string buf,text;
-    while(getline(in, buf))
+    while(Lexer::getLine(in, buf))
       text += buf + "\n";  
    
 
@@ -90,6 +90,7 @@ int main(int argc, char **argv)
      *Free the global variables that may
      *have been allocated by the parser.
      */
+
     xmlCleanupParser();
 
     /*
