@@ -1,27 +1,34 @@
-BINDIR=../../bin
-MAKELIB = ar rvs
-TARGETLIB = libhmm.a
-LIBDIR=../../lib
+PREFIX = /usr/local
+BINDIR = $(PREFIX)/bin
+LIBDIR = $(PREFIX)/lib
+
 TARGETBIN = HMM
+TARGETLIB = libhmm.a
+
+COMPILEXX = g++ -O3 -Wno-deprecated
+LIBS = -L$(LIBDIR) -llexer -LLexer
+MAKELIB = ar rvs
+
 OBJECTS= HMM.o
-COMPILEXX = g++ -O3
 
-all : ${TARGETBIN} lib
 
-lib : ${OBJECTS}
-	${MAKELIB} ${TARGETLIB} $+
 
-HMM : StandaloneHMM.o
-	${COMPILEXX} -o $@ $<
+all: $(TARGETBIN) lib
 
-install : all
-	cp ${TARGETBIN} *.pl ${BINDIR}; cp ${TARGETLIB} ${LIBDIR}
+lib: $(OBJECTS)
+	$(MAKELIB) $(TARGETLIB) $+
 
-StandaloneHMM.o : HMM.cpp
-	${COMPILEXX} -c $< -DSTANDALONEHMM -o $@
+HMM: StandaloneHMM.o
+	$(COMPILEXX) -o $@ $<
 
-%.o : %.cpp
-	${COMPILEXX} -c $< -o $@
+install: all
+	cp $(TARGETBIN) *.pl $(BINDIR); cp $(TARGETLIB) $(LIBDIR)
 
-clean:	
-	rm *.o *.a ${TARGETBIN} -f 
+StandaloneHMM.o: HMM.cpp
+	$(COMPILEXX) -c $< -DSTANDALONEHMM -o $@
+
+%.o: %.cpp
+	$(COMPILEXX) -c $< -o $@
+
+clean:
+	rm -f *.o *.a $(TARGETBIN)  $(TARGETLIB)
