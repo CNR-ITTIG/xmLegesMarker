@@ -8,8 +8,8 @@
 #define DEFAULT_INTESTAZIONE "\n<intestazione>\n<tipoDoc></tipoDoc><dataDoc norm=\"\"></dataDoc><numDoc></numDoc>\n<titoloDoc></titoloDoc>\n</intestazione>\n"
 #define DEFAULT_FORMULAINIZIALE "\n<formulainiziale></formulainiziale>\n"
 #define DEFAULT_FOOTER "\n<formulafinale></formulafinale>\n<conclusione></conclusione>\n"
-#define INIZIO_NOTA "\n<inlinemeta><redazionale><nota>\n"
-#define FINE_NOTA "\n</nota></redazionale></inlinemeta>\n"
+#define INIZIO_NOTA "\n<inlinemeta><redazionale><nota>\n<h:p> "
+#define FINE_NOTA " </h:p>\n</nota></redazionale></inlinemeta>\n"
 using namespace std;
 
 class Month{
