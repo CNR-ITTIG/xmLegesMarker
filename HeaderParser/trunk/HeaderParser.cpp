@@ -318,6 +318,8 @@ int HeaderParser::parseHeader(const std::string& header, ostream& out)
       header_pubblicazione_model.viterbiPath(sequence, states, sequence.size());
       savePubblicazione(strbuffer, states, sequence.size(), offsets, offset, header_pubblicazione_tags);
       last = saveTitle(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, found, header_pubblicazione_tags, &notes);
+      openTag(formulainiziale,out);
+      closeTag(formulainiziale,out);
       removeProcessedElements(sequence, last);
       offset += last + 1;
       found = true;
