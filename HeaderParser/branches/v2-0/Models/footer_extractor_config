@@ -31,8 +31,8 @@ replace_digit_character
 replace_nonalphanum_character
 1
 merge_multiword_terms
-1
+0
 delimiters
-`';:,.?!\"(){}[]\\|/<>-_
+`';:,.?!\"{}[]\\|/<>-_
 toss_delimiters
 1

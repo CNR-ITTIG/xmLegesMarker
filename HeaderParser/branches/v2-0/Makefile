@@ -5,27 +5,32 @@ INCLUDEDIR = $(PREFIX)/include
 MAKELIB = ar rvs
 TARGETLIB = libHeaderParser.a
 ARLIBS=${LIBDIR}/liblexer.a $(LIBDIR)/libFeatureExtractor.a $(LIBDIR)/libhmm.a
-LIBS=-L$(LIBDIR) -lFeatureExtractor -llexer -lhmm
+LIBS=-lxml2 -L$(LIBDIR) -lFeatureExtractor -llexer -lhmm
 OBJECTS = HeaderParser.o
-CFLAGS=-ggdb -Wall -I$(INCLUDEDIR)
+CFLAGS=-ggdb -Wno-deprecated -I/usr/include/libxml2/libxml -I/usr/include/libxml2 -I$(INCLUDEDIR) 
 COMPILEXX = g++ -O3 $(CFLAGS)
-
-
 TARGETBIN = HeaderParser
 
-all : ${TARGETBIN} lib
+all : default ${TARGETBIN} lib
+
+default :
+	./loadDefaults.sh
 
 lib : ${OBJECTS}
 	${MAKELIB} ${TARGETLIB} $+ $(ARLIBS)
 
-HeaderParser: StandaloneHeaderParser.o
+HeaderParser: provaparser.o StandaloneHeaderParser.o
 	${COMPILEXX} $+ -o $@ ${LIBS}
+
+provaparser.o : provaparser.c
+	${COMPILEXX} -c $< -o $@
 
 StandaloneHeaderParser.o : HeaderParser.cpp
 	${COMPILEXX} -DHEADERPARSER -c $< -o $@
 
 install : all
-	cp ${TARGETBIN} ${BINDIR}
+	strip ${TARGETBIN} || strip *.exe
+	cp ${TARGETBIN} ${BINDIR} || cp *.exe ${BINDIR}
 	cp ${TARGETLIB} ${LIBDIR}
 	cp *.h $(INCLUDEDIR)
 
@@ -33,4 +38,4 @@ install : all
 	${COMPILEXX} -c $< -o $@
 
 clean:
-	rm *.o *.a *.exe ${TARGETBIN} -f  *~
+	rm *.o *.a *.exe ${TARGETBIN} -f  *~ Default.h
