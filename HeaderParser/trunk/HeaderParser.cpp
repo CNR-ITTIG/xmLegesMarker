@@ -9,7 +9,9 @@ Month MonthMapping;
 
 HeaderParser::HeaderParser(std::string modeldir,
 			   std::string header_model_file,
-			   std::string footer_model_file,
+			   std::string footer_formulafinale_model_file,
+			   std::string footer_dataeluogo_model_file,
+			   std::string footer_sottoscrizioni_model_file,
 			   std::string header_extractor_model_file,
 			   std::string header_extractor_config_file,
 			   std::string footer_extractor_model_file,
@@ -21,10 +23,20 @@ HeaderParser::HeaderParser(std::string modeldir,
   in >> header_model;
   in.close();
 
-  ifstream in2((modeldir + "/" + footer_model_file).c_str());
+  ifstream in2((modeldir + "/" + footer_formulafinale_model_file).c_str());
   assert(in2.good());
-  in2 >> footer_model;
+  in2 >> footer_formulafinale_model;
   in2.close();
+
+  ifstream in6((modeldir + "/" + footer_dataeluogo_model_file).c_str());
+  assert(in6.good());
+  in6 >> footer_dataeluogo_model;
+  in6.close();
+
+  ifstream in7((modeldir + "/" + footer_sottoscrizioni_model_file).c_str());
+  assert(in7.good());
+  in7 >> footer_sottoscrizioni_model;
+  in7.close();
 
   ifstream in3((modeldir + "/" + header_extractor_model_file).c_str());
   assert(in3.good());
@@ -49,7 +61,9 @@ HeaderParser::HeaderParser(std::string modeldir,
 }
 
 HeaderParser::HeaderParser(const char * header_model_file,
-			   const char * footer_model_file,
+			   const char * footer_formulafinale_model_file,
+			   const char * footer_dataeluogo_model_file,
+			   const char * footer_sottoscrizioni_model_file,
 			   const char * header_extractor_model_file,
 			   const char * header_extractor_config_file,
 			   const char * footer_extractor_model_file,
@@ -61,10 +75,20 @@ HeaderParser::HeaderParser(const char * header_model_file,
   in >> header_model;
   in.close();
 
-  ifstream in2(footer_model_file);
+  ifstream in2(footer_formulafinale_model_file);
   assert(in2.good());
-  in2 >> footer_model;
+  in2 >> footer_formulafinale_model;
   in2.close();
+
+  ifstream in6(footer_dataeluogo_model_file);
+  assert(in6.good());
+  in6 >> footer_dataeluogo_model;
+  in6.close();
+
+  ifstream in7(footer_sottoscrizioni_model_file);
+  assert(in7.good());
+  in7 >> footer_sottoscrizioni_model;
+  in7.close();
 
   ifstream in3(header_extractor_model_file);
   assert(in3.good());
@@ -91,6 +115,7 @@ HeaderParser::HeaderParser(const char * header_model_file,
 void HeaderParser::init(istream& in)
 {
   int state,tag;
+  bool open;
   string buf;
   if(!getline(in,buf) || buf != "HEADER"){
     cerr << "ERROR in reading parser config file" << endl;
@@ -105,10 +130,32 @@ void HeaderParser::init(istream& in)
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
+  if(!getline(in,buf) || buf != "FORMULAFINALE"){
+    cerr << "ERROR in reading parser config file" << endl;
+    exit(1);
+  }
   while(getline(in,buf) && buf != ""){
     istringstream is(buf);
-    is >> state >> tag >> ws;
-    footer_tags[state] = tag;
+    is >> state >> tag >> open >> ws;
+    footer_formulafinale_tags[state] = make_pair(tag,open);
+  }
+  if(!getline(in,buf) || buf != "DATAELUOGO"){
+    cerr << "ERROR in reading parser config file" << endl;
+    exit(1);
+  }
+  while(getline(in,buf) && buf != ""){
+    istringstream is(buf);
+    is >> state >> tag >> open >> ws;
+    footer_dataeluogo_tags[state] = make_pair(tag,open);
+  }
+  if(!getline(in,buf) || buf != "SOTTOSCRIZIONI"){
+    cerr << "ERROR in reading parser config file" << endl;
+    exit(1);
+  }
+  while(getline(in,buf) && buf != ""){
+    istringstream is(buf);
+    is >> state >> tag >> open >> ws;
+    footer_sottoscrizioni_tags[state] = make_pair(tag,open);
   }
 }
 
@@ -130,12 +177,186 @@ void HeaderParser::parseHeader(istream& in, ostream& out)
   parseHeader(header.c_str(), out);
 }
 
-void HeaderParser::parseFooter(const char * footer, int offset, ostream& out) 
+void HeaderParser::parseFooter(const char * buffer, ostream& out) 
 {
-  if (parse(footer, offset, footer_model, footer_tags, footer_extractor, false, out))
-    closeTag(conclusione, out);
-  else	
-    defaultFooter(footer, out);	  
+  bool found = false;
+  unsigned int last = 0, offset = 0;
+  int * states = NULL;
+
+  // extract terms
+  string strbuffer = buffer;
+  vector<int> sequence, offsets;
+  if(!footer_extractor.buildExample(sequence, offsets, buffer, strlen(buffer), 0)){
+    defaultFooter(buffer, out);	
+    return;
+  }
+
+  // parse formulafinale
+  if(sequence.size() > 0){
+    states = new int[sequence.size()];
+    footer_formulafinale_model.viterbiPath(sequence, states, sequence.size());
+    if (hasCorrectStates(states, sequence.size())){
+      if (!found){
+	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_formulafinale_tags);
+	found = true;
+      }
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, out, footer_formulafinale_tags);
+      removeProcessedElements(sequence, last);
+      offset += last + 1;
+      openTag(conclusione, out);
+    }
+    delete[] states;
+  }
+
+  // parse dataeluogo
+  if(sequence.size() > 0){
+    states = new int[sequence.size()];
+    footer_dataeluogo_model.viterbiPath(sequence, states, sequence.size());
+    if (hasCorrectStates(states, sequence.size())){
+      last = 0;
+      if (!found){
+	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_dataeluogo_tags);
+	found = true;
+	openTag(formulafinale, out);
+	closeTag(formulafinale, out);
+	openTag(conclusione, out);
+      }
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, out, footer_dataeluogo_tags);
+      removeProcessedElements(sequence, last);
+      offset += last + 1;
+    }
+    delete[] states;
+  }
+
+  // parse sottoscrizioni
+  if(sequence.size() > 0){
+    states = new int[sequence.size()];
+    footer_sottoscrizioni_model.viterbiPath(sequence, states, sequence.size());
+    if (hasCorrectStates(states, sequence.size())){
+      last = 0;
+      if (!found){
+	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_sottoscrizioni_tags);
+	found = true;
+	openTag(formulafinale, out);
+	closeTag(formulafinale, out);
+	openTag(conclusione, out);
+      }      
+      openTag(sottoscrizioni, out);
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, out, footer_sottoscrizioni_tags);
+      found = true;
+      if (!hasVisto(states, sequence.size())){
+	openTag(visto, out);
+	closeTag(visto, out);
+      }
+      removeProcessedElements(sequence, last);
+      offset += last + 1;
+      closeTag(sottoscrizioni, out);
+    }
+    delete[] states;
+  }
+
+  // if nothing found print default footer
+  if(!found){
+    defaultFooter(buffer, out);	
+    return;
+  }
+  
+  // put remains (annessi) in error tag
+  closeTag(conclusione, out);
+  if (offset < offsets.size())
+    saveTag(annessi, offsets[offset], strbuffer.length(), strbuffer, out); 
+}
+
+bool HeaderParser::hasCorrectStates(int * states, int statesnumber)
+{
+  for(int i = 0; i < statesnumber; i++)
+    if(states[i] > 0)
+      return true;
+  return false;
+}
+
+bool HeaderParser::hasVisto(int * states, int statesnumber) const
+{
+  for(int i = 0; i < statesnumber; i++){
+    hash_map<int,pair<int,bool> >::const_iterator k = footer_sottoscrizioni_tags.find(states[i]);
+    assert(k != footer_sottoscrizioni_tags.end());
+    if((k->second).first == visto)
+      return true;
+  }
+  return false;
+}
+
+unsigned int HeaderParser::saveLastComma(const string& strbuffer, 
+					 int * states, 
+					 unsigned int statesnumber,
+					 const vector<int>& offsets, 
+					 unsigned int offset, 
+					 ostream& out,
+					 const hash_map<int,pair<int,bool> >& tags) const
+{
+  unsigned int state = 0;
+  while(state < statesnumber){
+    hash_map<int,pair<int,bool> >::const_iterator k = tags.find(states[state]);
+    assert(k != tags.end());
+    if(!errorTag((k->second).first))
+      break;
+    state++;
+  }
+  if(state==0)
+    out << "<comma>\n</comma>\n";
+  else
+    out <<  "<comma>" << strbuffer.substr(offsets[offset], offsets[offset+state]-offsets[offset]) << "\n</comma>\n";
+  return state;
+}
+
+void HeaderParser::removeProcessedElements(vector<int>& sequence, int last)
+{
+  for(unsigned int i = last+1; i < sequence.size(); i++)
+    sequence[i-last-1] = sequence[i];
+  sequence.resize(sequence.size()-last-1);
+}
+
+unsigned int HeaderParser::saveTags(const string& strbuffer, 
+				    int * states, 
+				    unsigned int statesnumber,
+				    const vector<int>& offsets, 
+				    unsigned int offset, 
+				    unsigned int state,
+				    ostream& out,
+				    const hash_map<int,pair<int,bool> >& tags) const
+{
+  hash_map<int,pair<int,bool> >::const_iterator statetag;
+
+  // get last matched state
+  unsigned int last;
+  for(last = statesnumber-1; last >= 0; last--){
+    statetag = tags.find(states[last]);
+    assert(statetag != tags.end());
+    if(!errorTag((statetag->second).first))
+      break;
+  }
+ 
+  // save tags for matching states
+  int currtag = -1, start = -1;
+  for(; state <= last; state++){
+    statetag = tags.find(states[state]);
+    assert(statetag != tags.end());
+    if((state == 0 || states[state] != states[state-1]) && ((statetag->second).second || (statetag->second).first != currtag)){
+      if(currtag != -1)
+	saveTag(currtag, start, offsets[state+offset], strbuffer, out);
+      currtag = (statetag->second).first;
+      start = offsets[state+offset];
+    }
+    if (state == last){
+      if(currtag != -1){
+	if(last < statesnumber-1)
+	  saveTag(currtag, start, offsets[state+offset+1], strbuffer, out);
+	else
+	  saveTag(currtag, start, strbuffer.length(), strbuffer, out);
+      }
+    }
+  }
+  return last;
 }
 
 void  HeaderParser::defaultFooter(std::string footer, ostream& out) const
@@ -149,15 +370,15 @@ void  HeaderParser::defaultFooter(std::string footer, ostream& out) const
   else{
     out << "<?error\n" << footer << "\n?>\n"; 
   }
-  out << DEFAULT_FOOTER;
+  out << DEFAULT_FOOTER << endl;
 }
 
-void HeaderParser::parseFooter(istream& in, int offset, ostream& out) 
+void HeaderParser::parseFooter(istream& in, ostream& out) 
 {
   string footer,buf;
   while(getline(in, buf))
     footer += buf + "\n";  
-  parseFooter(footer.c_str(), offset, out);
+  parseFooter(footer.c_str(), out);
 }
 
 bool HeaderParser::parse(const char * buffer, 
@@ -188,13 +409,13 @@ bool HeaderParser::parse(const char * buffer,
     }
     if(statetag->second != currtag){
       if(currtag != -1)
-	saveTag(currtag, start-offset, offsets[i]-1, strbuffer, out);
+	saveTag(currtag, start-offset, offsets[i], strbuffer, out);
       currtag = statetag->second;
       start = offset + offsets[i];
     }
     if (i == sequence.size()-1){
       if(currtag != -1)
-	saveTag(currtag, start-offset, strlen(buffer)-1, strbuffer, out);
+	saveTag(currtag, start-offset, strlen(buffer), strbuffer, out);
     }
   }
   return true;
@@ -207,23 +428,21 @@ void HeaderParser::saveTag(int tagvalue,
 			   ostream& out) const 
 {
   if(errorTag(tagvalue)){
-    out <<  "<?error\n" << buffer.substr(start,end-start+1) << "\n?>" << endl;
+    out <<  "<?error\n" << buffer.substr(start,end-start) << "\n?>" << endl;
     return;
   }
   if(ignoreTag(tagvalue)){
-    out << buffer.substr(start,end-start+1) << endl;
+    out << buffer.substr(start,end-start) << endl;
     return;
   }
-  out << "<" << tagName(tagvalue) << tagAttributes(tagvalue, buffer.substr(start,end-start+1)) << ">" << endl;
+  out << "<" << tagName(tagvalue) << tagAttributes(tagvalue, buffer.substr(start,end-start)) << ">" << endl;
   if(tagvalue == formulainiziale)
-    out << addFormatTags(buffer.substr(start,end-start+1));
+    out << addFormatTags(buffer.substr(start,end-start));
   else
-    out << buffer.substr(start,end-start+1);
+    out << buffer.substr(start,end-start);
   out << "</" << tagName(tagvalue) << ">" << endl;
   if(tagvalue == titolodoc)
     closeTag(intestazione, out);
-  if(tagvalue == formulafinale)
-    openTag(conclusione, out);
 }
 
 string normalizeDate(const string& buffer)
@@ -244,7 +463,7 @@ string normalizeDate(const string& buffer)
   beg = buffer.find_first_of("0123456789", end);
   if (beg == string::npos) return "";
   end = buffer.find_first_not_of("0123456789", beg);
-  if (end == string::npos) end = buffer.length()+2;
+  if (end == string::npos) end = buffer.length();
   string year = buffer.substr(beg, end - beg);
   if(year.length() != 4)
     return "";
@@ -274,7 +493,9 @@ string HeaderParser::addFormatTags(string buf) const
 bool HeaderParser::errorTag(int tagvalue) const
 {
   switch(tagTipo(tagvalue)){
+  case sconosciuto:
   case varie:
+  case annessi:
   case pubblicazione: return true;
   default: return false;
   }
@@ -283,7 +504,6 @@ bool HeaderParser::errorTag(int tagvalue) const
 bool HeaderParser::ignoreTag(int tagvalue) const
 {
   switch(tagTipo(tagvalue)){
-  case sottoscrizioni: return true;
   default: return false;
   }
 }
@@ -329,6 +549,9 @@ const char * HeaderParser::tagName(int tagvalue)
   case intestazione: return "intestazione";
   case annessi: return "annessi";
   case varie: return "varie";
+  case sottoscrivente: return "sottoscrivente";
+  case visto: return "visto";
+  case sconosciuto: return "";
   default: return "";
   }
 }
@@ -353,16 +576,19 @@ int main(int argc, char* argv[]) {
   if (r) *r = 0;
   string workdir = argv[0];
   string config_files[] = { "header_model",
-			   "footer_model",
-			   "header_extractor_model",
-			   "header_extractor_config",
-			   "footer_extractor_model",
-			   "footer_extractor_config",
-			   "parser_config"};
+			    "footer_formulafinale_model",
+			    "footer_dataeluogo_model",
+			    "footer_sottoscrizioni_model",
+			    "header_extractor_model",
+			    "header_extractor_config",
+			    "footer_extractor_model",
+			    "footer_extractor_config",
+			    "parser_config"};
 
   if (argc < 2 || !strcmp(argv[1], "--help")){
     cerr << "Usage: " << argv[0] << " [-header,-footer]"
-	 << " [ <workdir> <header_model> <footer_model>"
+	 << " [ <workdir> <header_model> <footer_formulafinale_model>"
+	 << " <footer_dataeluogo_model> <footer_sottoscrizioni_model>"
 	 << " <header_extractor_model> <header_extractor_config>"
 	 << " <footer_extractor_model> <footer_extractor_config>"
 	 << " <parser_config> ]" << endl;
@@ -386,12 +612,14 @@ int main(int argc, char* argv[]) {
 			   (workdir + "/" + config_files[3]).c_str(),
 			   (workdir + "/" + config_files[4]).c_str(),
 			   (workdir + "/" + config_files[5]).c_str(),
-			   (workdir + "/" + config_files[6]).c_str());
+			   (workdir + "/" + config_files[6]).c_str(),
+			   (workdir + "/" + config_files[7]).c_str(),
+			   (workdir + "/" + config_files[8]).c_str());
 
        if (!strcmp(command, "-header"))
 	 parser.parseHeader(cin, cout);
        else if (!strcmp(command, "-footer"))
-	 parser.parseFooter(cin, 0, cout);
+	 parser.parseFooter(cin, cout);
        else{
 	 cerr << "ERROR: unknown command " << argv[arg] << endl;
 	 return -1;
