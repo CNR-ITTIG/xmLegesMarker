@@ -59,7 +59,7 @@ class HeaderParser
 	     bool header,
 	     std::ostream& out);
   void init(std::istream& in);
-
+  void defaultFooter(std::string footer) const;
 };
 
 #endif

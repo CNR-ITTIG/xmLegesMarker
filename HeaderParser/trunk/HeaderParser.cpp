@@ -128,8 +128,19 @@ void HeaderParser::parseFooter(const char * footer, int offset, ostream& out)
 {
   if (parse(footer, offset, footer_model, footer_tags, footer_extractor, false, out))
     closeTag(conclusione, out);
-  else
-    out <<  "<comma>\n</comma>\n<?error\n" << footer << "\n?>\n" << DEFAULT_FOOTER;
+  else	
+    defaultFooter(footer);	  
+}
+
+void  HeaderParser::defaultFooter(std::string footer) const
+{
+  unsigned int dot = footer.find('.');
+  if(dot != string::npos){  
+    cout <<  "<comma>" << footer.substr(0, dot+1) << "\n</comma>\n";
+    if (footer.substr(dot+1).find_first_not_of(" \n\t") != string::npos)
+      cout << "<?error\n" << footer.substr(dot+1) << "\n?>\n"; 
+    cout << DEFAULT_FOOTER;
+  }
 }
 
 void HeaderParser::parseFooter(istream& in, int offset, ostream& out) 
