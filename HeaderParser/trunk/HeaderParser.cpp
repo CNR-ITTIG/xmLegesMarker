@@ -1,7 +1,7 @@
 #include "HeaderParser.h"
 #include "../ParserStruttura/tag.h"
 #include <fstream>
-//#include <assert.h>
+#include <assert.h>
 
 using namespace std;
 
