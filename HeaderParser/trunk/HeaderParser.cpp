@@ -788,10 +788,8 @@ void HeaderParser::saveTag(int tagvalue,
   }
   else if(tagvalue == formulafinale){
     int last = buffer.find_last_not_of(" \r\n\t", end-1);
-    out << "<h:p> " << buffer.substr(start,last-start+1) << " </h:p>";
-    if(m_ted && teds.size() > 0)   
-      out << teds[(*curr_ted)++];
-    out << endl;
+    out << "<h:p> " << addTeds(buffer.substr(start,last-start+1), teds, curr_ted) << " </h:p>";
+    //out << endl;
     out << addTeds(buffer.substr(last+1, end-last-1), teds, curr_ted);
   }
   else if(trimmedTag(tagvalue) && withtags){
