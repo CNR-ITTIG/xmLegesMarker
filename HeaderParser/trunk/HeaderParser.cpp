@@ -17,28 +17,32 @@ HeaderParser::HeaderParser(const char * header_model_file,
   assert(in.good());
   in >> header_model;
   in.close();
-  in.open(footer_model_file);
-  assert(in.good());
-  in >> footer_model;
-  in.close();
-  in.open(header_extractor_model_file);
-  assert(in.good());
-  ifstream in_config(header_extractor_config_file);
-  assert(in_config.good());
-  header_extractor(in_config, in);
-  in.close();
-  in_config.close();
-  in.open(footer_extractor_model_file);
-  assert(in.good());
-  in_config.open(footer_extractor_config_file);
-  assert(in_config.good());
-  footer_extractor(in_config, in);
-  in.close();
-  in_config.close();
-  in_config.open(parser_config_file);
-  assert(in_config.good());
-  init(in_config);
-  in_config.close();
+
+  ifstream in2(footer_model_file);
+  assert(in2.good());
+  in2 >> footer_model;
+  in2.close();
+
+  ifstream in3(header_extractor_model_file);
+  assert(in3.good());
+  ifstream in3_config(header_extractor_config_file);
+  assert(in3_config.good());
+  header_extractor(in3_config, in3);
+  in3.close();
+  in3_config.close();
+
+  ifstream in4(footer_extractor_model_file);
+  assert(in4.good());
+  ifstream in4_config(footer_extractor_config_file);
+  assert(in4_config.good());
+  footer_extractor(in4_config, in4);
+  in4.close();
+  in4_config.close();
+
+  ifstream in5_config(parser_config_file);
+  assert(in5_config.good());
+  init(in5_config);
+  in5_config.close();
 }
 
 void HeaderParser::init(istream& in)
@@ -158,11 +162,11 @@ void HeaderParser::saveTag(int tagvalue,
     return;
   }
 #ifndef HEADERPARSER
-  tag * tagstruct = tagInit(tagTipo(tagvalue), start, end, 0.);
+  tag * tagstruct = tagInit(tagTipo(tagvalue), start, end, 0, 0);
   tagMemorizza(tagstruct);
 #else
   cout << "<" << tagName(tagvalue) << ">" << endl
-       << buffer.substr(start,end-start+1) 
+       << buffer.substr(start,end-start+1)
        << "</" << tagName(tagvalue) << ">" << endl;
   if(tagvalue == titolodoc)
     closeTag(intestazione);
