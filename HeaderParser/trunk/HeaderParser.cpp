@@ -88,7 +88,7 @@ void HeaderParser::parseFooter(const char * footer, int offset)
   if (parse(footer, offset, footer_model, footer_tags, footer_extractor, false))
     closeTag(conclusione);
   else
-    cout << footer << DEFAULT_FOOTER;
+    cout <<  "</comma>\n<?error\n" << footer << "\n?>\n" << DEFAULT_FOOTER;
 }
 
 void HeaderParser::parseFooter(istream& in, int offset) 
