@@ -122,7 +122,10 @@ class HeaderParser
 			     const std::vector<int>& offsets, 
 			     unsigned int offset, 
 			     std::ostream& out,
-			     const hash_map<int,pair<int,int> >& tags) const;
+			     const hash_map<int,pair<int,int> >& tags,
+			     const vector<int>& header_sequence, 
+			     const vector<int>& header_offsets, 
+			     int * notes) const;
   unsigned int saveTags(const std::string& strbuffer, 
 			int * states, 
 			unsigned int statesnumber,

@@ -391,7 +391,8 @@ int HeaderParser::parseFooter(const char * buffer, ostream& out, int notes)
     footer_formulafinale_model.viterbiPath(sequence, states, sequence.size());
     if (hasCorrectStates(states, sequence.size())){
       if (!found){
-	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_formulafinale_tags);
+	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_formulafinale_tags, 
+			     header_sequence, header_offsets, &notes);
 	found = true;
       }
       last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, out, footer_formulafinale_tags);
@@ -410,7 +411,8 @@ int HeaderParser::parseFooter(const char * buffer, ostream& out, int notes)
     if (hasCorrectStates(states, sequence.size())){
       last = 0;
       if (!found){
-	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_dataeluogo_tags);
+	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_dataeluogo_tags,
+			     header_sequence, header_offsets, &notes);
 	found = true;
 	openTag(formulafinale, out);
 	closeTag(formulafinale, out);
@@ -435,7 +437,8 @@ int HeaderParser::parseFooter(const char * buffer, ostream& out, int notes)
     if (hasCorrectStates(states, sequence.size())){
       last = 0;
       if (!found){
-	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_sottoscrizioni_tags);
+	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_sottoscrizioni_tags,
+			     header_sequence, header_offsets, &notes);
 	found = true;
 	openTag(formulafinale, out);
 	closeTag(formulafinale, out);
@@ -471,7 +474,8 @@ int HeaderParser::parseFooter(const char * buffer, ostream& out, int notes)
     if (hasCorrectStates(states, sequence.size())){
       last = 0;
       if (!found){
-	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_annessi_tags);
+	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, out, footer_annessi_tags,
+			     header_sequence, header_offsets, &notes);
 	found = true;
 	out << DEFAULT_FOOTER << endl;
       }
@@ -579,13 +583,31 @@ unsigned int HeaderParser::saveLastComma(const string& strbuffer,
 					 const vector<int>& offsets, 
 					 unsigned int offset, 
 					 ostream& out,
-					 const hash_map<int,pair<int,int> >& tags) const
+					 const hash_map<int,pair<int,int> >& tags,
+					 const vector<int>& header_sequence, 
+					 const vector<int>& header_offsets, 
+					 int * notes) const
 {
   int state = getFirstMatchingState(states, statesnumber, tags);
-  if(state==0)
+  if(state==0){
     out << "<comma>\n</comma>\n";
-  else
+    return state;
+  }
+  // find eventual pubblicazione
+  int * pub_states = new int[state];
+  vector<int> pub_sequence;
+  copyElements(header_sequence, pub_sequence, 0, state-1);
+  header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
+  int first = getFirstMatchingState(pub_states, pub_sequence.size(), header_pubblicazione_tags);
+  if (first == pub_sequence.size())
     out <<  "<comma>" << strbuffer.substr(offsets[offset], offsets[offset+state]-offsets[offset]) << "\n</comma>\n";
+  else{
+    out <<  "<comma>" << strbuffer.substr(offsets[offset], offsets[offset+first]-offsets[offset]) << "\n</comma>\n";
+    int last = saveTags(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, first, out, header_pubblicazione_tags, notes);     
+    if(last < state-1)
+      saveTag(sconosciuto, offsets[offset+last], offsets[offset+state], strbuffer, out); 	
+  }
+  delete[] pub_states;
   return state;
 }
 

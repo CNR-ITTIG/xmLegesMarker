@@ -1,5 +1,5 @@
 VOCABULARY
-963
+980
 $ 1
 $$ 2
 $$$ 3
@@ -963,3 +963,20 @@ reg 959
 &registrato 961
 &reg 962
 &registro 963
+gu 964
+g 965
+gazz 966
+&gazzetta 967
+&gu 968
+&g 969
+&gazz 970
+pubbl 971
+pubbli 972
+pubblicati 973
+pub 974
+&pubbl 975
+&pubblicati 976
+&pubbli 977
+&pubblicata 978
+&pubblicato 979
+&pub 980
