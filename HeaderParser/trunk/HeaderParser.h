@@ -41,6 +41,7 @@ class HeaderParser
   void closeTag(int tagvalue) const;
   bool ignoreTag(int tagvalue) const;
   bool errorTag(int tagvalue) const;
+  std::string addFormatTags(std::string buf) const;
   bool parse(const char * buffer, 
 	     int offset, 
 	     const HMM& model, 

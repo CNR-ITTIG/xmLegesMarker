@@ -165,9 +165,12 @@ void HeaderParser::saveTag(int tagvalue,
   tag * tagstruct = tagInit(tagTipo(tagvalue), start, end, 0, 0);
   tagMemorizza(tagstruct);
 #else
-  cout << "<" << tagName(tagvalue) << ">" << endl
-       << buffer.substr(start,end-start+1)
-       << "</" << tagName(tagvalue) << ">" << endl;
+  cout << "<" << tagName(tagvalue) << ">" << endl;
+  if(tagvalue == formulainiziale)
+    cout << addFormatTags(buffer.substr(start,end-start+1));
+  else
+    cout << buffer.substr(start,end-start+1);
+  cout << "</" << tagName(tagvalue) << ">" << endl;
   if(tagvalue == titolodoc)
     closeTag(intestazione);
   if(tagvalue == formulafinale)
@@ -175,6 +178,15 @@ void HeaderParser::saveTag(int tagvalue,
 #endif
 }
 
+string HeaderParser::addFormatTags(string buf) const
+{
+  istringstream in(buf);
+  string line, out;
+
+  while(getline(in, line))
+    out += "<h:p> " + line + " </h:p>\n";
+  return out;
+}
 
 bool HeaderParser::errorTag(int tagvalue) const
 {
