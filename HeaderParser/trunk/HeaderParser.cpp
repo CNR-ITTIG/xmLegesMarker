@@ -68,7 +68,7 @@ void HeaderParser::init(istream& in)
 void HeaderParser::parseHeader(const char * header) 
 {
   if (!parse(header, 0, header_model, header_tags, header_extractor))
-    cout << header;
+    cout << DEFAULT_HEADER << "<?error\n" << header << "\n?>" << endl;
 }
 
 void HeaderParser::parseHeader(istream& in) 
@@ -84,7 +84,7 @@ void HeaderParser::parseFooter(const char * footer, int offset)
   if (parse(footer, offset, footer_model, footer_tags, footer_extractor, false))
     closeTag(conclusione);
   else
-    cout << footer;
+    cout << footer << DEFAULT_FOOTER;
 }
 
 void HeaderParser::parseFooter(istream& in, int offset) 
@@ -150,7 +150,7 @@ void HeaderParser::saveTag(int tagvalue,
 			   const string& buffer) const 
 {
   if(ignoreTag(tagvalue)){
-    cout <<  buffer.substr(start,end-start+1) << endl;
+    cout <<  "<?error\n" << buffer.substr(start,end-start+1) << "\n?>" << endl;
     return;
   }
 #ifndef HEADERPARSER

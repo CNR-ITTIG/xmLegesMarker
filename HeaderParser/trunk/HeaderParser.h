@@ -5,7 +5,8 @@
 #include <TextSequenceFeatureExtractor.h>
 
 #define THRESHOLD -1e10
-
+#define DEFAULT_HEADER "\n<intestazione></intestazione>\n<formulainiziale></formulainiziale>\n"
+#define DEFAULT_FOOTER "\n<formulafinale></formulafinale>\n<conclusione></conclusione>\n"
 using namespace std;
 
 class HeaderParser
