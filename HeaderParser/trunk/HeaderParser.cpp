@@ -896,8 +896,9 @@ std::string HeaderParser::tagAttributes(int tagvalue,
 {
   switch(tagTipo(tagvalue)){
   case datadoc:
-  case dataeluogo:
     return (string)" norm=\"" +  normalizeDate(tagcontent) + "\"";
+  case dataeluogo:
+    return (string)" norm=\"" +  normalizeDate(tagcontent) + "\" codice=\"00100\"";
   case pubblicazione:
   case nota:
   case registrazione:
