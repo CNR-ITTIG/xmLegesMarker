@@ -109,6 +109,7 @@ class HeaderParser
   void closeTag(int tagvalue, std::ostream& out) const;
   bool ignoreTag(int tagvalue) const;
   bool errorTag(int tagvalue) const;
+  bool noteTag(int tagvalue) const;
   bool formatTag(int tagvalue) const;
   void openContextTags(int tagvalue, ostream& out) const;
   void closeContextTags(int tagvalue, ostream& out) const;

@@ -692,7 +692,7 @@ void HeaderParser::saveTag(int tagvalue,
 			   bool withtags,
 			   int * id) const 
 {
-  if(errorTag(tagvalue)){
+  if(errorTag(tagvalue) || noteTag(tagvalue)){
     out <<  "<?error\n" << buffer.substr(start,end-start) << "\n?>" << endl;
     return;
   }
@@ -779,6 +779,18 @@ bool HeaderParser::errorTag(int tagvalue) const
   switch(tagTipo(tagvalue)){
   case sconosciuto:
   case varie: return true;
+  default: return false;
+  }
+}
+
+bool HeaderParser::noteTag(int tagvalue) const
+{
+  switch(tagTipo(tagvalue)){
+  case pubblicazione: 
+  case nota:
+  case registrazione:
+  case lavoripreparatori:
+  case annessi: return true;
   default: return false;
   }
 }
