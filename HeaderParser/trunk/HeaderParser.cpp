@@ -454,9 +454,9 @@ string normalizeDate(const string& buffer)
   string day = buffer.substr(beg, end - beg);
   if(day.length() == 1)
     day = "0" + day;
-  beg = buffer.find_first_not_of(" \t\n", end);
+  beg = buffer.find_first_not_of(" \r\t\n", end);
   if (beg == string::npos) return "";
-  end = buffer.find_first_of(" \t\n", beg);
+  end = buffer.find_first_of(" \r\t\n", beg);
   if (end == string::npos) return "";
   string month = MonthMapping[lowercase(buffer.substr(beg, end - beg))];
   if (month == "") return "";
