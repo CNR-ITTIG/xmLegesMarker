@@ -1,5 +1,4 @@
 #include "HeaderParser.h"
-#include "../ParserStruttura/tag.h"
 #include <fstream>
 #include <assert.h>
 #include "Default.h"

@@ -16,7 +16,7 @@ using namespace std;
 const char * version="1.0";
 const char * encoding="UTF-8";
 const char * dtd="nircompleto.dtd";
-const char * tipodoc="Legge";
+const char * mtipodoc="Legge";
 
 int main(int argc, char **argv)
 {
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
      * Creates a skeleton of the document
      */
 
-    xmlNodePtr tipo_node = xmlNewChild(root_node, NULL, BAD_CAST tipodoc, NULL);
+    xmlNodePtr tipo_node = xmlNewChild(root_node, NULL, BAD_CAST mtipodoc, NULL);
     xmlNodePtr meta = xmlNewChild(tipo_node, NULL, BAD_CAST "meta", NULL);
     xmlNodePtr descrittori = xmlNewChild(meta, NULL, BAD_CAST "descrittori", NULL);
     xmlNodePtr intestazione = xmlNewChild(tipo_node, NULL, BAD_CAST "intestazione", NULL);
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
     //              nodo corpo ultimo comma
     unsigned int notes = 1; // prova
 
-    HeaderParser headerparser("default_models");    
+    HeaderParser headerparser("Models");    
     headerparser.setRootNode(tipo_node);
     notes = headerparser.parseHeader(text, meta, descrittori, intestazione, formulainiziale, notes);
     xmlNodePtr lastcomma_node = xmlNewChild(articolato_node, NULL, BAD_CAST "corpo", BAD_CAST text.c_str()); // prova

@@ -10,6 +10,49 @@
 #define THRESHOLD -1e15
 using namespace std;
 
+typedef enum _tagTipo {
+	libro=0,
+	parte=1,
+	titolo=2,
+	capo=3,
+	sezione=4,
+	articolo=5,
+	comma=6,
+	lettera=7,
+	numero=8,
+	num=9,
+	corpo=10,
+	alinea=11,
+	rubrica=12,
+	tipodoc=13,
+	datadoc=14,
+	numdoc=15,
+	titolodoc=16,
+	formulainiziale=17,
+	formulafinale=18,
+	dataeluogo=19,
+	sottoscrizioni=20,
+	pubblicazione=21,
+	emanante=22,
+	intestazione=23,
+	conclusione=24,
+	annessi=25,
+	varie=26,
+	sottoscrivente=27,
+	visto=28,
+	sconosciuto=29,
+	preambolo=30,
+	registrazione=31,
+	nota=32,
+	lavoripreparatori=33,
+	mod=34,
+	virgolette=35,
+	datapubbl=36,
+	numpubbl=37,
+	sopubbl=38} tagTipo;
+
+#define TAGTIPODIM 39
+
 class Month{
   
   map<std::string, std::string> mapping;
