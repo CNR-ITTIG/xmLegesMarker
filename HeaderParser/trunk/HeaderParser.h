@@ -106,7 +106,7 @@ class HeaderParser
 			     const std::vector<int>& offsets, 
 			     unsigned int offset, 
 			     std::ostream& out,
-			     const std::hash_map<int,std::pair<int,bool> >& tags) const;
+			     const hash_map<int,pair<int,bool> >& tags) const;
   unsigned int saveTags(const std::string& strbuffer, 
 			int * states, 
 			unsigned int statesnumber,
@@ -114,7 +114,7 @@ class HeaderParser
 			unsigned int offset, 
 			unsigned int state,
 			std::ostream& out,
-			const std::hash_map<int,std::pair<int,bool> >& tags) const;
+			const hash_map<int,std::pair<int,bool> >& tags) const;
   bool hasVisto(int * states, int statesnumber) const;
 };
 
