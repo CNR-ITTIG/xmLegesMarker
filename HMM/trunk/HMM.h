@@ -9,6 +9,8 @@
 #include "SparseMatrix.h"
 #include <getopt.h>
 
+using namespace std;
+
 class HMM{
 
   struct Element{
@@ -48,7 +50,7 @@ class HMM{
 
   SparseMatrix<Element> A,B,S;
   bool isLeftRightModel;
-  std::hash_set<int> endState;
+  hash_set<int> endState;
 
  public:
 
