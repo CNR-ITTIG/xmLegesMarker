@@ -23,7 +23,7 @@ HMM: StandaloneHMM.o
 	$(COMPILEXX) -o $@ $<
 
 install: all
-	cp $(TARGETBIN) *.pl $(BINDIR); cp $(TARGETLIB) $(LIBDIR); cp *.h $(INCLUDEDIR)
+	cp $(TARGETBIN) *.pl *.exe $(BINDIR); cp $(TARGETLIB) $(LIBDIR); cp *.h $(INCLUDEDIR)
 
 StandaloneHMM.o: HMM.cpp
 	$(COMPILEXX) -c $< -DSTANDALONEHMM -o $@
@@ -32,4 +32,4 @@ StandaloneHMM.o: HMM.cpp
 	$(COMPILEXX) -c $< -o $@
 
 clean:
-	rm -f *.o *.a $(TARGETBIN)  $(TARGETLIB)
+	rm -f *.o *.a *.exe $(TARGETBIN)  $(TARGETLIB)
