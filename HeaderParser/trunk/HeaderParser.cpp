@@ -125,24 +125,14 @@ bool HeaderParser::parse(const char * buffer,
       exit(1);
     }
     if(statetag->second != currtag){
-      if(currtag != -1){
-#ifndef HEADERPARSER
-	saveTag(currtag, start, offset + offsets[i]-1, strbuffer);
-#else
+      if(currtag != -1)
 	saveTag(currtag, start-offset, offsets[i]-1, strbuffer);
-#endif
-      }
       currtag = statetag->second;
       start = offset + offsets[i];
     }
     if (i == sequence.size()-1){
-      if(currtag != -1){
-#ifndef HEADERPARSER
-	saveTag(currtag, start, offset + strlen(buffer)-1, strbuffer);
-#else
+      if(currtag != -1)
 	saveTag(currtag, start-offset, strlen(buffer)-1, strbuffer);
-#endif
-      }
     }
   }
   return true;
@@ -161,10 +151,6 @@ void HeaderParser::saveTag(int tagvalue,
     cout << buffer.substr(start,end-start+1) << endl;
     return;
   }
-#ifndef HEADERPARSER
-  tag * tagstruct = tagInit(tagTipo(tagvalue), start, end, 0, 0);
-  tagMemorizza(tagstruct);
-#else
   cout << "<" << tagName(tagvalue) << ">" << endl;
   if(tagvalue == formulainiziale)
     cout << addFormatTags(buffer.substr(start,end-start+1));
@@ -175,7 +161,6 @@ void HeaderParser::saveTag(int tagvalue,
     closeTag(intestazione);
   if(tagvalue == formulafinale)
     openTag(conclusione);
-#endif
 }
 
 string HeaderParser::addFormatTags(string buf) const
@@ -207,16 +192,12 @@ bool HeaderParser::ignoreTag(int tagvalue) const
 
 void HeaderParser::openTag(int tagvalue) const
 {
-#ifdef HEADERPARSER
   cout << "<" << tagName(tagvalue) << ">" << endl;
-#endif
 }
 
 void HeaderParser::closeTag(int tagvalue) const
 {
-#ifdef HEADERPARSER
   cout << "</" << tagName(tagvalue) << ">" << endl;
-#endif
 }
 
 
