@@ -114,7 +114,7 @@ bool HeaderParser::parse(const char * buffer,
   if(header)
     openTag(intestazione);
 
-  for(int i = 0; i < sequence.size(); i++){
+  for(unsigned int i = 0; i < sequence.size(); i++){
     hash_map<int,int>::const_iterator statetag = tags.find(states[i]);
     if(statetag == tags.end()){
       cerr << "ERROR: state " << states[i] << " has no matching tag" << endl;
@@ -149,8 +149,12 @@ void HeaderParser::saveTag(int tagvalue,
 			   int end,
 			   const string& buffer) const 
 {
-  if(ignoreTag(tagvalue)){
+  if(errorTag(tagvalue)){
     cout <<  "<?error\n" << buffer.substr(start,end-start+1) << "\n?>" << endl;
+    return;
+  }
+  if(ignoreTag(tagvalue)){
+    cout << buffer.substr(start,end-start+1) << endl;
     return;
   }
 #ifndef HEADERPARSER
@@ -168,11 +172,19 @@ void HeaderParser::saveTag(int tagvalue,
 }
 
 
-bool HeaderParser::ignoreTag(int tagvalue) const
+bool HeaderParser::errorTag(int tagvalue) const
 {
   switch(tagTipo(tagvalue)){
   case varie:
   case pubblicazione: return true;
+  default: return false;
+  }
+}
+
+bool HeaderParser::ignoreTag(int tagvalue) const
+{
+  switch(tagTipo(tagvalue)){
+  case sottoscrizioni: return true;
   default: return false;
   }
 }
