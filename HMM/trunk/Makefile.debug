@@ -1,0 +1,20 @@
+
+TARGETBIN = HMM
+COMPILEXX = g++ -g
+
+all : ${TARGETBIN}
+
+HMM : StandaloneHMM.o
+	${COMPILEXX} -o $@ $<
+
+install :
+	cp ${TARGETBIN} ${HOME}/bin
+
+StandaloneHMM.o : HMM.cpp
+	${COMPILEXX} -c $< -DSTANDALONEHMM -o $@ 
+
+%.o : %.cpp
+	${COMPILEXX} -c $< -o $@ 
+
+clean:	
+	rm *.o *.a ${TARGETBIN} -f 
