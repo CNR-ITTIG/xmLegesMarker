@@ -1,5 +1,5 @@
 stopwords
-stopwords.txt
+
 min_word_frequency
 0
 min_infogain_words

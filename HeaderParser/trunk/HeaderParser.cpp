@@ -1,6 +1,7 @@
 #include "HeaderParser.h"
 #include "../ParserStruttura/tag.h"
 #include <fstream>
+#include <libgen.h>
 
 using namespace std;
 
@@ -228,8 +229,21 @@ const char * HeaderParser::tagName(int tagvalue)
 #ifdef HEADERPARSER
 int main(int argc, char* argv[]) {
 
-  if (argc < 2){
-    cerr << "Usage: " << argv[0] << " [-header,-footer]" << endl;
+  string workdir = dirname(argv[0]);
+  string config_files[] = { "header_model",
+			   "footer_model",
+			   "header_extractor_model",
+			   "header_extractor_config",
+			   "footer_extractor_model",
+			   "footer_extractor_config",
+			   "parser_config"};
+
+  if (argc < 2 || !strcmp(argv[1], "--help")){
+    cerr << "Usage: " << argv[0] << " [-header,-footer]"
+	 << " [ <workdir> <header_model> <footer_model>"
+	 << " <header_extractor_model> <header_extractor_config>"
+	 << " <footer_extractor_model> <footer_extractor_config>"
+	 << " <parser_config> ]" << endl;
     exit(0);
   }
   for (int arg = 1; arg < argc; arg++){
@@ -237,38 +251,29 @@ int main(int argc, char* argv[]) {
     if (*argv[arg] == '-'){
       
        const char * command = argv[arg];
-       if ((argc - arg - 1) < 7){
-	 cerr << "Too few arguments, need:"
-	      << " <header_model> <footer_model>"
-	      << " <header_extractor_model> <header_extractor_config>"
-	      << " <footer_extractor_model> <footer_extractor_config>"
-	      << " <parser_config>" << endl;
-	 exit(0);
+       if(argc - arg - 1 > 0){
+	 workdir = argv[++arg];
+	 int i = 0;
+	 while(++arg < argc)
+	   config_files[i++] = argv[arg];
        }
-	const char* header_model = argv[++arg];
-	const char* footer_model = argv[++arg];
-	const char* header_extractor_model = argv[++arg];
-	const char* header_extractor_config = argv[++arg];
-	const char* footer_extractor_model = argv[++arg];
-	const char* footer_extractor_config = argv[++arg];
-	const char* parser_config = argv[++arg];
-
-	HeaderParser parser(header_model, 
-			    footer_model, 
-			    header_extractor_model, 
-			    header_extractor_config, 
-			    footer_extractor_model, 
-			    footer_extractor_config, 
-			    parser_config);
 	
-	if (!strcmp(command, "-header"))
-	  parser.parseHeader(cin);
-	else if (!strcmp(command, "-footer"))
-	  parser.parseFooter(cin, 0);
-      	else{
-	  cerr << "ERROR: unknown command " << argv[arg] << endl;
-	  return -1;
-      	}
+       HeaderParser parser((workdir + "/" + config_files[0]).c_str(),
+			   (workdir + "/" + config_files[1]).c_str(),
+			   (workdir + "/" + config_files[2]).c_str(),
+			   (workdir + "/" + config_files[3]).c_str(),
+			   (workdir + "/" + config_files[4]).c_str(),
+			   (workdir + "/" + config_files[5]).c_str(),
+			   (workdir + "/" + config_files[6]).c_str());
+			   
+       if (!strcmp(command, "-header"))
+	 parser.parseHeader(cin);
+       else if (!strcmp(command, "-footer"))
+	 parser.parseFooter(cin, 0);
+       else{
+	 cerr << "ERROR: unknown command " << argv[arg] << endl;
+	 return -1;
+       }
     }
     else{
       cerr << "ERROR: missing command " << endl;
