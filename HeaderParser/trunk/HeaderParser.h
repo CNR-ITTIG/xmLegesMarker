@@ -34,10 +34,10 @@ class HeaderParser
 	       std::string footer_extractor_model_file = "footer_extractor_model",
 	       std::string footer_extractor_config_file = "footer_extractor_config",
 	       std::string parser_config_file = "parser_config");
-  void parseHeader(const char * header, std::ostream& out = cout);
-  void parseFooter(const char * footer, int offset, std::ostream& out = cout); 
-  void parseHeader(std::istream& in, std::ostream& out = cout); 
-  void parseFooter(std::istream& in, int offset, std::ostream& out = cout); 
+  void parseHeader(const char * header, std::ostream& out);
+  void parseFooter(const char * footer, int offset, std::ostream& out); 
+  void parseHeader(std::istream& in, std::ostream& out); 
+  void parseFooter(std::istream& in, int offset, std::ostream& out); 
   static const char * tagName(int tagvalue);
 
  protected:
@@ -45,9 +45,9 @@ class HeaderParser
 	       int start,
 	       int end,
 	       const std::string& buffer,
-	       std::ostream& out = cout) const;
-  void openTag(int tagvalue, std::ostream& out = cout) const;
-  void closeTag(int tagvalue, std::ostream& out = cout) const;
+	       std::ostream& out) const;
+  void openTag(int tagvalue, std::ostream& out) const;
+  void closeTag(int tagvalue, std::ostream& out) const;
   bool ignoreTag(int tagvalue) const;
   bool errorTag(int tagvalue) const;
   std::string addFormatTags(std::string buf) const;
@@ -56,8 +56,8 @@ class HeaderParser
 	     const HMM& model, 
 	     const hash_map<int,int>& tags,
 	     TextSequenceFeatureExtractor& extractor,
-	     bool header = true,
-	     std::ostream& out = cout);
+	     bool header,
+	     std::ostream& out);
   void init(std::istream& in);
 
 };

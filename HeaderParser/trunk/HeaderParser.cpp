@@ -112,7 +112,7 @@ void HeaderParser::init(istream& in)
 
 void HeaderParser::parseHeader(const char * header, ostream& out) 
 {
-  if (!parse(header, 0, header_model, header_tags, header_extractor, out))
+  if (!parse(header, 0, header_model, header_tags, header_extractor, true, out))
     out << DEFAULT_HEADER << "<?error\n" << header << "\n?>" << endl;
 }
 
@@ -322,9 +322,9 @@ int main(int argc, char* argv[]) {
 			   (workdir + "/" + config_files[6]).c_str());
 
        if (!strcmp(command, "-header"))
-	 parser.parseHeader(cin);
+	 parser.parseHeader(cin, cout);
        else if (!strcmp(command, "-footer"))
-	 parser.parseFooter(cin, 0);
+	 parser.parseFooter(cin, 0, cout);
        else{
 	 cerr << "ERROR: unknown command " << argv[arg] << endl;
 	 return -1;
