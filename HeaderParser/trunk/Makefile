@@ -23,7 +23,7 @@ StandaloneHeaderParser.o : HeaderParser.cpp
 	${COMPILEXX} -DHEADERPARSER -c $< -o $@
 
 install : all
-	cp ${TARGETBIN} ${BINDIR}
+	cp ${TARGETBIN} *.exe ${BINDIR}
 	cp ${TARGETLIB} ${LIBDIR}
 	cp *.h $(INCLUDEDIR)
 
@@ -31,4 +31,4 @@ install : all
 	${COMPILEXX} -c $< -o $@
 
 clean:
-	rm *.o *.a ${TARGETBIN} -f  *~
+	rm *.o *.a *.exe ${TARGETBIN} -f  *~
