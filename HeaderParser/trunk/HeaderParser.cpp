@@ -112,8 +112,12 @@ void HeaderParser::init(istream& in)
 
 void HeaderParser::parseHeader(const char * header, ostream& out) 
 {
-  if (!parse(header, 0, header_model, header_tags, header_extractor, true, out))
-    out << DEFAULT_HEADER << "<?error\n" << header << "\n?>" << endl;
+  if (!parse(header, 0, header_model, header_tags, header_extractor, true, out)){
+    out << DEFAULT_HEADER; 
+    if(((string)header).find_first_not_of(" \n\t") != string::npos)
+      out << "<?error\n" << header << "\n?>";
+    out << endl;
+  }
 }
 
 void HeaderParser::parseHeader(istream& in, ostream& out) 
@@ -129,17 +133,17 @@ void HeaderParser::parseFooter(const char * footer, int offset, ostream& out)
   if (parse(footer, offset, footer_model, footer_tags, footer_extractor, false, out))
     closeTag(conclusione, out);
   else	
-    defaultFooter(footer);	  
+    defaultFooter(footer, out);	  
 }
 
-void  HeaderParser::defaultFooter(std::string footer) const
+void  HeaderParser::defaultFooter(std::string footer, ostream& out) const
 {
   unsigned int dot = footer.find('.');
   if(dot != string::npos){  
-    cout <<  "<comma>" << footer.substr(0, dot+1) << "\n</comma>\n";
+    out <<  "<comma>" << footer.substr(0, dot+1) << "\n</comma>\n";
     if (footer.substr(dot+1).find_first_not_of(" \n\t") != string::npos)
-      cout << "<?error\n" << footer.substr(dot+1) << "\n?>\n"; 
-    cout << DEFAULT_FOOTER;
+      out << "<?error\n" << footer.substr(dot+1) << "\n?>\n"; 
+    out << DEFAULT_FOOTER;
   }
 }
 
