@@ -902,7 +902,7 @@ string HeaderParser::addTeds(string buf, vector<string>& teds, int * curr_ted) c
     return buf;
   
   int beg = 0;//buf.find_first_not_of(" \n\t\r");
-  while((beg = buf.find('\n', beg)) != string::npos){
+  while((beg = buf.find('\n', beg)) != string::npos && *curr_ted < teds.size()){
     string ted = teds[(*curr_ted)++];
     buf.insert(beg, ted);
     beg += ted.size() + 1;
