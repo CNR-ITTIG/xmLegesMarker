@@ -131,7 +131,7 @@ SparseMatrix<DATATYPE>& SparseMatrix<DATATYPE>::operator=(const SparseMatrix<DAT
 template<class DATATYPE>
 DATATYPE SparseMatrix<DATATYPE>::operator()(int r, int c) const
 {
-  SparseMap::const_iterator i = elements_map_.find(Key(r,c));
+  SparseMapConstIterator i = elements_map_.find(Key(r,c));
   if (i == elements_map_.end())
     return 0;
   return i->second;
@@ -140,7 +140,7 @@ DATATYPE SparseMatrix<DATATYPE>::operator()(int r, int c) const
 template<class DATATYPE>
 DATATYPE SparseMatrix<DATATYPE>::operator()(Key k) const
 {
-  SparseMap::const_iterator i = elements_map_.find(k);
+  SparseMapConstIterator i = elements_map_.find(k);
   if (i == elements_map_.end())
     return 0;
   return i->second;
@@ -150,7 +150,7 @@ template<class DATATYPE>
 DATATYPE& SparseMatrix<DATATYPE>::operator()(int r, int c)
 {
   Key k(r,c);
-  SparseMap::iterator i = elements_map_.find(k);
+  SparseMapIterator i = elements_map_.find(k);
   if (i == elements_map_.end())
     return ((elements_map_.insert(make_pair(k,0))).first)->second;
   return i->second;
@@ -159,7 +159,7 @@ DATATYPE& SparseMatrix<DATATYPE>::operator()(int r, int c)
 template<class DATATYPE>
 DATATYPE& SparseMatrix<DATATYPE>::operator()(Key k)
 {
-  SparseMap::iterator i = elements_map_.find(k);
+  SparseMapIterator i = elements_map_.find(k);
   if (i == elements_map_.end())
     return ((elements_map_.insert(make_pair(k,0))).first)->second;
   return i->second;
@@ -201,7 +201,7 @@ void SparseMatrix<DATATYPE>::Read(istream& is)
 
 template<class DATATYPE>
 void SparseMatrix<DATATYPE>::Write(ostream &os) const {
-  for(SparseMap::const_iterator k = elements_map_.begin(); k != elements_map_.end(); k++)
+  for(SparseMapConstIterator k = elements_map_.begin(); k != elements_map_.end(); k++)
     os << (k->first).r << " " << (k->first).c << " " << k->second << "\n";
   os << endl;
 }
