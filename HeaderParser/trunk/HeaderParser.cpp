@@ -747,14 +747,27 @@ string lowercase(const string& word)
 }
 
 
-string HeaderParser::addFormatTags(string buf) const
+string HeaderParser::addFormatTags(string text) const
 {
-  istringstream in(buf);
-  string line, out;
+  istringstream in(text);
+  string line, out, buf;
+  unsigned int end = 0;
 
-  while(getline(in, line))
+  while(getline(in, line)){
+    unsigned int semicolumn = line.find(";");
+    if(semicolumn != string::npos){
+      out += "<h:p> " + buf + line.substr(0,semicolumn+1) + " </h:p>\n";
+      if(semicolumn < line.length()-1)
+	buf = line.substr(semicolumn+1);
+      else
+	buf = "";
+      continue;
+    }
     if (line.find_first_not_of(" \n\t\r") != string::npos)
-      out += "<h:p> " + line + " </h:p>\n";
+      buf += line + "\n";
+  }
+  if ((end = buf.find_last_not_of(" \n\t\r")) != string::npos)
+    out += "<h:p> " + buf.substr(0,end+1) + " </h:p>\n";
   return out;
 }
 
