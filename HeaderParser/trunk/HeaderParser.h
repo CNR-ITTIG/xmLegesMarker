@@ -1,8 +1,10 @@
 #ifndef HEADERPARSER_H
 #define HEADERPARSER_H
 
-#include "../HMM/HMM.h"
-#include "../FeatureExtractor/TextSequenceFeatureExtractor.h"
+#include <HMM.h>
+#include <TextSequenceFeatureExtractor.h>
+
+using namespace std;
 
 class HeaderParser
 {
@@ -10,8 +12,8 @@ class HeaderParser
   HMM footer_model;
   TextSequenceFeatureExtractor header_extractor;
   TextSequenceFeatureExtractor footer_extractor;
-  std::hash_map<int,int> header_tags;
-  std::hash_map<int,int> footer_tags;
+  hash_map<int,int> header_tags;
+  hash_map<int,int> footer_tags;
 
  public:
   HeaderParser(const char * header_model_file,
@@ -35,7 +37,7 @@ class HeaderParser
   void parse(const char * buffer, 
 	     int offset, 
 	     const HMM& model, 
-	     const std::hash_map<int,int>& tags,
+	     const hash_map<int,int>& tags,
 	     TextSequenceFeatureExtractor& extractor);
   void init(std::istream& in);
 
