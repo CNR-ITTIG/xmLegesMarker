@@ -1,5 +1,5 @@
 VOCABULARY
-916
+927
 $ 1
 $$ 2
 $$$ 3
@@ -916,3 +916,14 @@ visto 913
 vo 914
 xiii 915
 zione 916
+&pubbl 917
+&pubblicata 918
+&pubblicati 919
+&pubblicato 920
+&gazzetta 921
+$& 922
+$$& 923
+$$$& 924
+$$$$& 925
+$$$$$$& 926
+$$$$$$$$& 927

@@ -438,6 +438,8 @@ void HeaderParser::saveTag(int tagvalue,
   out << "<" << tagName(tagvalue) << tagAttributes(tagvalue, buffer.substr(start,end-start)) << ">" << endl;
   if(tagvalue == formulainiziale)
     out << addFormatTags(buffer.substr(start,end-start));
+  else if(tagvalue == formulafinale)
+    out << "<h:p> " << buffer.substr(start,end-start) << " </h:p>\n";
   else
     out << buffer.substr(start,end-start);
   out << "</" << tagName(tagvalue) << ">" << endl;

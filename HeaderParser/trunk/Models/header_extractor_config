@@ -33,6 +33,6 @@ replace_nonalphanum_character
 merge_multiword_terms
 1
 delimiters
-`';:,.?!\"(){}[]\\|/<>-_
+`';:,.?!\"{}[]\\|/<>-_
 toss_delimiters
 1
