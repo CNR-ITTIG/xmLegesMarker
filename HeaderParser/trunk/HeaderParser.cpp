@@ -5,6 +5,8 @@
 
 using namespace std;
 
+Month MonthMapping;
+
 HeaderParser::HeaderParser(std::string modeldir,
 			   std::string header_model_file,
 			   std::string footer_model_file,
@@ -143,8 +145,11 @@ void  HeaderParser::defaultFooter(std::string footer, ostream& out) const
     out <<  "<comma>" << footer.substr(0, dot+1) << "\n</comma>\n";
     if (footer.substr(dot+1).find_first_not_of(" \n\t") != string::npos)
       out << "<?error\n" << footer.substr(dot+1) << "\n?>\n"; 
-    out << DEFAULT_FOOTER;
   }
+  else{
+    out << "<?error\n" << footer << "\n?>\n"; 
+  }
+  out << DEFAULT_FOOTER;
 }
 
 void HeaderParser::parseFooter(istream& in, int offset, ostream& out) 
@@ -209,7 +214,7 @@ void HeaderParser::saveTag(int tagvalue,
     out << buffer.substr(start,end-start+1) << endl;
     return;
   }
-  out << "<" << tagName(tagvalue) << ">" << endl;
+  out << "<" << tagName(tagvalue) << tagAttributes(tagvalue, buffer.substr(start,end-start+1)) << ">" << endl;
   if(tagvalue == formulainiziale)
     out << addFormatTags(buffer.substr(start,end-start+1));
   else
@@ -220,6 +225,41 @@ void HeaderParser::saveTag(int tagvalue,
   if(tagvalue == formulafinale)
     openTag(conclusione, out);
 }
+
+string normalizeDate(const string& buffer)
+{
+  unsigned int beg = buffer.find_first_of("0123456789");
+  if (beg == string::npos) return "";
+  unsigned int end = buffer.find_first_not_of("0123456789", beg);
+  if (end == string::npos) return "";
+  string day = buffer.substr(beg, end - beg);
+  if(day.length() == 1)
+    day = "0" + day;
+  beg = buffer.find_first_not_of(" \t\n", end);
+  if (beg == string::npos) return "";
+  end = buffer.find_first_of(" \t\n", beg);
+  if (end == string::npos) return "";
+  string month = MonthMapping[lowercase(buffer.substr(beg, end - beg))];
+  if (month == "") return "";
+  beg = buffer.find_first_of("0123456789", end);
+  if (beg == string::npos) return "";
+  end = buffer.find_first_not_of("0123456789", beg);
+  if (end == string::npos) end = buffer.length()+2;
+  string year = buffer.substr(beg, end - beg);
+  if(year.length() != 4)
+    return "";
+  return year + month + day;
+}
+
+string lowercase(const string& word)
+{
+
+  string lower;
+  for(unsigned int i=0; i<word.length(); i++)
+    lower += tolower(word[i]);
+  return lower;
+}
+
 
 string HeaderParser::addFormatTags(string buf) const
 {
@@ -293,6 +333,18 @@ const char * HeaderParser::tagName(int tagvalue)
   }
 }
 
+std::string HeaderParser::tagAttributes(int tagvalue, const std::string& attributevalue)
+{
+  switch(tagTipo(tagvalue)){
+  case datadoc:
+  case dataeluogo:
+    return (string)" norm=\"" +  normalizeDate(attributevalue) + "\"";
+  default:
+    return "";
+  }
+}
+
+
 #ifdef HEADERPARSER
 int main(int argc, char* argv[]) {
 
@@ -352,3 +404,24 @@ int main(int argc, char* argv[]) {
   }
 }
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
