@@ -114,6 +114,7 @@ class HeaderParser
   void openContextTags(int tagvalue, ostream& out) const;
   void closeContextTags(int tagvalue, ostream& out) const;
   std::string addFormatTags(std::string buf) const;
+  std::string addSemicolumnFormatTags(std::string buf) const;
   void init(std::istream& in);
   void defaultFooter(std::string footer, std::ostream& out) const;
   void defaultHeader(std::string header, ostream& out) const;

@@ -702,8 +702,12 @@ void HeaderParser::saveTag(int tagvalue,
   }
   if(withtags)
     openTag(tagvalue, out, buffer.substr(start,end-start), id);
-  if(formatTag(tagvalue))
-    out << addFormatTags(buffer.substr(start,end-start));
+  if(formatTag(tagvalue)){
+    if(tagvalue == preambolo)
+      out << addSemicolumnFormatTags(buffer.substr(start,end-start));
+    else
+      out << addFormatTags(buffer.substr(start,end-start));
+  }
   else if(tagvalue == formulafinale)
     out << "<h:p> " << buffer.substr(start,buffer.find_last_not_of(" \r\n\t", end-1)-start+1) << " </h:p>\n";
   else
@@ -747,7 +751,7 @@ string lowercase(const string& word)
 }
 
 
-string HeaderParser::addFormatTags(string text) const
+string HeaderParser::addSemicolumnFormatTags(string text) const
 {
   istringstream in(text);
   string line, out, buf;
@@ -770,6 +774,18 @@ string HeaderParser::addFormatTags(string text) const
     out += "<h:p> " + buf.substr(0,end+1) + " </h:p>\n";
   return out;
 }
+
+string HeaderParser::addFormatTags(string buf) const
+{
+  istringstream in(buf);
+  string line, out;
+
+  while(getline(in, line))
+    if (line.find_first_not_of(" \n\t\r") != string::npos)
+      out += "<h:p> " + line + " </h:p>\n";
+  return out;
+}
+
 
 void SqueezeWords(string& buf)
 {
