@@ -128,15 +128,15 @@ class HeaderParser
   void init(std::istream& in);
   void defaultFooter(std::string footer, xmlNodePtr lastcomma) const;
   void defaultHeader(xmlNodePtr descrittori, xmlNodePtr intestazione) const;				  
-  void saveTag(int tagvalue,
-	       int start,
-	       int end,
-	       const string& buffer,
-	       xmlNodePtr startnode,
-	       xmlNodePtr prev_node = NULL,
-	       xmlNodePtr subs_node = NULL,
-	       bool withtags = true,
-	       int * id = 0) const;
+  xmlNodePtr saveTag(int tagvalue,
+		     int start,
+		     int end,
+		     const string& buffer,
+		     xmlNodePtr startnode,
+		     xmlNodePtr prev_node = NULL,
+		     xmlNodePtr subs_node = NULL,
+		     bool withtags = true,
+		     int * id = 0) const;
   unsigned int saveLastComma(const string& strbuffer, 
 			     int * states, 
 			     unsigned int statesnumber,

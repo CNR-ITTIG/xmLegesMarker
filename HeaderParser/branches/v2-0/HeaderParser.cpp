@@ -248,7 +248,7 @@ int HeaderParser::parseHeader(std::string& header,
 	header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
 	pub_found = savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
 	if(pub_found)
-	  last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, meta ,header_pubblicazione_tags, &notes);     
+	  last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, meta ,header_pubblicazione_tags, &notes, NULL, intestazione);     
 	if(last < first-1)
 	  saveTag(sconosciuto, offsets[last], offsets[first], strbuffer, root_node, NULL, intestazione); 	
 	last = first;
@@ -283,7 +283,7 @@ int HeaderParser::parseHeader(std::string& header,
 	if(!found)
 	  defaultHeader(descrittori, intestazione);
 	else
-	  xmlNewChild(intestazione, NULL, BAD_CAST "titoloDoc", NULL);
+	  xmlNewChild(intestazione, NULL, BAD_CAST "titoloDoc", BAD_CAST "");
       }
       last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, formulainiziale, header_formulainiziale_tags);      
       removeProcessedElements(sequence, last);
@@ -362,20 +362,21 @@ unsigned int HeaderParser::saveTitle(const string& strbuffer,
       saveTag(titolodoc, offsets[offset], offsets[offset+first], strbuffer, intestazione); 	
     else{
       defaultHeader(descrittori, intestazione);
-      saveTag(sconosciuto, offsets[offset], offsets[offset+first], strbuffer, root_node, NULL, intestazione); 	
+      saveTag(sconosciuto, offsets[offset], offsets[offset+first], strbuffer, root_node, intestazione, NULL); 	
     }
     return first-1;
   }
   // else choose as title the longer part either before or after match
   last = getLastMatchingState(states, statesnumber, tags);
   if((statesnumber - last) > first){
-    saveTags(strbuffer, states, statesnumber, offsets, offset, state, meta, tags, id, NULL, intestazione);    
-    saveTag(titolodoc,offsets[offset+last+1], offsets[offset+statesnumber], strbuffer, intestazione); 
+    xmlNodePtr titlenode = saveTag(titolodoc,offsets[offset+last+1], offsets[offset+statesnumber], strbuffer, intestazione);     
+    saveTags(strbuffer, states, statesnumber, offsets, offset, state, meta, tags, id, NULL, titlenode);    
+    
     return statesnumber-1;
   }
   else{
-    saveTag(titolodoc,offsets[offset], offsets[offset+first], strbuffer, intestazione); 
-    return saveTags(strbuffer, states, statesnumber, offsets, offset, first, meta, tags, id, intestazione, NULL);    
+    xmlNodePtr titlenode = saveTag(titolodoc,offsets[offset], offsets[offset+first], strbuffer, intestazione); 
+    return saveTags(strbuffer, states, statesnumber, offsets, offset, first, meta, tags, id, titlenode, NULL);    
   }
 }
 
@@ -537,10 +538,10 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
 			     header_sequence, header_offsets, &notes);
       else{ // search for pubblicazione
 	last = getFirstMatchingState(states, sequence.size(), footer_annessi_tags); 
-	findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, meta, conclusione, &notes);
+	findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, meta, root_node, &notes);
       }
       found = true;
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, meta, footer_annessi_tags, &notes);
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, meta, footer_annessi_tags, &notes, conclusione);
       removeProcessedElements(sequence, last);
       removeProcessedElements(header_sequence, last);
       offset += last + 1;
@@ -685,7 +686,7 @@ void HeaderParser::findPubblicazione(const string& strbuffer,
   header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
   savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, findChild("descrittori", meta), header_pubblicazione_tags);
   if(hasCorrectStates(pub_states, pub_sequence.size()))
-    last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, 0, meta, header_pubblicazione_tags, notes);     
+    last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, 0, meta, header_pubblicazione_tags, notes, curr_node);     
   if(last < first-1)
     saveTag(sconosciuto, offsets[offset+last], offsets[offset+first], strbuffer, curr_node);
   delete[] pub_states;
@@ -717,7 +718,7 @@ unsigned int HeaderParser::saveLastComma(const string& strbuffer,
   else{
     xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.substr(offsets[offset], offsets[offset+first]-offsets[offset]).c_str());
     savePubblicazione(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, findChild("descrittori", meta), header_pubblicazione_tags);
-    int last = saveTags(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, first, meta, header_pubblicazione_tags, notes);     
+    int last = saveTags(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, first, meta, header_pubblicazione_tags, notes, lastcomma, NULL);     
     if(last < state-1)
       saveTag(sconosciuto, offsets[offset+last], offsets[offset+state], strbuffer, lastcomma);
   }
@@ -781,15 +782,15 @@ unsigned int HeaderParser::saveTags(const string& strbuffer,
   return last;
 }
 
-void HeaderParser::saveTag(int tagvalue,
-			   int start,
-			   int end,
-			   const string& buffer,
-			   xmlNodePtr startnode,
-			   xmlNodePtr prev_node,
-			   xmlNodePtr subs_node,
-			   bool withtags,
-			   int * id) const
+xmlNodePtr HeaderParser::saveTag(int tagvalue,
+				 int start,
+				 int end,
+				 const string& buffer,
+				 xmlNodePtr startnode,
+				 xmlNodePtr prev_node,
+				 xmlNodePtr subs_node,
+				 bool withtags,
+				 int * id) const
 {
   if(errorTag(tagvalue)){
     xmlNodePtr errornode = xmlNewPI(BAD_CAST "error", BAD_CAST buffer.substr(start,end-start).c_str());
@@ -799,11 +800,11 @@ void HeaderParser::saveTag(int tagvalue,
       xmlAddPrevSibling(subs_node, errornode);
     else
       xmlAddChild(startnode, errornode);
-    return;
+    return errornode;
   }
   if(ignoreTag(tagvalue)){
     xmlAddChild(startnode, xmlNewText(BAD_CAST buffer.substr(start,end-start).c_str()));
-    return;
+    return NULL;
   }
   xmlNodePtr currnode = (withtags) ? openTag(tagvalue, startnode, buffer.substr(start,end-start), id) : startnode;
   if(formatTag(tagvalue)){
@@ -819,10 +820,10 @@ void HeaderParser::saveTag(int tagvalue,
     xmlAddChild(currnode, xmlNewText(BAD_CAST trimEnd(buffer.substr(start,end-start), &trimmed).c_str()));
     if (trimmed < end-start)
       xmlAddChild(startnode, xmlNewText(BAD_CAST buffer.substr(start+trimmed,end-start-trimmed).c_str()));
-    return;
   }
   else
     xmlAddChild(currnode, xmlNewText(BAD_CAST buffer.substr(start,end-start).c_str()));
+  return currnode;
 }
 
 xmlNodePtr HeaderParser::openTag(int tagvalue,
