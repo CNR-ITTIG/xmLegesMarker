@@ -862,7 +862,7 @@ string HeaderParser::addSemicolumnFormatTags(string text, vector<string>& teds, 
     unsigned int semicolumn = line.find(";");
     if(semicolumn != string::npos){
       out += "<h:p> " + buf + line.substr(0,semicolumn+1) + " </h:p>";
-      if(m_ted && teds.size() > 0)
+      if(m_ted && *curr_ted < teds.size())
 	out += teds[(*curr_ted)++];
       out += "\n";
       if(semicolumn < line.length()-1)
@@ -873,7 +873,7 @@ string HeaderParser::addSemicolumnFormatTags(string text, vector<string>& teds, 
     }
     if (line.find_first_not_of(" \n\t\r") != string::npos)
       buf += line;
-    if(m_ted && teds.size() > 0)
+    if(m_ted && *curr_ted < teds.size())
       (*curr_ted)++;
   }
   if ((end = buf.find_last_not_of(" \n\t\r")) != string::npos)
@@ -889,7 +889,7 @@ string HeaderParser::addFormatTags(string buf, vector<string>& teds, int * curr_
   while(getline(in, line))
     if (line.find_first_not_of(" \n\t\r") != string::npos){
       out += "<h:p> " + line + " </h:p>";
-      if(m_ted && teds.size() > 0)
+      if(m_ted && *curr_ted < teds.size())
 	out += teds[(*curr_ted)++];
       out += "\n";
     }
