@@ -215,11 +215,11 @@ void HeaderParser::parseHeader(const std::string& header, ostream& out)
 	vector<int> pub_sequence;
 	copyElements(sequence, pub_sequence, 0, first-1);
 	header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
-	last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, out, header_pubblicazione_tags);     
-	offset += last + 1;
-	saveTag(sconosciuto, offsets[offset], offsets[offset+first], strbuffer, out); 	
+	if(hasCorrectStates(pub_states, pub_sequence.size()))
+	  last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, out, header_pubblicazione_tags);     
+	if(last < first-1)
+	  saveTag(sconosciuto, offsets[last], offsets[first-1], strbuffer, out); 	
 	last = first;
-	offset += last + 1;
 	delete[] pub_states;
       }
       openTag(intestazione, out);
@@ -232,10 +232,10 @@ void HeaderParser::parseHeader(const std::string& header, ostream& out)
 
   // parse formulainiziale
   if(sequence.size() > 0){
+    last = 0;
     states = new int[sequence.size()];
     header_formulainiziale_model.viterbiPath(sequence, states, sequence.size());
     if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()){
-      last = 0;
       // recover eventual pubblicazione before formulainiziale
       if(first > 0){
 	pub_states = new int[first];
@@ -257,6 +257,13 @@ void HeaderParser::parseHeader(const std::string& header, ostream& out)
       openTag(formulainiziale,out);
       last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, out, header_formulainiziale_tags);      
       closeTag(formulainiziale,out);
+      removeProcessedElements(sequence, last);
+      offset += last + 1;
+      found = true;
+    }
+    else{ // search pubblicazione, otherwise put all in titolodoc
+      header_pubblicazione_model.viterbiPath(sequence, states, sequence.size());
+      last = saveTitle(strbuffer, states, sequence.size(), offsets, offset, last, out, found, header_pubblicazione_tags);
       removeProcessedElements(sequence, last);
       offset += last + 1;
       found = true;
@@ -296,7 +303,7 @@ unsigned int HeaderParser::saveTitle(const string& strbuffer,
       out << DEFAULT_INTESTAZIONE << endl;
       saveTag(sconosciuto, offsets[offset], offsets[offset+first], strbuffer, out); 	
     }
-    return first;
+    return first-1;
   }
   // else choose as title the longer part either before or after match
   last = getLastMatchingState(states, statesnumber, tags);
@@ -304,7 +311,7 @@ unsigned int HeaderParser::saveTitle(const string& strbuffer,
     saveTags(strbuffer, states, statesnumber, offsets, offset, state, out, tags);    
     saveTag(titolodoc,offsets[offset+last+1], offsets[offset+statesnumber], strbuffer, out); 
     closeTag(intestazione,out);
-    return statesnumber;
+    return statesnumber-1;
   }
   else{
     saveTag(titolodoc,offsets[offset], offsets[offset+first], strbuffer, out); 
@@ -505,7 +512,7 @@ unsigned int HeaderParser::saveTags(const string& strbuffer,
   hash_map<int,pair<int,int> >::const_iterator statetag,currstatetag;
 
   // get last matched state
-  unsigned int last;
+  int last;
   for(last = statesnumber-1; last >= 0; last--){
     statetag = tags.find(states[last]);
     assert(statetag != tags.end());
@@ -542,7 +549,7 @@ void  HeaderParser::defaultFooter(std::string footer, ostream& out) const
   unsigned int dot = footer.find('.');
   if(dot != string::npos){  
     out <<  "<comma>" << footer.substr(0, dot+1) << "\n</comma>\n";
-    if (footer.substr(dot+1).find_first_not_of(" \n\t") != string::npos)
+    if (footer.substr(dot+1).find_first_not_of(" \n\t\r") != string::npos)
       out << "<?error\n" << footer.substr(dot+1) << "\n?>\n"; 
   }
   else{
@@ -553,7 +560,8 @@ void  HeaderParser::defaultFooter(std::string footer, ostream& out) const
 
 void  HeaderParser::defaultHeader(std::string header, ostream& out) const
 {
-  out << "<?error\n" << header << "\n?>\n"; 
+  if (header.find_first_not_of(" \n\t\r") != string::npos)
+    out << "<?error\n" << header << "\n?>\n"; 
   out << DEFAULT_INTESTAZIONE << "\n" << DEFAULT_FORMULAINIZIALE << endl;
 }
 
@@ -620,6 +628,10 @@ void HeaderParser::saveTag(int tagvalue,
   }
   if(ignoreTag(tagvalue)){
     out << buffer.substr(start,end-start) << endl;
+    return;
+  }
+  if (noteTag(tagvalue)){
+    out << INIZIO_NOTA << buffer.substr(start,end-start) << FINE_NOTA << endl;
     return;
   }
   if(withtags)
@@ -700,8 +712,15 @@ bool HeaderParser::errorTag(int tagvalue) const
   switch(tagTipo(tagvalue)){
   case sconosciuto:
   case varie:
-  case pubblicazione:
   case annessi: return true;
+  default: return false;
+  }
+}
+
+bool HeaderParser::noteTag(int tagvalue) const
+{
+  switch(tagTipo(tagvalue)){
+  case pubblicazione: return true;
   default: return false;
   }
 }

@@ -8,6 +8,8 @@
 #define DEFAULT_INTESTAZIONE "\n<intestazione>\n<tipoDoc></tipoDoc><dataDoc norm=\"\"></dataDoc><numDoc></numDoc>\n<titoloDoc></titoloDoc>\n</intestazione>\n"
 #define DEFAULT_FORMULAINIZIALE "\n<formulainiziale></formulainiziale>\n"
 #define DEFAULT_FOOTER "\n<formulafinale></formulafinale>\n<conclusione></conclusione>\n"
+#define INIZIO_NOTA "\n<inlinemeta><redazionale><nota>\n"
+#define FINE_NOTA "\n</nota></redazionale></inlinemeta>\n"
 using namespace std;
 
 class Month{
@@ -101,6 +103,7 @@ class HeaderParser
   void closeTag(int tagvalue, std::ostream& out) const;
   bool ignoreTag(int tagvalue) const;
   bool errorTag(int tagvalue) const;
+  bool noteTag(int tagvalue) const;
   std::string addFormatTags(std::string buf) const;
   bool parse(const char * buffer, 
 	     int offset, 
