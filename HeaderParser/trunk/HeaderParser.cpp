@@ -5,13 +5,54 @@
 
 using namespace std;
 
+HeaderParser::HeaderParser(std::string modeldir,
+			   std::string header_model_file,
+			   std::string footer_model_file,
+			   std::string header_extractor_model_file,
+			   std::string header_extractor_config_file,
+			   std::string footer_extractor_model_file,
+			   std::string footer_extractor_config_file,
+			   std::string parser_config_file)
+{
+  ifstream in((modeldir + "/" + header_model_file).c_str());
+  assert(in.good());
+  in >> header_model;
+  in.close();
+
+  ifstream in2((modeldir + "/" + footer_model_file).c_str());
+  assert(in2.good());
+  in2 >> footer_model;
+  in2.close();
+
+  ifstream in3((modeldir + "/" + header_extractor_model_file).c_str());
+  assert(in3.good());
+  ifstream in3_config((modeldir + "/" + header_extractor_config_file).c_str());
+  assert(in3_config.good());
+  header_extractor(in3_config, in3);
+  in3.close();
+  in3_config.close();
+
+  ifstream in4((modeldir + "/" + footer_extractor_model_file).c_str());
+  assert(in4.good());
+  ifstream in4_config((modeldir + "/" + footer_extractor_config_file).c_str());
+  assert(in4_config.good());
+  footer_extractor(in4_config, in4);
+  in4.close();
+  in4_config.close();
+
+  ifstream in5_config((modeldir + "/" + parser_config_file).c_str());
+  assert(in5_config.good());
+  init(in5_config);
+  in5_config.close();
+}
+
 HeaderParser::HeaderParser(const char * header_model_file,
-				 const char * footer_model_file,
-				 const char * header_extractor_model_file,
-				 const char * header_extractor_config_file,
-				 const char * footer_extractor_model_file,
-				 const char * footer_extractor_config_file,
-				 const char * parser_config_file)
+			   const char * footer_model_file,
+			   const char * header_extractor_model_file,
+			   const char * header_extractor_config_file,
+			   const char * footer_extractor_model_file,
+			   const char * footer_extractor_config_file,
+			   const char * parser_config_file)
 {
   ifstream in(header_model_file);
   assert(in.good());
@@ -69,34 +110,34 @@ void HeaderParser::init(istream& in)
   }
 }
 
-void HeaderParser::parseHeader(const char * header) 
+void HeaderParser::parseHeader(const char * header, ostream& out) 
 {
-  if (!parse(header, 0, header_model, header_tags, header_extractor))
-    cout << DEFAULT_HEADER << "<?error\n" << header << "\n?>" << endl;
+  if (!parse(header, 0, header_model, header_tags, header_extractor, out))
+    out << DEFAULT_HEADER << "<?error\n" << header << "\n?>" << endl;
 }
 
-void HeaderParser::parseHeader(istream& in) 
+void HeaderParser::parseHeader(istream& in, ostream& out) 
 {
   string header,buf;
   while(getline(in, buf))
     header += buf + "\n";
-  parseHeader(header.c_str());
+  parseHeader(header.c_str(), out);
 }
 
-void HeaderParser::parseFooter(const char * footer, int offset) 
+void HeaderParser::parseFooter(const char * footer, int offset, ostream& out) 
 {
-  if (parse(footer, offset, footer_model, footer_tags, footer_extractor, false))
-    closeTag(conclusione);
+  if (parse(footer, offset, footer_model, footer_tags, footer_extractor, false, out))
+    closeTag(conclusione, out);
   else
-    cout <<  "<comma>\n</comma>\n<?error\n" << footer << "\n?>\n" << DEFAULT_FOOTER;
+    out <<  "<comma>\n</comma>\n<?error\n" << footer << "\n?>\n" << DEFAULT_FOOTER;
 }
 
-void HeaderParser::parseFooter(istream& in, int offset) 
+void HeaderParser::parseFooter(istream& in, int offset, ostream& out) 
 {
   string footer,buf;
   while(getline(in, buf))
     footer += buf + "\n";  
-  parseFooter(footer.c_str(), offset);
+  parseFooter(footer.c_str(), offset, out);
 }
 
 bool HeaderParser::parse(const char * buffer, 
@@ -104,7 +145,8 @@ bool HeaderParser::parse(const char * buffer,
 			 const HMM& model, 
 			 const hash_map<int,int>& tags,
 			 TextSequenceFeatureExtractor& extractor,
-			 bool header) 
+			 bool header,
+			 ostream& out) 
 {
   string strbuffer = buffer;
   vector<int> sequence, offsets;
@@ -116,7 +158,7 @@ bool HeaderParser::parse(const char * buffer,
   int currtag = -1, start = -1;
 
   if(header)
-    openTag(intestazione);
+    openTag(intestazione, out);
 
   for(unsigned int i = 0; i < sequence.size(); i++){
     hash_map<int,int>::const_iterator statetag = tags.find(states[i]);
@@ -126,13 +168,13 @@ bool HeaderParser::parse(const char * buffer,
     }
     if(statetag->second != currtag){
       if(currtag != -1)
-	saveTag(currtag, start-offset, offsets[i]-1, strbuffer);
+	saveTag(currtag, start-offset, offsets[i]-1, strbuffer, out);
       currtag = statetag->second;
       start = offset + offsets[i];
     }
     if (i == sequence.size()-1){
       if(currtag != -1)
-	saveTag(currtag, start-offset, strlen(buffer)-1, strbuffer);
+	saveTag(currtag, start-offset, strlen(buffer)-1, strbuffer, out);
     }
   }
   return true;
@@ -141,26 +183,27 @@ bool HeaderParser::parse(const char * buffer,
 void HeaderParser::saveTag(int tagvalue,
 			   int start,
 			   int end,
-			   const string& buffer) const 
+			   const string& buffer,
+			   ostream& out) const 
 {
   if(errorTag(tagvalue)){
-    cout <<  "<?error\n" << buffer.substr(start,end-start+1) << "\n?>" << endl;
+    out <<  "<?error\n" << buffer.substr(start,end-start+1) << "\n?>" << endl;
     return;
   }
   if(ignoreTag(tagvalue)){
-    cout << buffer.substr(start,end-start+1) << endl;
+    out << buffer.substr(start,end-start+1) << endl;
     return;
   }
-  cout << "<" << tagName(tagvalue) << ">" << endl;
+  out << "<" << tagName(tagvalue) << ">" << endl;
   if(tagvalue == formulainiziale)
-    cout << addFormatTags(buffer.substr(start,end-start+1));
+    out << addFormatTags(buffer.substr(start,end-start+1));
   else
-    cout << buffer.substr(start,end-start+1);
-  cout << "</" << tagName(tagvalue) << ">" << endl;
+    out << buffer.substr(start,end-start+1);
+  out << "</" << tagName(tagvalue) << ">" << endl;
   if(tagvalue == titolodoc)
-    closeTag(intestazione);
+    closeTag(intestazione, out);
   if(tagvalue == formulafinale)
-    openTag(conclusione);
+    openTag(conclusione, out);
 }
 
 string HeaderParser::addFormatTags(string buf) const
@@ -190,14 +233,14 @@ bool HeaderParser::ignoreTag(int tagvalue) const
   }
 }
 
-void HeaderParser::openTag(int tagvalue) const
+void HeaderParser::openTag(int tagvalue, ostream& out) const
 {
-  cout << "<" << tagName(tagvalue) << ">" << endl;
+  out << "<" << tagName(tagvalue) << ">" << endl;
 }
 
-void HeaderParser::closeTag(int tagvalue) const
+void HeaderParser::closeTag(int tagvalue, ostream& out) const
 {
-  cout << "</" << tagName(tagvalue) << ">" << endl;
+  out << "</" << tagName(tagvalue) << ">" << endl;
 }
 
 
