@@ -1,7 +1,7 @@
 #include "HeaderParser.h"
 #include "../ParserStruttura/tag.h"
 #include <fstream>
-#include <libgen.h>
+//#include <assert.h>
 
 using namespace std;
 
@@ -257,7 +257,10 @@ const char * HeaderParser::tagName(int tagvalue)
 #ifdef HEADERPARSER
 int main(int argc, char* argv[]) {
 
-  string workdir = dirname(argv[0]);
+  char *r = rindex(argv[0], '/');
+  if (r) *r = 0; else r = rindex(argv[0], '\\');
+  if (r) *r = 0;
+  string workdir = argv[0];
   string config_files[] = { "header_model",
 			   "footer_model",
 			   "header_extractor_model",
@@ -275,9 +278,9 @@ int main(int argc, char* argv[]) {
     exit(0);
   }
   for (int arg = 1; arg < argc; arg++){
-    
+
     if (*argv[arg] == '-'){
-      
+
        const char * command = argv[arg];
        if(argc - arg - 1 > 0){
 	 workdir = argv[++arg];
@@ -285,7 +288,7 @@ int main(int argc, char* argv[]) {
 	 while(++arg < argc)
 	   config_files[i++] = argv[arg];
        }
-	
+
        HeaderParser parser((workdir + "/" + config_files[0]).c_str(),
 			   (workdir + "/" + config_files[1]).c_str(),
 			   (workdir + "/" + config_files[2]).c_str(),
@@ -293,7 +296,7 @@ int main(int argc, char* argv[]) {
 			   (workdir + "/" + config_files[4]).c_str(),
 			   (workdir + "/" + config_files[5]).c_str(),
 			   (workdir + "/" + config_files[6]).c_str());
-			   
+
        if (!strcmp(command, "-header"))
 	 parser.parseHeader(cin);
        else if (!strcmp(command, "-footer"))
