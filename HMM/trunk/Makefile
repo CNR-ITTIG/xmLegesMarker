@@ -1,6 +1,7 @@
 PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 LIBDIR = $(PREFIX)/lib
+INCLUDEDIR = $(PREFIX)/include
 
 TARGETBIN = HMM
 TARGETLIB = libhmm.a
@@ -22,7 +23,7 @@ HMM: StandaloneHMM.o
 	$(COMPILEXX) -o $@ $<
 
 install: all
-	cp $(TARGETBIN) *.pl $(BINDIR); cp $(TARGETLIB) $(LIBDIR)
+	cp $(TARGETBIN) *.pl $(BINDIR); cp $(TARGETLIB) $(LIBDIR); cp *.h $(INCLUDEDIR)
 
 StandaloneHMM.o: HMM.cpp
 	$(COMPILEXX) -c $< -DSTANDALONEHMM -o $@
