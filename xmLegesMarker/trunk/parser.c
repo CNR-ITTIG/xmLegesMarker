@@ -15,7 +15,7 @@
 #include "annessi.h"	
 #include "tag.h"
 
-const char *versione = "2.2";
+const char *versione = "1.0";
 int visErrore = 0;
 char *bufferEnd;
 //char _DocNomeStringa[MAXSTRINGA+1] = "Esistente";

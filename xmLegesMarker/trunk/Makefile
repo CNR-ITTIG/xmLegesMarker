@@ -3,7 +3,7 @@ BINDIR=$(PREFIX)/bin
 LIBDIR=$(PREFIX)/lib
 INCLUDEDIR = $(PREFIX)/include
 
-TARGETBIN = ParserStruttura
+TARGETBIN = xmLeges-Marker.exe
 
 #CFLAGS=-ggdb -Wall -I$(INCLUDEDIR)
 #CFLAGS=-ggdb  -Wall -I$(INCLUDEDIR) `xml2-config --cflags`
@@ -38,7 +38,7 @@ all: $(TARGETBIN)
 %.c: %.y
 
 
-ParserStruttura: $(OBJS)
+xmLeges-Marker.exe: $(OBJS)
 	$(CXX) -o $@ $(OBJS) $(CFLAGS) $(LIBS)
 
 struttura.o: struttura.c struttura.h virgolette.h disposto.h
@@ -123,7 +123,7 @@ test: all
 	cd test && $(MAKE) test
 
 clean:
-	rm -f *.o *.exe ParserStruttura *.yy.c *.tab.* *~
+	rm -f *.o *.exe xmLeges-Marker.exe *.yy.c *.tab.* *~
 
 install : all
 	strip $(TARGETBIN) || strip *.exe
