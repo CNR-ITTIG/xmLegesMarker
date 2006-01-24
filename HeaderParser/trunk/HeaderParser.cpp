@@ -1,5 +1,4 @@
 #include "HeaderParser.h"
-#include "../ParserStruttura/tag.h"
 #include <fstream>
 #include <assert.h>
 #include "Default.h"
@@ -133,126 +132,227 @@ void HeaderParser::init(istream& in)
 {
   int state,tag,open;
   string buf;
-  in >> buf >> m_ted >> ws;
-  if(buf != "TED"){
+  if(!Lexer::getLine(in,buf) || buf != "HEADER"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  if(!getline(in,buf) || buf != "HEADER"){
+  if(!Lexer::getLine(in,buf) || buf != "INTESTAZIONE"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  if(!getline(in,buf) || buf != "INTESTAZIONE"){
-    cerr << "ERROR in reading parser config file" << endl;
-    exit(1);
-  }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     header_intestazione_tags[state] = make_pair(tag,open);
   }
-  if(!getline(in,buf) || buf != "PUBBLICAZIONE"){
+  if(!Lexer::getLine(in,buf) || buf != "PUBBLICAZIONE"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     header_pubblicazione_tags[state] = make_pair(tag,open);
   }
-  if(!getline(in,buf) || buf != "FORMULAINIZIALE"){
+  if(!Lexer::getLine(in,buf) || buf != "FORMULAINIZIALE"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     header_formulainiziale_tags[state] = make_pair(tag,open);
   }
-  if(!getline(in,buf) || buf != "FOOTER"){
+  if(!Lexer::getLine(in,buf) || buf != "FOOTER"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  if(!getline(in,buf) || buf != "FORMULAFINALE"){
+  if(!Lexer::getLine(in,buf) || buf != "FORMULAFINALE"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     footer_formulafinale_tags[state] = make_pair(tag,open);
   }
-  if(!getline(in,buf) || buf != "DATAELUOGO"){
+  if(!Lexer::getLine(in,buf) || buf != "DATAELUOGO"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     footer_dataeluogo_tags[state] = make_pair(tag,open);
   }
-  if(!getline(in,buf) || buf != "SOTTOSCRIZIONI"){
+  if(!Lexer::getLine(in,buf) || buf != "SOTTOSCRIZIONI"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     footer_sottoscrizioni_tags[state] = make_pair(tag,open);
   }
-  if(!getline(in,buf) || buf != "ANNESSI"){
+  if(!Lexer::getLine(in,buf) || buf != "ANNESSI"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
   }
-  while(getline(in,buf) && buf != ""){
+  while(Lexer::getLine(in,buf) && buf != ""){
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     footer_annessi_tags[state] = make_pair(tag,open);
   }
+
+  root_node = NULL;
 }
 
-int HeaderParser::parseHeader(istream& in, ostream& out) 
+//Aggiunto l'argomento tdoc che indica il tipo di documento:
+//0: generico
+//1: disegno di legge
+//2: provvedimento CNR
+int HeaderParser::parseHeader(std::string& header, 
+			      xmlNodePtr meta,
+			      xmlNodePtr descrittori,
+			      xmlNodePtr intestazione,
+			      xmlNodePtr formulainiziale,
+			      int tdoc,
+			      int notes)
 {
-  string header,buf;
-  while(getline(in, buf))
-    header += buf + "\n";
-  return parseHeader(header, out);
-}
 
-string HeaderParser::removeTeds(const std::string& header, vector<string>& teds)
-{
-  if(!m_ted)
-    return header;
-  string buf = "";
-  int end = 0,beg = 0;
-  while((beg = header.find("||",end)) != string::npos){
-    buf += header.substr(end, beg - end);
-    end =  header.find("||",beg+1);
-    teds.push_back(header.substr(beg,end-beg+2));
-    end+=2;
-  }
-  buf += header.substr(end);
-  return buf;
-}
-
-int HeaderParser::parseHeader(const std::string& header, ostream& out) 
-{
-  vector<string> teds;
-  string strbuffer = removeTeds(header, teds);
-  SqueezeWords(strbuffer);
-  const char * buffer = strbuffer.c_str();
-
-  bool found = false;
+  bool found = false, pub_found = false;
   unsigned int last = 0, first = 0, offset = 0;
   int * states = NULL, * pub_states = NULL;
-  int notes = 1, curr_ted = 0;
+  
+  // recover URN if present
+  string urn = extractURN(header);
 
+  string strbuffer = header;
+  SqueezeWords(strbuffer);
+  const char * buffer = strbuffer.c_str();
+  
   // extract terms
   vector<int> sequence, offsets;
   if(!header_extractor.buildExample(sequence, offsets, buffer, strlen(buffer), 0)){
-    defaultHeader(header, out);	
+    defaultHeader(descrittori, intestazione);
     return notes;
   }
+
+//printf("\nHeaderParser\nbuffer: %s\n\n", header.c_str());
+//printf("\nHeaderParser\ntdoc: %d\n", tdoc);
+
+//Disegno di legge
+if(tdoc == 1) {
+	if(sequence.size() > 0){
+		found = true;
+		//Aggiungi tag specifici
+		xmlNodePtr nApprovazione = xmlNewChild(descrittori, NULL, BAD_CAST "approvazione", NULL);
+		xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
+		xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
+		xmlNewProp(nApprovazione, BAD_CAST "internal_id", BAD_CAST "");
+		xmlNewProp(nApprovazione, BAD_CAST "leg", BAD_CAST "");
+		xmlNewProp(nApprovazione, BAD_CAST "norm", BAD_CAST "");	
+		xmlNewProp(nApprovazione, BAD_CAST "tipodoc", BAD_CAST "");
+		xmlNewProp(nRedazione, BAD_CAST "nome", BAD_CAST "");
+		xmlNewProp(nRedazione, BAD_CAST "norm", BAD_CAST "");
+		//xmlNewProp(redazione, BAD_CAST "url", BAD_CAST ""); //non obbligatorio nella dtd
+		
+		states = new int[sequence.size()];
+		header_intestazione_model.viterbiPath(sequence, states, sequence.size());
+		if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()){
+	    	found = true;
+			//for(int kk=0; kk < sequence.size(); kk++)
+				//printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
+			
+	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_intestazione_tags, tdoc);      
+	        removeProcessedElements(sequence, last);
+	        offset += last + 1;
+		}
+		delete[] states;
+	} 
+	if(sequence.size() > 0 || found == false) { 
+		//Se non è stato rilevata l'intestazione viene messo tutto in error:
+		//printf("\noffset:%d size:%d\n",offset,offsets.size());
+		// se rimane qualcosa mettilo in un tag errore
+    	if (offset < offsets.size())
+      		saveTag(hp_sconosciuto, offsets[offset], strbuffer.length(), strbuffer, intestazione, tdoc); 
+      	//Devono essere aggiunti dei tag di default vuoti per i disegni di legge
+      	addMissingHeader(meta, descrittori, intestazione, formulainiziale, tdoc);
+	}
+	return notes; 	
+}
+
+//Provvedimenti CNR
+if(tdoc == 2) {
+	xmlNodePtr errorNode = intestazione; //per inserire il testo non rilevato nella giusta posizione
+	if(sequence.size() > 0) {
+		found = true;
+		//Aggiungi tag 'proprietario' vuoti
+		xmlNodePtr proprietario = xmlNewChild(meta, NULL, BAD_CAST "proprietario", BAD_CAST "");
+		xmlNewProp(proprietario, BAD_CAST "xlink:type", BAD_CAST "simple");
+		xmlNewProp(proprietario, BAD_CAST "xmlns:cnr", BAD_CAST "http://www.cnr.it/provvedimenti/1.0");
+		
+		xmlNodePtr cnrmeta = xmlNewChild(proprietario, NULL, BAD_CAST "cnr:meta", BAD_CAST "");
+		xmlNodePtr proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:strutturaEmanante", BAD_CAST "");
+		xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+		proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:autoritaEmanante", BAD_CAST "");
+		xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+		proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:tipoDestinatario", BAD_CAST "");
+		xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+		proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:disciplina", BAD_CAST "");
+		xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+		//disciplina e areaScientifica sono in OR nella DTD.
+		//proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:areaScientifica", BAD_CAST "");
+		//xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+		
+		//Aggiungi tag specifici
+		xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
+		xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST "");
+		xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");		
+		xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "BUCNR");
+				
+		xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
+		xmlNewProp(nRedazione, BAD_CAST "id", BAD_CAST "red");
+		xmlNewProp(nRedazione, BAD_CAST "nome", BAD_CAST "Urp-Cnr");
+		xmlNewProp(nRedazione, BAD_CAST "norm", BAD_CAST "");
+		
+		xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
+		xmlAddChild(nUrn, xmlNewText(BAD_CAST "urn:nir:consiglio.nazionale.ricerche:provvedimento:"));
+
+		states = new int[sequence.size()];
+		header_intestazione_model.viterbiPath(sequence, states, sequence.size());
+		if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()){
+	        //Aggiungere emanante (valore costante per questo tipo di doc):
+	        xmlNodePtr emanante = xmlNewChild(intestazione, NULL, BAD_CAST "emanante", BAD_CAST "");
+			xmlAddChild(emanante, xmlNewText(BAD_CAST "Consiglio Nazionale delle Ricerche"));
+
+		  //Se provv.CNR tralasciare l'inizio di formula iniziale...
+		  //(vedi parser_config per sapere lo stato in cui inizia la formula iniziale)
+		  int klast = 0;
+	      for(int kk=0; kk < sequence.size(); kk++) {
+			//printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
+			if(tdoc == 2 && states[kk] == 53) { //<-- 'IL' presidente/dirigente/ecc...
+				klast = kk;
+				errorNode = formulainiziale;
+			}
+	      }
+     		//salva i tag riferiti a 'intestazione'		
+	        last = saveTags(strbuffer, states, klast, offsets, offset, last, intestazione, header_intestazione_tags, tdoc);              
+	        //salva i tag di 'formulainiziale'
+	        last = saveTags(strbuffer, states, sequence.size(), offsets, 0, klast, formulainiziale, header_intestazione_tags, tdoc);              
+	        removeProcessedElements(sequence, last);
+	        offset = last+1;
+		}
+		delete[] states;
+	}
+	if(sequence.size() > 0 || found == false) { //Se non è stato rilevata l'intestazione viene messo tutto in error:
+		//printf("\n HeaderParser -- Testo non rilevato (error tag) -- offset:%d size:%d\n",offset,offsets.size());
+		// se rimane qualcosa mettilo in un tag errore
+    	if (offset < offsets.size())
+      		saveTag(hp_sconosciuto, offsets[offset], strbuffer.length(), strbuffer, errorNode, tdoc); 
+	}
+	return notes; 	
+}
 
   // parse intestazione
   if(sequence.size() > 0){
@@ -260,24 +360,24 @@ int HeaderParser::parseHeader(const std::string& header, ostream& out)
     header_intestazione_model.viterbiPath(sequence, states, sequence.size());
     if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()){
       found = true;
+      
       // recover eventual pubblicazione before intestazione
       if(first > 0){
-	pub_states = new int[first];
-	vector<int> pub_sequence;
-	copyElements(sequence, pub_sequence, 0, first-1);
-	header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
-	savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, header_pubblicazione_tags);
-	if(hasCorrectStates(pub_states, pub_sequence.size()))
-	  last = saveTags(strbuffer, teds, &curr_ted, pub_states, pub_sequence.size(), offsets, offset, last, out, header_pubblicazione_tags, &notes);     
-	if(last < first-1)
-	  saveTag(sconosciuto, offsets[last], offsets[first], strbuffer, teds, &curr_ted, out); 	
-	last = first;
-	delete[] pub_states;
+		pub_states = new int[first];
+		vector<int> pub_sequence;
+		copyElements(sequence, pub_sequence, 0, first-1);
+		header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
+		pub_found = savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
+		if(pub_found)
+	 	 last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, meta ,header_pubblicazione_tags, tdoc, &notes, NULL, intestazione);     
+		if(last < first-1)
+		  saveTag(hp_sconosciuto, offsets[last], offsets[first], strbuffer, root_node, tdoc, NULL, intestazione); 	
+		last = first;
+		delete[] pub_states;
       }
-      openTag(intestazione, out);
-      last = saveTags(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, header_intestazione_tags);      
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_intestazione_tags, tdoc);            
       removeProcessedElements(sequence, last);
-      offset += last + 1;
+      offset+=last+1;
     }
     delete[] states;
   }
@@ -290,36 +390,30 @@ int HeaderParser::parseHeader(const std::string& header, ostream& out)
     if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()){
       // recover eventual pubblicazione before formulainiziale
       if(first > 0){
-	pub_states = new int[first];
-	vector<int> pub_sequence;
-	copyElements(sequence, pub_sequence, 0, first-1);
-	header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
-	savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, header_pubblicazione_tags);
-	last = saveTitle(strbuffer, teds, &curr_ted, pub_states, pub_sequence.size(), offsets, offset, last, out, found, header_pubblicazione_tags, &notes);
-	last++;
-	delete[] pub_states;
+		pub_states = new int[first];
+		vector<int> pub_sequence;
+		copyElements(sequence, pub_sequence, 0, first-1);
+		header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
+		if(!pub_found)
+		  pub_found = savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
+		last = saveTitle(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, descrittori, intestazione, meta, found, header_pubblicazione_tags, &notes);
+		last++;
+		delete[] pub_states;
+      } else{
+		if(!found)
+		  defaultHeader(descrittori, intestazione);
+		else
+		  xmlNewChild(intestazione, NULL, BAD_CAST "titoloDoc", BAD_CAST "");
       }
-      else{
-	if(!found)
-	  out << DEFAULT_INTESTAZIONE << endl;
-	else{
-	  openTag(titolodoc,out);
-	  closeTag(titolodoc,out);
-	}	  
-      }
-      openTag(formulainiziale,out);
-      last = saveTags(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, header_formulainiziale_tags);      
-      closeTag(formulainiziale,out);
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, formulainiziale, header_formulainiziale_tags, tdoc);      
       removeProcessedElements(sequence, last);
-      offset += last + 1;
+      offset+=last+1;
       found = true;
-    }
-    else{ // search pubblicazione, otherwise put all in titolodoc
+    } else{ // search pubblicazione, otherwise put all in titolodoc
       header_pubblicazione_model.viterbiPath(sequence, states, sequence.size());
-      savePubblicazione(strbuffer, states, sequence.size(), offsets, offset, header_pubblicazione_tags);
-      last = saveTitle(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, found, header_pubblicazione_tags, &notes);
-      openTag(formulainiziale,out);
-      closeTag(formulainiziale,out);
+      if(!pub_found)
+	pub_found = savePubblicazione(strbuffer, states, sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
+      last = saveTitle(strbuffer, states, sequence.size(), offsets, offset, last, descrittori, intestazione, meta, found, header_pubblicazione_tags, &notes);
       removeProcessedElements(sequence, last);
       offset += last + 1;
       found = true;
@@ -329,26 +423,108 @@ int HeaderParser::parseHeader(const std::string& header, ostream& out)
 
   // if nothing found print default header
   if(!found){
-    defaultHeader(header, out);	
+    defaultHeader(descrittori, intestazione);
     return notes;
   }
+
+  // save URN
+  if(urn != "")
+    xmlNewChild(descrittori, NULL, BAD_CAST "urn", BAD_CAST urn.c_str());
   
   // put remains in error tag
+  //if (offset < offsets.size())
+  //saveTag(sconosciuto, offsets[offset], strbuffer.length(), strbuffer, out); 
+  
+  // erase processed part
   if (offset < offsets.size())
-    saveTag(sconosciuto, offsets[offset], strbuffer.length(), strbuffer, teds, &curr_ted, out); 
+    header = header.substr(offsets[offset]);
+  else
+    header = "";
 
   return notes;
 }
 
+void  HeaderParser::defaultHeader(xmlNodePtr descrittori, xmlNodePtr intestazione) const				  
+{
+  xmlNodePtr pubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
+  xmlNewProp(pubblicazione, BAD_CAST "tipo", BAD_CAST "GU");
+  xmlNewProp(pubblicazione, BAD_CAST "num", BAD_CAST "");
+  xmlNewProp(pubblicazione, BAD_CAST "norm", BAD_CAST "");
+  xmlNodePtr urn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", BAD_CAST "");
+  xmlNodePtr vigenza = xmlNewChild(descrittori, NULL, BAD_CAST "vigenza", NULL);
+  xmlNewProp(vigenza, BAD_CAST "id", BAD_CAST "v1");
+  xmlNodePtr tipodoc = xmlNewChild(intestazione, NULL, BAD_CAST "tipoDoc", BAD_CAST "");
+  xmlNodePtr datadoc = xmlNewChild(intestazione, NULL, BAD_CAST "dataDoc", BAD_CAST "");
+  xmlNewProp(datadoc, BAD_CAST "norm", BAD_CAST "");  
+  xmlNodePtr titolodoc = xmlNewChild(intestazione, NULL, BAD_CAST "titoloDoc", BAD_CAST "");
+}
+
+//Affinchè il documento sia valido aggiunge i tag obbligatori secondo il tipo di doc.
+void HeaderParser::addMissingHeader(xmlNodePtr meta,xmlNodePtr descrittori,xmlNodePtr intestazione,
+			      xmlNodePtr formulainiziale, int tdoc) const 
+{
+	xmlNodePtr tmpnode = NULL;
+	
+	if(tdoc==1) { //disegno di legge
+		//elementi sotto intestazione:
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "emanante", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "legislatura", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "numDoc", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "tipoDoc", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "dataDoc", BAD_CAST "");
+		xmlNewProp(tmpnode, BAD_CAST "norm", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "titoloDoc", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		
+		//relazione?
+		//tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "relazione", BAD_CAST "");
+		//xmlAddNextSibling(intestazione,);
+	}
+
+	if(tdoc==2) { //Provvedimenti CNR
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "emanante", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "numDoc", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "dataDoc", BAD_CAST "");
+		xmlNewProp(tmpnode, BAD_CAST "norm", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));		
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "titoloDoc", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));	
+	}
+}
+
+//Affinchè il documento sia valido aggiunge i tag obbligatori secondo il tipo di doc.
+void HeaderParser::addMissingFooter(xmlNodePtr meta,xmlNodePtr descrittori,xmlNodePtr formulafinale,
+			      xmlNodePtr conclusione,int tdoc) const 
+{
+	if(tdoc==2) { //Provvedimenti CNR
+		//All'interno di sottoscrizioni deve esserci un 'visto'
+		xmlNodePtr tmpnode = findChild("sottoscrizioni", conclusione);
+		if(tmpnode == NULL) return;
+		xmlNodePtr vistonode = findChild("visto", tmpnode);
+		if(vistonode == NULL) {
+			vistonode = xmlNewNode(NULL, BAD_CAST "visto");
+			xmlAddChild(vistonode, xmlNewText(BAD_CAST ""));
+			xmlAddChild(tmpnode,vistonode);
+		}
+	}
+}
+
 unsigned int HeaderParser::saveTitle(const string& strbuffer, 
-				     vector<string>& teds,
-				     int * curr_ted,
 				     int * states, 
 				     unsigned int statesnumber,
 				     const vector<int>& offsets, 
 				     unsigned int offset, 
 				     unsigned int state,
-				     ostream& out,
+				     xmlNodePtr descrittori,
+				     xmlNodePtr intestazione,
+				     xmlNodePtr meta,
 				     bool found,
 				     const hash_map<int,pair<int,int> >& tags,
 				     int * id) const
@@ -356,41 +532,40 @@ unsigned int HeaderParser::saveTitle(const string& strbuffer,
   unsigned int first = 0, last = 0;
   // if no pubblicazione found
   if ((first = getFirstMatchingState(states, statesnumber, tags)) == statesnumber){
-    if (found){ // if tipo previously found, consider text as title
-      saveTag(titolodoc, offsets[offset], offsets[offset+first], strbuffer, teds, curr_ted, out); 	
-      closeTag(intestazione,out);
-    }
+    if (found) // if tipo previously found, consider text as title
+      saveTag(hp_titolodoc, offsets[offset], offsets[offset+first], strbuffer, intestazione, 0); 	
     else{
-      out << DEFAULT_INTESTAZIONE << endl;
-      saveTag(sconosciuto, offsets[offset], offsets[offset+first], strbuffer, teds, curr_ted, out); 	
+      defaultHeader(descrittori, intestazione);
+      saveTag(hp_sconosciuto, offsets[offset], offsets[offset+first], strbuffer, root_node, 0, intestazione, NULL); 	
     }
     return first-1;
   }
   // else choose as title the longer part either before or after match
   last = getLastMatchingState(states, statesnumber, tags);
   if((statesnumber - last) > first){
-    saveTags(strbuffer, teds, curr_ted, states, statesnumber, offsets, offset, state, out, tags, id);    
-    saveTag(titolodoc,offsets[offset+last+1], offsets[offset+statesnumber], strbuffer, teds, curr_ted, out); 
-    closeTag(intestazione,out);
+    xmlNodePtr titlenode = saveTag(hp_titolodoc,offsets[offset+last+1], offsets[offset+statesnumber], strbuffer, intestazione, 0);     
+    saveTags(strbuffer, states, statesnumber, offsets, offset, state, meta, tags, 0, id, NULL, titlenode);    
+    
     return statesnumber-1;
   }
   else{
-    saveTag(titolodoc,offsets[offset], offsets[offset+first], strbuffer, teds, curr_ted, out); 
-    closeTag(intestazione,out);
-    return saveTags(strbuffer, teds, curr_ted, states, statesnumber, offsets, offset, first, out, tags, id);    
+    xmlNodePtr titlenode = saveTag(hp_titolodoc,offsets[offset], offsets[offset+first], strbuffer, intestazione, 0); 
+    return saveTags(strbuffer, states, statesnumber, offsets, offset, first, meta, tags, 0, id, titlenode, NULL);    
   }
 }
 
-void HeaderParser::savePubblicazione(const string& strbuffer, 
+bool HeaderParser::savePubblicazione(const string& strbuffer, 
 				     int * states, 
 				     unsigned int statesnumber,
 				     const vector<int>& offsets, 
 				     unsigned int offset, 
-				     const hash_map<int,pair<int,int> >& tags)
-
+				     xmlNodePtr descrittori,
+				     const hash_map<int,pair<int,int> >& tags) const
 {
+  if(findChild("pubblicazione", descrittori) != NULL)
+    return true;
   if(!hasCorrectStates(states, statesnumber))
-    return;
+    return false;
 
   int found = 0, maxfound = 3;
   unsigned int trimmed;
@@ -398,20 +573,25 @@ void HeaderParser::savePubblicazione(const string& strbuffer,
   for (unsigned int i = 0; i < statesnumber && found < maxfound; i++){
     hash_map<int,pair<int,int> >::const_iterator k = tags.find(states[i]);
     assert(k != tags.end());
-    if((k->second).first == datapubbl){
+    if((k->second).first == hp_datapubbl){
       data = normalizeDate(strbuffer.substr(offsets[offset+i],offsets[offset+i+3]-offsets[offset+i]));
       i+=2;
       found++;
     }
-    else if((k->second).first == numpubbl){
+    else if((k->second).first == hp_numpubbl){
       num = trimEnd(strbuffer.substr(offsets[offset+i],offsets[offset+i+1]-offsets[offset+i]), &trimmed);
       found++;      
     }
-    else if((k->second).first == sopubbl){
+    else if((k->second).first == hp_sopubbl){
       num += "/" + trimEnd(strbuffer.substr(offsets[offset+i],offsets[offset+i+1]-offsets[offset+i]), &trimmed);
       found++;
     }
   }
+  xmlNodePtr pubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
+  xmlNewProp(pubblicazione, BAD_CAST "tipo", BAD_CAST "GU");
+  xmlNewProp(pubblicazione, BAD_CAST "num", BAD_CAST num.c_str());
+  xmlNewProp(pubblicazione, BAD_CAST "norm", BAD_CAST data.c_str());
+  return true;
   //cout << "<pubblicazione tipo=\"GU\" num=\"" << num << "\" norm=\"" << data << "\"/>" << endl;
 }
 
@@ -425,48 +605,71 @@ void copyElements(const vector<int>& src,
     dst.push_back(src[i]);
 }
 
-int HeaderParser::parseFooter(istream& in, ostream& out, int notes) 
+int HeaderParser::parseFooter(xmlNodePtr lastcomma, 			      
+			      xmlNodePtr meta,
+			      xmlNodePtr descrittori,
+			      xmlNodePtr formulafinale,
+			      xmlNodePtr conclusione,
+			      int tdoc,
+			      int notes) 
 {
-  string footer,buf;
-  while(getline(in, buf))
-    footer += buf + "\n";  
-  return parseFooter(footer.c_str(), out, notes);
-}
+  xmlChar* content = xmlNodeGetContent(lastcomma);
+  //printf("\nFooter tdoc:%d\n",tdoc);
+  if(content == NULL){
+  	//printf("\nFooter NULL\n");
+    defaultFooter("", lastcomma); 
+    //Aggiunta -- addMissingMeta() solo nel caso generico...
+    if(tdoc==0)
+	  addMissingMeta(descrittori);
+    return notes;
+  }
+    
+  string strbuffer = (char *) content;
+  xmlFree(content);
+  
+  //printf("\nParseFooter\nbuffer: %s\n\n", strbuffer.c_str());
+  
+  //Last Comma Init: (inutile non cambia niente rimane il <mod> )
+  //xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.c_str());
+  //defaultFooter(strbuffer, lastcomma);
 
-int HeaderParser::parseFooter(const char * footer, ostream& out, int notes) 
-{
-  vector<string> teds;
-  string strbuffer = removeTeds((string)footer, teds);
-  SqueezeWords(strbuffer);
-  const char * buffer = strbuffer.c_str();
+  // recover URN if present
+  string urn = extractURN(strbuffer);
 
   bool found = false;
   unsigned int last = 0, offset = 0;
-  int * states = NULL, curr_ted = 0;
+  int * states = NULL;
 
   // extract terms
   vector<int> sequence, offsets, header_sequence, header_offsets;
-  if(!footer_extractor.buildExample(sequence, offsets, buffer, strlen(buffer), 0)){
-    defaultFooter(footer, out);	
+  if(!footer_extractor.buildExample(sequence, offsets, strbuffer.c_str(), strbuffer.length(), 0)){
+    defaultFooter(strbuffer, lastcomma);	
+    //Aggiunta -- addMissingMeta() solo nel caso generico...
+    if(tdoc==0)
+	    addMissingMeta(descrittori);//addMissingMeta(descrittori);
     return notes;
   }
-  header_extractor.buildExample(header_sequence, header_offsets, buffer, strlen(buffer), 0);
+  header_extractor.buildExample(header_sequence, header_offsets, strbuffer.c_str(), strbuffer.length(), 0);
 
   // parse formulafinale
   if(sequence.size() > 0){
     states = new int[sequence.size()];
     footer_formulafinale_model.viterbiPath(sequence, states, sequence.size());
+    
+   //for(int kk=0; kk < sequence.size(); kk++)
+	//	printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
+    
     if (hasCorrectStates(states, sequence.size())){
       if (!found){
-	last = saveLastComma(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, out, footer_formulafinale_tags, 
+      	//printf("\nformulafinale\n");
+		last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_formulafinale_tags, 
 			     header_sequence, header_offsets, &notes);
-	found = true;
+		found = true;
       }
-      last = saveTags(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, footer_formulafinale_tags);
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, formulafinale, footer_formulafinale_tags, tdoc);
       removeProcessedElements(sequence, last);
       removeProcessedElements(header_sequence, last);
       offset += last + 1;
-      openTag(conclusione, out);
     }
     delete[] states;
   }
@@ -476,82 +679,67 @@ int HeaderParser::parseFooter(const char * footer, ostream& out, int notes)
     states = new int[sequence.size()];
     footer_dataeluogo_model.viterbiPath(sequence, states, sequence.size());
     if (hasCorrectStates(states, sequence.size())){
-      last = 0;
-      if (!found){
-	last = saveLastComma(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, out, footer_dataeluogo_tags,
-			     header_sequence, header_offsets, &notes);
-	found = true;
-	openTag(formulafinale, out);
-	closeTag(formulafinale, out);
-	openTag(conclusione, out);
-      }
-      else{ // search for pubblicazione
-	last = getFirstMatchingState(states, sequence.size(), footer_dataeluogo_tags); 
-	findPubblicazione(strbuffer, teds, &curr_ted, header_sequence, last, header_offsets, offset, out, &notes);
-      }
-      last = saveTags(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, footer_dataeluogo_tags);
+      	//printf("\ndataeluogo\n");
+    	last = 0;
+    	if (!found)
+			last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_dataeluogo_tags,
+				header_sequence, header_offsets, &notes);
+    	else { // search for pubblicazione
+			last = getFirstMatchingState(states, sequence.size(), footer_dataeluogo_tags); 
+			findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, meta, conclusione, &notes);
+      	}
+      found = true;
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, conclusione, footer_dataeluogo_tags, tdoc);
       removeProcessedElements(sequence, last);
       removeProcessedElements(header_sequence, last);
       offset += last + 1;
     }
-    delete[] states;
-  }
+  delete[] states;
+  }	
 
   // parse sottoscrizioni
   if(sequence.size() > 0){
     states = new int[sequence.size()];
     footer_sottoscrizioni_model.viterbiPath(sequence, states, sequence.size());
     if (hasCorrectStates(states, sequence.size())){
+      	//printf("\nsottoscrizioni\n");    	
+    	
       last = 0;
-      if (!found){
-	last = saveLastComma(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, out, footer_sottoscrizioni_tags,
+      if (!found)
+		last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_sottoscrizioni_tags,
 			     header_sequence, header_offsets, &notes);
-	found = true;
-	openTag(formulafinale, out);
-	closeTag(formulafinale, out);
-	openTag(conclusione, out);
-      }      
       else{ // search for pubblicazione
-	last = getFirstMatchingState(states, sequence.size(), footer_sottoscrizioni_tags); 
-	findPubblicazione(strbuffer, teds, &curr_ted, header_sequence, last, header_offsets, offset, out, &notes);
+		last = getFirstMatchingState(states, sequence.size(), footer_sottoscrizioni_tags); 
+		findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, meta, conclusione, &notes);
       }
-      openTag(sottoscrizioni, out);
-      last = saveTags(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, footer_sottoscrizioni_tags);
       found = true;
-      if (!hasVisto(states, sequence.size())){
-	openTag(visto, out);
-	closeTag(visto, out);
-      }
+      xmlNodePtr sottoscrizioni = xmlNewChild(conclusione, NULL, BAD_CAST "sottoscrizioni", NULL);
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, sottoscrizioni, footer_sottoscrizioni_tags, tdoc);
+      if(tdoc==0)
+      	addChildIfMissing("visto", NULL, sottoscrizioni);
       removeProcessedElements(sequence, last);
       removeProcessedElements(header_sequence, last);
       offset += last + 1;
-      closeTag(sottoscrizioni, out);
     }
     delete[] states;
   }
   
-  // end conclusione
-  if(found)
-    closeTag(conclusione, out);
-
   // parse annessi
   if(sequence.size() > 0){
     states = new int[sequence.size()];
     footer_annessi_model.viterbiPath(sequence, states, sequence.size());
     if (hasCorrectStates(states, sequence.size())){
+      //printf("\nannessi\n");
       last = 0;
-      if (!found){
-	last = saveLastComma(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, out, footer_annessi_tags,
+      if (!found)
+		last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_annessi_tags,
 			     header_sequence, header_offsets, &notes);
-	found = true;
-	out << DEFAULT_FOOTER << endl;
-      }
       else{ // search for pubblicazione
-	last = getFirstMatchingState(states, sequence.size(), footer_annessi_tags); 
-	findPubblicazione(strbuffer, teds, &curr_ted, header_sequence, last, header_offsets, offset, out, &notes);
+		last = getFirstMatchingState(states, sequence.size(), footer_annessi_tags); 
+		findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, meta, root_node, &notes);
       }
-      last = saveTags(strbuffer, teds, &curr_ted, states, sequence.size(), offsets, offset, last, out, footer_annessi_tags, &notes);
       found = true;
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, meta, footer_annessi_tags, tdoc, &notes, conclusione);
       removeProcessedElements(sequence, last);
       removeProcessedElements(header_sequence, last);
       offset += last + 1;
@@ -559,35 +747,107 @@ int HeaderParser::parseFooter(const char * footer, ostream& out, int notes)
     delete[] states;
   }
 
+  if(!found)
+  	//printf("\nNon è stato rilevato niente");
+  
   // if nothing found print default footer
-  if(!found){
-    defaultFooter(footer, out);	
-    return notes;
+  if(!found)
+    defaultFooter(strbuffer, lastcomma);	
+  else{
+    // put remains (annessi) in error tag
+    if (offset < offsets.size())
+      saveTag(hp_sconosciuto, offsets[offset], strbuffer.length(), strbuffer, root_node, tdoc); 
   }
   
-  // put remains (annessi) in error tag
-  if (offset < offsets.size())
-    saveTag(sconosciuto, offsets[offset], strbuffer.length(), strbuffer, teds, &curr_ted, out); 
+  // save URN
+  if(urn != "")
+    addChildIfMissing("urn", NULL, descrittori, urn.c_str());
+
+  // add compulsory meta
+
+  //Aggiunta -- addMissingMeta() solo nel caso generico...
+  if(tdoc==0)
+	    addMissingMeta(descrittori);
+
+  addMissingFooter(meta, descrittori, formulafinale, conclusione, tdoc);
   
+  //Last Comma Init:
+  //xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.c_str());
+    
+  //printf("\nFineFooter\n");
+    
   return notes;
 }
 
+//Cerca il carattere '.' e mette in lastcomma tutto ciò che è alla 
+//sinistra del carattere (il resto va in error, nel footer).
+void  HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) const
+{
+	//printf("\nDefault footer\n");
+	
+  unsigned int dot = footer.find('.');
+  if(dot != string::npos){
+    xmlNodeSetContent(lastcomma, BAD_CAST footer.substr(0, dot+1).c_str());
+    footer = footer.substr(dot+1);
+  }
+  if (footer.find_first_not_of(" \n\t\r") != string::npos)
+    saveTag(hp_sconosciuto, 0, footer.length(), footer, root_node, 0, NULL, NULL, false, NULL);
+}
+
+xmlNodePtr HeaderParser::addChildIfMissing(const char * nodename, 
+					   bool * added,
+					   xmlNodePtr startnode, 
+					   const char * content) const
+{
+  if(added != NULL)
+    *added = false;
+  if(startnode == NULL)
+    startnode = root_node;
+  
+  xmlNodePtr child = findChild(nodename, startnode);
+  if(child == NULL){
+    child = xmlNewChild(startnode, NULL, BAD_CAST nodename, BAD_CAST content);
+    if(added != NULL)
+      *added = true;
+  }
+  return child;
+}
+
+xmlNodePtr HeaderParser::findChild(const char * nodename, xmlNodePtr startnode) const
+{
+  if(startnode == NULL)
+    startnode = root_node;
+  
+  xmlNodePtr child = startnode->xmlChildrenNode;
+  while (child != NULL) {
+    if ((!xmlStrcmp(child->name, (const xmlChar *)nodename)))
+      return child;
+    child = child->next;
+  }
+  return NULL;
+}
+
+void HeaderParser::addMissingMeta(xmlNodePtr descrittori) const
+{
+  bool added = false;
+  xmlNodePtr pubblicazione = addChildIfMissing("pubblicazione", &added, descrittori, NULL);
+  if(added){
+    xmlNewProp(pubblicazione, BAD_CAST "tipo", BAD_CAST "GU");
+    xmlNewProp(pubblicazione, BAD_CAST "num", BAD_CAST "");
+    xmlNewProp(pubblicazione, BAD_CAST "norm", BAD_CAST "");
+  }
+  xmlNodePtr urn = addChildIfMissing("urn", &added, descrittori); 
+  xmlNodePtr vigenza = addChildIfMissing("vigenza", &added, descrittori, NULL); 
+  if(added)
+    xmlNewProp(vigenza, BAD_CAST "id", BAD_CAST "v1");
+}
+
+//TRUE se la sequenza non è completamente composta di stati -1 e 0
 bool HeaderParser::hasCorrectStates(int * states, int statesnumber)
 {
   for(int i = 0; i < statesnumber; i++)
     if(states[i] > 0)
       return true;
-  return false;
-}
-
-bool HeaderParser::hasVisto(int * states, int statesnumber) const
-{
-  for(int i = 0; i < statesnumber; i++){
-    hash_map<int,pair<int,int> >::const_iterator k = footer_sottoscrizioni_tags.find(states[i]);
-    assert(k != footer_sottoscrizioni_tags.end());
-    if((k->second).first == visto)
-      return true;
-  }
   return false;
 }
 
@@ -622,14 +882,13 @@ int HeaderParser::getLastMatchingState(int * states,
 }
 
 void HeaderParser::findPubblicazione(const string& strbuffer, 
-				     vector<string>& teds,
-				     int * curr_ted,
 				     const vector<int>& sequence, 
 				     int first,
 				     const vector<int>& offsets, 
 				     unsigned int offset, 
-				     ostream& out,
-				     int * notes)
+				     xmlNodePtr meta,
+				     xmlNodePtr curr_node,
+				     int * notes) const
 {
   if (first == 0)
     return;
@@ -639,45 +898,57 @@ void HeaderParser::findPubblicazione(const string& strbuffer,
   vector<int> pub_sequence;
   copyElements(sequence, pub_sequence, 0, first-1);
   header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
-  savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, header_pubblicazione_tags);
+  savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, findChild("descrittori", meta), header_pubblicazione_tags);
   if(hasCorrectStates(pub_states, pub_sequence.size()))
-    last = saveTags(strbuffer, teds, curr_ted, pub_states, pub_sequence.size(), offsets, offset, 0, out, header_pubblicazione_tags, notes);     
+    last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, 0, meta, header_pubblicazione_tags, 0, notes, curr_node);     
   if(last < first-1)
-    saveTag(sconosciuto, offsets[offset+last], offsets[offset+first], strbuffer, teds, curr_ted, out); 	
+    saveTag(hp_sconosciuto, offsets[offset+last], offsets[offset+first], strbuffer, curr_node, 0);
   delete[] pub_states;
 }   
 
 unsigned int HeaderParser::saveLastComma(const string& strbuffer, 
-					 vector<string>& teds,
-					 int * curr_ted,
 					 int * states, 
-					 unsigned int statesnumber,
+					 unsigned int statesnumber, 
 					 const vector<int>& offsets, 
 					 unsigned int offset, 
-					 ostream& out,
-					 const hash_map<int,pair<int,int> >& tags,
+					 xmlNodePtr lastcomma, 
+					 const hash_map<int,pair<int,int> >& tags, 
 					 const vector<int>& header_sequence, 
 					 const vector<int>& header_offsets, 
-					 int * notes) const
+					 int * notes) const 
 {
   int state = getFirstMatchingState(states, statesnumber, tags);
-  if(state==0){
-    out << "<comma>\n</comma>\n";
-    return state;
+  if(state==0) {
+  	//Aggiunto:
+  	//in questo caso viene rilevata una sequenza nel footer in uno dei modelli ma tale
+  	//sequenza inizia con l'inizio del buffer. In questo caso o si duplica il contenuto
+  	//del buffer (va sia nell'ultimo comma con tag <mod> (?) che nel footer) oppure
+  	//si lascia l'ultimo comma vuoto (l'errore è commesso dal modello del footer...):
+  	xmlNodeSetContent(lastcomma, BAD_CAST "");
+  	//Invece nel caso non venga rilevato niente, cioè nessuna sequenza con nessun modello
+  	//del footer, e dunque non viene mai richiamata la saveLastComma(), allora si
+  	//richiama defaultFooter() alla fine di parseFooter().
+    return state; 
   }
+    				
+  //printf("\nSave last state:%d\n",state);
   // find eventual pubblicazione
+  xmlNodePtr meta = findChild("meta");
   int * pub_states = new int[state];
   vector<int> pub_sequence;
   copyElements(header_sequence, pub_sequence, 0, state-1);
   header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
   int first = getFirstMatchingState(pub_states, pub_sequence.size(), header_pubblicazione_tags);
-  if (first == pub_sequence.size())
-    out <<  "<comma>" << addTeds(strbuffer.substr(offsets[offset], offsets[offset+state]-offsets[offset]), teds, curr_ted) << "\n</comma>\n";
+  if (first == pub_sequence.size()) {
+    xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.substr(offsets[offset], offsets[offset+state]-offsets[offset]).c_str());
+    //printf("\nSave Here\n");
+  }
   else{
-    out <<  "<comma>" << addTeds(strbuffer.substr(offsets[offset], offsets[offset+first]-offsets[offset]), teds, curr_ted) << "\n</comma>\n";
-    int last = saveTags(strbuffer, teds, curr_ted, pub_states, pub_sequence.size(), header_offsets, offset, first, out, header_pubblicazione_tags, notes);     
+    xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.substr(offsets[offset], offsets[offset+first]-offsets[offset]).c_str());
+    savePubblicazione(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, findChild("descrittori", meta), header_pubblicazione_tags);
+    int last = saveTags(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, first, meta, header_pubblicazione_tags, 0, notes, lastcomma, NULL);     
     if(last < state-1)
-      saveTag(sconosciuto, offsets[offset+last], offsets[offset+state], strbuffer, teds, curr_ted, out); 	
+      saveTag(hp_sconosciuto, offsets[offset+last], offsets[offset+state], strbuffer, lastcomma, 0);
   }
   delete[] pub_states;
   return state;
@@ -691,16 +962,17 @@ void HeaderParser::removeProcessedElements(vector<int>& sequence, int last)
 }
 
 unsigned int HeaderParser::saveTags(const string& strbuffer, 
-				    vector<string>& teds,
-				    int * curr_ted,
 				    int * states, 
 				    unsigned int statesnumber,
 				    const vector<int>& offsets, 
 				    unsigned int offset, 
 				    unsigned int initstate,
-				    ostream& out,
+				    xmlNodePtr startnode,
 				    const hash_map<int,pair<int,int> >& tags,
-				    int * id) const
+				    int tdoc,
+				    int * id,
+				    xmlNodePtr prev_node,
+				    xmlNodePtr subs_node) const
 {
   hash_map<int,pair<int,int> >::const_iterator statetag,currstatetag;
 
@@ -722,7 +994,7 @@ unsigned int HeaderParser::saveTags(const string& strbuffer,
 	((statetag->second).second > -2) &&
 	((statetag->second).second > 0 || (statetag->second).first != currtag)){
       if(currtag != -1)
-	saveTag(currtag, start, offsets[state+offset], strbuffer, teds, curr_ted, out, ((currstatetag->second).second > -1), id);
+	saveTag(currtag, start, offsets[state+offset], strbuffer, startnode, tdoc, prev_node, subs_node, ((currstatetag->second).second > -1), id);
       currstatetag = statetag;
       currtag = (statetag->second).first;
       start = offsets[state+offset];
@@ -730,86 +1002,223 @@ unsigned int HeaderParser::saveTags(const string& strbuffer,
     if (state == last){
       if(currtag != -1){
 	//if(last < statesnumber-1)
-	  saveTag(currtag, start, offsets[state+offset+1], strbuffer, teds, curr_ted, out, ((currstatetag->second).second != -1), id);
+	  saveTag(currtag, start, offsets[state+offset+1], strbuffer, startnode, tdoc, prev_node, subs_node, ((currstatetag->second).second != -1), id);
 	  //else
-	  //saveTag(currtag, start, strbuffer.length(), strbuffer, out, ((currstatetag->second).second > -1));
+	  //saveTag(currtag, start, strbuffer.length(), strbuffer, out, ((currstatetag->second).second > -1), tdoc);
       }
     }
   }
   return last;
 }
 
-void  HeaderParser::defaultFooter(std::string footer, ostream& out) const
+xmlNodePtr HeaderParser::saveTag(int tagvalue,
+				 int start,
+				 int end,
+				 const string& buffer,
+				 xmlNodePtr startnode,
+				 int tdoc,
+				 xmlNodePtr prev_node,
+				 xmlNodePtr subs_node,
+				 bool withtags,
+				 int * id) const
 {
-  unsigned int dot = footer.find('.'), ted = 0;
-  if(dot != string::npos){  
-    if(m_ted)
-      dot = footer.find("\n",dot);
-    out <<  "<comma>" << footer.substr(0, dot+1) << "\n</comma>\n";
-    if (footer.substr(dot+1).find_first_not_of(" \n\t\r") != string::npos)
-      out << "<?error\n" << footer.substr(dot+1) << "\n?>\n"; 
-  }
-  else{
-    out << "<?error\n" << footer << "\n?>\n"; 
-  }
-  out << DEFAULT_FOOTER << endl;
-}
+  if(errorTag(tagvalue)){
+    xmlNodePtr errornode = xmlNewPI(BAD_CAST "error", BAD_CAST buffer.substr(start,end-start).c_str());
+    if(prev_node != NULL)
+		xmlAddNextSibling(prev_node, errornode);
+	else if (subs_node != NULL)
+		xmlAddPrevSibling(subs_node, errornode);
+	else
+		xmlAddChild(startnode, errornode);
 
-void  HeaderParser::defaultHeader(std::string header, ostream& out) const
-{
-  if (header.find_first_not_of(" \n\t\r") != string::npos)
-    out << "<?error\n" << header << "\n?>\n"; 
-  out << DEFAULT_INTESTAZIONE << "\n" << DEFAULT_FORMULAINIZIALE << endl;
-}
-
-void HeaderParser::saveTag(int tagvalue,
-			   int start,
-			   int end,
-			   const string& buffer,
-			   vector<string>& teds,
-			   int * curr_ted,
-			   ostream& out,
-			   bool withtags,
-			   int * id) const 
-{
-  if(errorTag(tagvalue) || noteTag(tagvalue)){
-    out <<  "<?error\n" << addTeds(buffer.substr(start,end-start), teds, curr_ted) << "\n?>" << endl;
-    return;
+	  return errornode;
   }
-  if(ignoreTag(tagvalue)){
-    out << addTeds(buffer.substr(start,end-start), teds, curr_ted) << endl;
-    return;
+  if(ignoreTag(tagvalue)){ //scrive il testo fuori da un tag specifico (hp_varie)
+    xmlAddChild(startnode, xmlNewText(BAD_CAST buffer.substr(start,end-start).c_str()));
+    return NULL;
   }
-  if(withtags)
-    openTag(tagvalue, out, buffer.substr(start,end-start), id);
+  //AGGIUNTO: non scrive niente (salta la parola). 
+  if(nothingTag(tagvalue)) 
+  	return NULL;
+  //
+  xmlNodePtr currnode = (withtags) ? openTag(tagvalue, startnode, buffer.substr(start,end-start), id) : startnode;
+  
+  //Aggiunta:
+  if(tagvalue == hp_relazione) {
+	addFormatTagsDiv(buffer.substr(start,end-start), currnode);
+	xmlAddNextSibling(startnode,currnode);
+	return currnode;
+  }
+  
   if(formatTag(tagvalue)){
-    if(tagvalue == preambolo)
-      out << addSemicolumnFormatTags(buffer.substr(start,end-start), teds, curr_ted);
+    if(tagvalue == hp_preambolo)
+      if(tdoc==2) //Se provvedimento CNR considera solo i ritorni a capo e non i ';'
+        addFormatTags(buffer.substr(start,end-start), currnode);
+      else
+        addSemicolumnFormatTags(buffer.substr(start,end-start), currnode);
     else
-      out << addFormatTags(buffer.substr(start,end-start), teds, curr_ted);
+      addFormatTags(buffer.substr(start,end-start), currnode);
   }
-  else if(tagvalue == formulafinale){
-    int last = buffer.find_last_not_of(" \r\n\t", end-1);
-    out << "<h:p> " << addTeds(buffer.substr(start,last-start+1), teds, curr_ted) << " </h:p>";
-    //out << endl;
-    out << addTeds(buffer.substr(last+1, end-last-1), teds, curr_ted);
-  }
-  else if(trimmedTag(tagvalue) && withtags){
+  else if(tagvalue == hp_formulafinale)
+    xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST buffer.substr(start,buffer.find_last_not_of(" \r\n\t", end-1)-start+1).c_str());
+  else if( trimmedTag(tagvalue) && withtags ||
+  			(tdoc > 0 && trimmedTagDDL(tagvalue)) ){
     unsigned int trimmed = 0;
-    out << trimEnd(buffer.substr(start,end-start), &trimmed);
-    closeTag(tagvalue, out);
-    if (trimmed < end-start)
-      out << addTeds(buffer.substr(start+trimmed,end-start-trimmed), teds, curr_ted);
-    return;
+    xmlAddChild(currnode, xmlNewText(BAD_CAST trimEnd(buffer.substr(start,end-start), &trimmed).c_str()));
+    if (trimmed < end-start) {
+    	if(tdoc==1) {
+    		//Con i DDL metti in error tutto cio' che non viene riconosciuto
+    		//(e che ha lunghezza 'trimmata' maggiore di 0...)
+    		int isblank = buffer.substr(start+trimmed,end-start-trimmed).find_last_not_of(" \n\t\r");
+    		if( isblank > 0 ) {
+	    	  	xmlNodePtr errnode = xmlNewPI(BAD_CAST "error", BAD_CAST buffer.substr(start+trimmed,end-start-trimmed).c_str());
+	    	  	xmlAddChild(startnode, errnode);
+    		}
+    	} else
+    	    //Ma se quello che rimane è tutta roba " \n\t\r" non la riscrivere neanche...
+    	    if( buffer.substr(start+trimmed,end-start-trimmed).find_last_not_of(" \n\t\r") != string::npos)
+	   			xmlAddChild(startnode, xmlNewText(BAD_CAST buffer.substr(start+trimmed,end-start-trimmed).c_str()));
+    }
   }
   else
-    out << addTeds(buffer.substr(start,end-start), teds, curr_ted);
-  if(withtags)
-    closeTag(tagvalue, out);
+    xmlAddChild(currnode, xmlNewText(BAD_CAST buffer.substr(start,end-start).c_str()));
+  return currnode;
+}
+
+xmlNodePtr HeaderParser::openTag(int tagvalue,
+				 xmlNodePtr startnode, 
+				 const std::string& tagcontent,
+				 int * id) const
+{
+  xmlNodePtr contextnode = openContextTags(tagvalue, startnode);
+  xmlNodePtr tagnode = xmlNewChild(contextnode, NULL, BAD_CAST tagName(tagvalue), NULL);
+  addTagAttributes(tagvalue, tagcontent, tagnode, id);
+  return tagnode;
+}
+
+xmlNodePtr HeaderParser::openContextTags(int tagvalue, xmlNodePtr startnode) const 
+{
+  xmlNodePtr contextnode = startnode;
+  switch(HP_tagTipo(tagvalue)){
+  case hp_pubblicazione: 
+  case hp_datapubbl:
+  case hp_numpubbl:
+  case hp_sopubbl:
+  case hp_nota:
+  case hp_registrazione:
+    contextnode = addChildIfMissing("redazionale", NULL, startnode);    
+  }
+  return contextnode;
+}
+
+void HeaderParser::addTagAttributes(int tagvalue, 
+				    const std::string& tagcontent,
+				    xmlNodePtr tagnode, 
+				    int * id) const
+{
+  switch(HP_tagTipo(tagvalue)){
+  case hp_datadoc:
+    xmlNewProp(tagnode, BAD_CAST "norm", BAD_CAST normalizeDate(tagcontent).c_str());
+    break;
+  case hp_dataeluogo:
+    xmlNewProp(tagnode, BAD_CAST "norm", BAD_CAST normalizeDate(tagcontent).c_str());
+    xmlNewProp(tagnode, BAD_CAST "codice", BAD_CAST "00100");
+    break;
+  case hp_pubblicazione:
+  case hp_datapubbl:
+  case hp_numpubbl:
+  case hp_sopubbl:
+  case hp_nota:
+  case hp_registrazione:{
+    ostringstream attr;
+    attr << tagIdName(HP_tagTipo(tagvalue)) << (*id)++;
+    //attr << (*id)++;
+    xmlNewProp(tagnode, BAD_CAST "id", BAD_CAST attr.str().c_str());
+    break;
+  }
+  }
+}
+
+void HeaderParser::addSemicolumnFormatTags(string text, xmlNodePtr startnode) const
+{
+  istringstream in(text);
+  string line, buf;
+  unsigned int end = 0;
+
+  while(Lexer::getLine(in, line)){
+    unsigned int semicolumn = line.find(";");
+    if(semicolumn != string::npos){
+      xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST (buf + line.substr(0,semicolumn+1)).c_str());
+      if(semicolumn < line.length()-1)
+	buf = line.substr(semicolumn+1);
+      else
+	buf = "";
+      continue;
+    }
+    if (line.find_first_not_of(" \n\t\r") != string::npos)
+      buf += line + "\n";
+  }
+  if ((end = buf.find_last_not_of(" \n\t\r")) != string::npos)
+    xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST buf.substr(0,end+1).c_str());
+}
+
+//Modificata: non considerare righe composte solo da "-" e togli eventuali "-" ad inizio riga
+void HeaderParser::addFormatTags(string buf, xmlNodePtr startnode) const
+{
+  istringstream in(buf);
+  string line, out;
+
+  while(Lexer::getLine(in, line))
+    if (line.find_first_not_of(" -\n\t\r") != string::npos) {
+      int ststr = line.find_first_not_of(" -\n\t\r");
+      xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST line.substr(ststr,line.size()-ststr+1).c_str());
+    }
+}
+
+//Aggiunta:
+void HeaderParser::addFormatTagsDiv(string buf, xmlNodePtr startnode) const
+{
+  istringstream in(buf);
+  string line, out;
+
+  while(Lexer::getLine(in, line))
+    if (line.find_first_not_of(" -\n\t\r") != string::npos)
+      xmlNewChild(startnode, NULL, BAD_CAST "h:div", BAD_CAST line.c_str());
 }
 
 string normalizeDate(const string& buffer)
 {
+	//Aggiunta (data del tipo xx/yy/zz )
+	//if(buffer.find_first_not_of("0123456789/.- \n\r\t") == string::npos) {
+	if(buffer.find_first_of("gfmalsond") == string::npos) {
+		//int tmpfind = buffer.find_first_not_of("0123456789/.- \n\r\t");
+		int tmpfind = buffer.find_first_of("gfmalsond");
+		unsigned int beg = buffer.find_first_of("0123456789");
+		unsigned int end = buffer.find_last_of("0123456789");
+		if (beg == string::npos || end == string::npos) return "";
+		unsigned int sep_int = buffer.find_first_of("/.- ", beg);
+  		if (sep_int == string::npos) return "";		
+		string sep = buffer.substr(sep_int,1); //carattere separatore ( / . " " -)
+		unsigned int sep_mese = buffer.find_first_of(sep,beg);
+		unsigned int sep_anno = buffer.find_first_of(sep,sep_mese+1);
+  		if (sep_mese == string::npos || sep_anno == string::npos) return "";
+  		string day = buffer.substr(beg,sep_mese-beg);
+  		string mese = buffer.substr(sep_mese+1,sep_anno-sep_mese-1);
+		string anno = buffer.substr(sep_anno+1,end-sep_anno);
+		//printf("\nstring:%s beg:%d end:%d sep_mese:%d sep_anno:%d day:%s mese:%s anno:%s\n",
+			//		buffer.c_str(),beg,end,sep_mese,sep_anno,day.c_str(),mese.c_str(),anno.c_str());
+		if(day.length() == 1)
+			day = "0"+day;
+		if(mese.length() == 1)
+			mese = "0"+mese;
+		if(anno.length() == 2)
+			if(!strcmp(anno.substr(0,1).c_str(),"0"))
+				anno = "20"+anno;
+			else
+				anno = "19"+anno;
+		return anno+mese+day;
+	}
+  //Originale (data del tipo XX mese YYYY)
   unsigned int beg = buffer.find_first_of("0123456789");
   if (beg == string::npos) return "";
   unsigned int end = buffer.find_first_not_of("0123456789", beg);
@@ -852,65 +1261,6 @@ string trimEnd(const string& buf, unsigned int * trimmed)
   return buf.substr(0,*trimmed);
 }
 
-string HeaderParser::addSemicolumnFormatTags(string text, vector<string>& teds, int * curr_ted) const
-{
-  istringstream in(text);
-  string line, out, buf;
-  unsigned int end = 0;
-
-  while(getline(in, line)){
-    unsigned int semicolumn = line.find(";");
-    if(semicolumn != string::npos){
-      out += "<h:p> " + buf + line.substr(0,semicolumn+1) + " </h:p>";
-      if(m_ted && *curr_ted < teds.size())
-	out += teds[(*curr_ted)++];
-      out += "\n";
-      if(semicolumn < line.length()-1)
-	buf = line.substr(semicolumn+1);
-      else
-	buf = "";
-      continue;
-    }
-    if (line.find_first_not_of(" \n\t\r") != string::npos)
-      buf += line;
-    if(m_ted && *curr_ted < teds.size())
-      (*curr_ted)++;
-  }
-  if ((end = buf.find_last_not_of(" \n\t\r")) != string::npos)
-    out += "<h:p> " + buf.substr(0,end+1) + " </h:p>\n";
-  return out;
-}
-
-string HeaderParser::addFormatTags(string buf, vector<string>& teds, int * curr_ted) const
-{
-  istringstream in(buf);
-  string line, out;
-
-  while(getline(in, line))
-    if (line.find_first_not_of(" \n\t\r") != string::npos){
-      out += "<h:p> " + line + " </h:p>";
-      if(m_ted && *curr_ted < teds.size())
-	out += teds[(*curr_ted)++];
-      out += "\n";
-    }
-  return out;
-}
-
-string HeaderParser::addTeds(string buf, vector<string>& teds, int * curr_ted) const
-{
-  if (!m_ted || teds.size() == 0 )
-    return buf;
-  
-  int beg = 0;//buf.find_first_not_of(" \n\t\r");
-  while((beg = buf.find('\n', beg)) != string::npos && *curr_ted < teds.size()){
-    string ted = teds[(*curr_ted)++];
-    buf.insert(beg, ted);
-    beg += ted.size() + 1;
-  } 
-  return buf;
-}
-
-
 void SqueezeWords(string& buf)
 {
   static int numwords = 15;
@@ -929,255 +1279,160 @@ void SqueezeWords(string& buf)
 
 bool HeaderParser::errorTag(int tagvalue) const
 {
-  switch(tagTipo(tagvalue)){
-  case sconosciuto: return true;
+  switch(HP_tagTipo(tagvalue)){
+  case hp_annessi:
+  case hp_sconosciuto: return true;
   default: return false;
   }
 }
 
 bool HeaderParser::trimmedTag(int tagvalue) const
 {
-  switch(tagTipo(tagvalue)){
-  case numdoc:
-  case datadoc: return true;
+  switch(HP_tagTipo(tagvalue)){
+  case hp_numdoc:
+  case hp_datadoc: return true;
+  default: return false;
+  }
+}
+//Aggiunta: con i DDL viene messo in error ciò che non viene riconosciuto
+//(funzione di prova...)
+bool HeaderParser::trimmedTagDDL(int tagvalue) const
+{
+  switch(HP_tagTipo(tagvalue)){
+  case hp_numdoc:
+  case hp_datadoc:
+  case hp_legislatura:
+  case hp_tipodoc:
+  case hp_titolodoc:
+  case hp_emanante:
+  case hp_relazione: return true;
   default: return false;
   }
 }
 
 bool HeaderParser::noteTag(int tagvalue) const
 {
-  switch(tagTipo(tagvalue)){
-  case pubblicazione: 
-  case nota:
-  case registrazione:
-  case lavoripreparatori:
-  case annessi: return true;
+  switch(HP_tagTipo(tagvalue)){
+  case hp_pubblicazione: 
+  case hp_datapubbl:
+  case hp_numpubbl:
+  case hp_sopubbl:
+  case hp_nota:
+  case hp_registrazione:
+  case hp_lavoripreparatori: return true;
   default: return false;
   }
 }
 
 bool HeaderParser::ignoreTag(int tagvalue) const
 {
-  switch(tagTipo(tagvalue)){
-  case varie: return true;
+  switch(HP_tagTipo(tagvalue)){
+  case hp_varie: return true;
+  default: return false;
+  }
+}
+
+//AGGIUNTO: non scrive niente (salta la parola). 
+//Inutile? Niente deve essere tolto dal documento, si deve marcare ciò che viene riconosciuto.
+bool HeaderParser::nothingTag(int tagvalue) const
+{
+  switch(HP_tagTipo(tagvalue)){
+  case hp_nothing: return true;
   default: return false;
   }
 }
 
 bool HeaderParser::formatTag(int tagvalue) const
 {
-  switch(tagTipo(tagvalue)){
-  case nota:
-  case registrazione:
-  case lavoripreparatori:
-  case annessi:
-  case pubblicazione: 
-  case formulainiziale:
-  case preambolo: return true;
+  switch(HP_tagTipo(tagvalue)){
+  case hp_nota:
+  case hp_datapubbl:
+  case hp_numpubbl:
+  case hp_sopubbl:
+  case hp_registrazione:
+  case hp_lavoripreparatori:
+  case hp_annessi:
+  case hp_pubblicazione: 
+  case hp_formulainiziale:
+  case hp_preambolo: return true;
   default: return false;
   }
 }
 
-void HeaderParser::openTag(int tagvalue, 
-			   ostream& out,
-			   const std::string& tagcontent,
-			   int * id) const
+const char * HeaderParser::tagIdName(int tagvalue)
 {
-  openContextTags(tagvalue, out);
-  out << "<" << tagName(tagvalue) << tagAttributes(tagvalue, tagcontent, id) << ">" << endl;
+	switch(HP_tagTipo(tagvalue)){
+		case hp_pubblicazione:	return "n";
+		case hp_datapubbl:		return "n";
+		case hp_numpubbl:			return "n";
+		case hp_sopubbl:			return "n";
+		case hp_nota:				return "n";
+		case hp_registrazione:	return "n";
+		default:	return "???";
+	}
 }
-
-void HeaderParser::closeTag(int tagvalue, ostream& out) const
-{
-  out << "</" << tagName(tagvalue) << ">" << endl;
-  closeContextTags(tagvalue, out);
-}
-
-void HeaderParser::openContextTags(int tagvalue, ostream& out) const
-{
-  switch(tagTipo(tagvalue)){
-  case pubblicazione: 
-  case nota:
-  case registrazione:
-  case lavoripreparatori:
-  case annessi:
-    out << "<inlinemeta><redazionale>" << endl;
-    break;
-  default:
-    return;
-  }
-}
-
-void HeaderParser::closeContextTags(int tagvalue, ostream& out) const
-{
-  switch(tagTipo(tagvalue)){
-  case pubblicazione: 
-  case nota:
-  case registrazione:
-  case lavoripreparatori:
-  case annessi:
-    out << "</redazionale></inlinemeta>" << endl;
-    break;
-  default:
-    return;
-  }
-}
-
-std::string HeaderParser::tagAttributes(int tagvalue, 
-					const std::string& tagcontent,
-					int * id)
-{
-  switch(tagTipo(tagvalue)){
-  case datadoc:
-    return (string)" norm=\"" +  normalizeDate(tagcontent) + "\"";
-  case dataeluogo:
-    return (string)" norm=\"" +  normalizeDate(tagcontent) + "\" codice=\"00100\"";
-  case pubblicazione:
-  case nota:
-  case registrazione:
-  case lavoripreparatori:
-  case annessi:{
-    ostringstream attr;
-    attr << " id=\"n" << (*id)++ << "\"";
-    return attr.str();
-  }
-  default:
-    return "";
-  }
-}
-
-
 
 const char * HeaderParser::tagName(int tagvalue)
 {
-  switch(tagTipo(tagvalue)){
-  case libro:	return "libro";
-  case parte:	return "parte";
-  case titolo:	return "titolo";
-  case capo:	return "capo";
-  case sezione:	return "sezione";
-  case articolo:	return "articolo";
-  case comma:	return "comma";
-  case lettera:	return "el";
-  case numero:	return "en";
-  case num:	return "num";
-  case corpo:	return "corpo";
-  case alinea:	return "alinea";
-  case rubrica:	return "rubrica";
-  case tipodoc: return "tipoDoc";
-  case datadoc: return "dataDoc";
-  case numdoc:  return "numDoc";
-  case titolodoc: return "titoloDoc";
-  case formulainiziale: return "formulainiziale";
-  case formulafinale: return "formulafinale";
-  case dataeluogo: return "dataeluogo";
-  case sottoscrizioni: return "sottoscrizioni";
-  case pubblicazione: return "nota";
-  case emanante: return "emanante";
-  case conclusione: return "conclusione";
-  case intestazione: return "intestazione";
-  case annessi: return "nota";
-  case nota: return "nota";
-  case registrazione: return "nota";
-  case lavoripreparatori: return "nota";
-  case varie: return "varie";
-  case sottoscrivente: return "sottoscrivente";
-  case visto: return "visto";
-  case sconosciuto: return "";
-  case preambolo: return "preambolo";
+  switch(HP_tagTipo(tagvalue)){
+  case hp_libro:	return "libro";
+  case hp_parte:	return "parte";
+  case hp_titolo:	return "titolo";
+  case hp_capo:	return "capo";
+  case hp_sezione:	return "sezione";
+  case hp_articolo: return "articolo";
+  case hp_comma:	return "comma";
+  case hp_lettera:	return "el";
+  case hp_numero:	return "en";
+  case hp_num:	return "num";
+  case hp_corpo:	return "corpo";
+  case hp_alinea:	return "alinea";
+  case hp_rubrica:	return "rubrica";
+  case hp_tipodoc: return "tipoDoc";
+  case hp_datadoc: return "dataDoc";
+  case hp_numdoc:  return "numDoc";
+  case hp_titolodoc: return "titoloDoc";
+  case hp_formulainiziale: return "formulainiziale";
+  case hp_formulafinale: return "formulafinale";
+  case hp_dataeluogo: return "dataeluogo";
+  case hp_sottoscrizioni: return "sottoscrizioni";
+  case hp_pubblicazione: return "nota";
+  case hp_emanante: return "emanante";
+  case hp_conclusione: return "conclusione";
+  case hp_intestazione: return "intestazione";
+  case hp_annessi: return "nota";
+  case hp_nota: return "nota";
+  case hp_registrazione: return "nota";
+  case hp_lavoripreparatori: return "lavoripreparatori";
+  case hp_varie: return "varie";
+  case hp_sottoscrivente: return "sottoscrivente";
+  case hp_visto: return "visto";
+  case hp_sconosciuto: return "";
+  case hp_preambolo: return "preambolo";
+  case hp_datapubbl: return "nota";
+  case hp_numpubbl: return "nota";
+  case hp_sopubbl: return "nota";
+  case hp_legislatura: return "legislatura";
+  case hp_relazione: return "relazione";
+  case hp_div: return "h:div";
+  case hp_nothing: return "nothing";
   default: return "";
   }
 }
 
-#ifdef HEADERPARSER
-int main(int argc, char* argv[]) {
-
-  char *r = rindex(argv[0], '/');
-  if (r) *r = 0; else r = rindex(argv[0], '\\');
-  if (r) *r = 0;
-  string workdir = (string)argv[0] + "/Models";
-  string config_files[] = { "header_intestazione_model",
-			    "header_pubblicazione_model",
-			    "header_formulainiziale_model",
-			    "footer_formulafinale_model",
-			    "footer_dataeluogo_model",
-			    "footer_sottoscrizioni_model",
-			    "footer_annessi_model",
-			    "header_extractor_model",
-			    "header_extractor_config",
-			    "footer_extractor_model",
-			    "footer_extractor_config",
-			    "parser_config"};
-
-  if (argc < 2 || !strcmp(argv[1], "--help")){
-    cerr << "Usage: " << argv[0] << " [-header,-footer]"
-	 << " [ <workdir> <header_intestazione_model> <header_pubblicazione_model>"
-	 << " <header_formulainiziale_model> <footer_formulafinale_model>"
-	 << " <footer_dataeluogo_model> <footer_sottoscrizioni_model> <footer_annessi_model>"
-	 << " <header_extractor_model> <header_extractor_config>"
-	 << " <footer_extractor_model> <footer_extractor_config>"
-	 << " <parser_config> ]" << endl;
-    exit(0);
-  }
-  for (int arg = 1; arg < argc; arg++){
-
-    if (*argv[arg] == '-'){
-
-       const char * command = argv[arg];
-       if(argc - arg - 1 > 0){
-	 workdir = argv[++arg];
-	 int i = 0;
-	 while(++arg < argc)
-	   config_files[i++] = argv[arg];
-       }
-       
-       HeaderParser parser(workdir,
-			   config_files[0],
-			   config_files[1],
-			   config_files[2],
-			   config_files[3],
-			   config_files[4],
-			   config_files[5],
-			   config_files[6],
-			   config_files[7],
-			   config_files[8],
-			   config_files[9],
-			   config_files[10]);
-
-       if (!strcmp(command, "-header"))
-	 parser.parseHeader(cin, cout);
-       else if (!strcmp(command, "-footer"))
-	 parser.parseFooter(cin, cout, 1);
-       else{
-	 cerr << "ERROR: unknown command " << argv[arg] << endl;
-	 return -1;
-       }
-    }
-    else{
-      cerr << "ERROR: missing command " << endl;
-      return -1;
+string  extractURN(string& strbuffer)
+{
+  int beg = strbuffer.find("(urn:");
+  if (beg != string::npos){
+    int end = strbuffer.find_first_of(")", beg);
+    if (end != string::npos){
+      string urn = strbuffer.substr(beg, end - beg + 1);
+      strbuffer.erase(beg, end - beg + 1);
+      return urn;
     }
   }
+  return "";
 }
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

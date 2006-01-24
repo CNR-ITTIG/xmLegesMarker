@@ -1,14 +1,61 @@
 #ifndef HEADERPARSER_H
 #define HEADERPARSER_H
 
+#include <libxml/xmlmemory.h>
+#include <libxml/parser.h>
+#include <libxml/tree.h>
 #include <HMM.h>
 #include <TextSequenceFeatureExtractor.h>
 
 #define THRESHOLD -1e15
-#define DEFAULT_INTESTAZIONE "\n<intestazione>\n<tipoDoc></tipoDoc><dataDoc norm=\"\"></dataDoc><numDoc></numDoc>\n<titoloDoc></titoloDoc>\n</intestazione>\n"
-#define DEFAULT_FORMULAINIZIALE "\n<formulainiziale></formulainiziale>\n"
-#define DEFAULT_FOOTER "\n<formulafinale></formulafinale>\n<conclusione></conclusione>\n"
 using namespace std;
+
+typedef enum HeaderParser_tagTipo {
+	hp_libro=0,
+	hp_parte=1,
+	hp_titolo=2,
+	hp_capo=3,
+	hp_sezione=4,
+	hp_articolo=5,
+	hp_comma=6,
+	hp_lettera=7,
+	hp_numero=8,
+	hp_num=9,
+	hp_corpo=10,
+	hp_alinea=11,
+	hp_rubrica=12,
+	hp_tipodoc=13,
+	hp_datadoc=14,
+	hp_numdoc=15,
+	hp_titolodoc=16,
+	hp_formulainiziale=17,
+	hp_formulafinale=18,
+	hp_dataeluogo=19,
+	hp_sottoscrizioni=20,
+	hp_pubblicazione=21,
+	hp_emanante=22,
+	hp_intestazione=23,
+	hp_conclusione=24,
+	hp_annessi=25,
+	hp_varie=26,
+	hp_sottoscrivente=27,
+	hp_visto=28,
+	hp_sconosciuto=29,
+	hp_preambolo=30,
+	hp_registrazione=31,
+	hp_nota=32,
+	hp_lavoripreparatori=33,
+	hp_mod=34,
+	hp_virgolette=35,
+	hp_datapubbl=36,
+	hp_numpubbl=37,
+	hp_sopubbl=38,
+	hp_legislatura=39,
+	hp_relazione=40,
+	hp_div=41,
+	hp_nothing=42} HP_tagTipo;
+
+//#define TAGTIPODIM 39
 
 class Month{
   
@@ -43,10 +90,10 @@ void copyElements(const vector<int>& src,
 		  unsigned int end);
 void SqueezeWords(string& buf);
 std::string trimEnd(const std::string& buf, unsigned int * trimmed);
+std::string extractURN(std::string& strbuffer);
 
 class HeaderParser
 {
-  bool m_ted;
   HMM header_intestazione_model;
   HMM header_pubblicazione_model;
   HMM header_formulainiziale_model;
@@ -63,6 +110,7 @@ class HeaderParser
   hash_map<int,pair<int,int> > footer_dataeluogo_tags;
   hash_map<int,pair<int,int> > footer_sottoscrizioni_tags;
   hash_map<int,pair<int,int> > footer_annessi_tags;
+  xmlNodePtr root_node;
 
  public:
   HeaderParser(std::string model_dir,
@@ -78,82 +126,94 @@ class HeaderParser
 	       std::string footer_extractor_model_file = "footer_extractor_model",
 	       std::string footer_extractor_config_file = "footer_extractor_config",
 	       std::string parser_config_file = "parser_config");
-  int parseHeader(const std::string& header, std::ostream& out);
-  int parseFooter(const char * footer, std::ostream& out, int notes); 
-  int parseHeader(std::istream& in, std::ostream& out); 
-  int parseFooter(std::istream& in, std::ostream& out, int notes); 
+  int parseHeader(std::string& header, 
+		  xmlNodePtr meta,
+		  xmlNodePtr descrittori,
+		  xmlNodePtr intestazione,
+		  xmlNodePtr formulainiziale,
+		  int tdoc,
+		  int notes);
+  int parseFooter(xmlNodePtr lastcomma, 			      
+		  xmlNodePtr meta,
+		  xmlNodePtr descrittori,
+		  xmlNodePtr formulafinale,
+		  xmlNodePtr conclusione,
+		  int tdoc,
+		  int notes); 
   static const char * tagName(int tagvalue);
-  static std::string tagAttributes(int tagvalue, const std::string& tagcontent, int * id);
+  static const char * tagIdName(int tagvalue);
+
   static bool hasCorrectStates(int * states, int statesnumber);
   static void removeProcessedElements(std::vector<int>& sequence, int last);
-    
+  void setRootNode(xmlNodePtr node) { root_node = node;};
+
  protected:
+  void addTagAttributes(int tagvalue, 
+			const std::string& tagcontent,
+			xmlNodePtr tagnode, 
+			int * id) const;
   unsigned int saveTitle(const string& strbuffer, 
-			 vector<string>& teds,
-			 int * curr_ted,
 			 int * states, 
 			 unsigned int statesnumber,
 			 const vector<int>& offsets, 
 			 unsigned int offset, 
 			 unsigned int state,
-			 std::ostream& out,
+			 xmlNodePtr descrittori,
+			 xmlNodePtr intestazione,
+			 xmlNodePtr meta,
 			 bool found,
 			 const hash_map<int,pair<int,int> >& tags,
 			 int * id = 0) const;
-  void saveTag(int tagvalue,
-	       int start,
-	       int end,
-	       const std::string& buffer,
-	       vector<string>& teds,
-	       int * curr_ted,
-	       std::ostream& out,
-	       bool withtags = true, 
-	       int * id = 0) const;
-  void openTag(int tagvalue, 
-	       std::ostream& out, 			   
-	       const std::string& tagcontent = "",
-	       int * id = 0) const;
-  void closeTag(int tagvalue, std::ostream& out) const;
+  xmlNodePtr openTag(int tagvalue,
+		     xmlNodePtr startnode, 
+		     const std::string& tagcontent = "",
+		     int * id = 0) const;
+  xmlNodePtr openContextTags(int tagvalue, xmlNodePtr startnode) const ;
   bool ignoreTag(int tagvalue) const;
+  bool nothingTag(int tagvalue) const;
   bool trimmedTag(int tagvalue) const;
+  bool trimmedTagDDL(int tagvalue) const; //Aggiunta
   bool errorTag(int tagvalue) const;
   bool noteTag(int tagvalue) const;
   bool formatTag(int tagvalue) const;
-  void openContextTags(int tagvalue, ostream& out) const;
-  void closeContextTags(int tagvalue, ostream& out) const;
-  std::string addFormatTags(std::string buf,
-			    vector<string>& teds,
-			    int * curr_ted) const;
-  std::string addSemicolumnFormatTags(std::string buf,
-				      vector<string>& teds,
-				      int * curr_ted) const;
+  void addSemicolumnFormatTags(string text, xmlNodePtr startnode) const;  
+  void addFormatTags(string buf, xmlNodePtr startnode) const;
+  void addFormatTagsDiv(string buf, xmlNodePtr startnode) const;
   void init(std::istream& in);
-  void defaultFooter(std::string footer, std::ostream& out) const;
-  void defaultHeader(std::string header, ostream& out) const;
-  unsigned int saveLastComma(const std::string& strbuffer, 
-			     vector<string>& teds,
-			     int * curr_ted,			  
+  void defaultFooter(std::string footer, xmlNodePtr lastcomma) const;
+  void defaultHeader(xmlNodePtr descrittori, xmlNodePtr intestazione) const;				  
+  xmlNodePtr saveTag(int tagvalue,
+		     int start,
+		     int end,
+		     const string& buffer,
+		     xmlNodePtr startnode,
+		     int tdoc,
+		     xmlNodePtr prev_node = NULL,
+		     xmlNodePtr subs_node = NULL,
+		     bool withtags = true,
+		     int * id = 0) const;
+  unsigned int saveLastComma(const string& strbuffer, 
 			     int * states, 
 			     unsigned int statesnumber,
-			     const std::vector<int>& offsets, 
+			     const vector<int>& offsets, 
 			     unsigned int offset, 
-			     std::ostream& out,
+			     xmlNodePtr lastcomma,
 			     const hash_map<int,pair<int,int> >& tags,
 			     const vector<int>& header_sequence, 
 			     const vector<int>& header_offsets, 
 			     int * notes) const;
-  unsigned int saveTags(const std::string& strbuffer, 
-			vector<string>& teds,
-			int * curr_ted,
+  unsigned int saveTags(const string& strbuffer, 
 			int * states, 
 			unsigned int statesnumber,
-			const std::vector<int>& offsets, 
+			const vector<int>& offsets, 
 			unsigned int offset, 
-			unsigned int state,
-			std::ostream& out,
-			const hash_map<int,std::pair<int,int> >& tags,
-			int * id = 0) const;
-  bool hasVisto(int * states, int statesnumber) const;
+			unsigned int initstate,
+			xmlNodePtr startnode,
+			const hash_map<int,pair<int,int> >& tags,
+			int tdoc,
+			int * id = 0,
+			xmlNodePtr prev_node = NULL,
+			xmlNodePtr subs_node = NULL) const;
   unsigned int getFirstMatchingState(int * states, 
 				     unsigned int statesnumber,
 				     const hash_map<int,pair<int,int> >& tags) const;
@@ -161,22 +221,30 @@ class HeaderParser
 			   unsigned int statesnumber,
 			   const hash_map<int,pair<int,int> >& tags) const;
   void findPubblicazione(const string& strbuffer, 
-			 vector<string>& teds,
-			 int * curr_ted,
 			 const vector<int>& sequence, 
 			 int first,
 			 const vector<int>& offsets, 
 			 unsigned int offset, 
-			 ostream& out,
-			 int * notes);
-  void savePubblicazione(const string& strbuffer, 
+			 xmlNodePtr meta,
+			 xmlNodePtr currnode,
+			 int * notes) const;
+  bool savePubblicazione(const string& strbuffer, 
 			 int * states, 
 			 unsigned int statesnumber,
 			 const vector<int>& offsets, 
 			 unsigned int offset, 
-			 const hash_map<int,pair<int,int> >& tags);
-  string removeTeds(const std::string& header, vector<string>& teds);
-  string addTeds(string buf, vector<string>& teds, int * curr_ted) const;
+			 xmlNodePtr descrittori,
+			 const hash_map<int,pair<int,int> >& tags) const;
+  xmlNodePtr addChildIfMissing(const char * nodename, 
+			       bool * added,
+			       xmlNodePtr startnode = NULL,
+			       const char * content = "") const;
+  xmlNodePtr findChild(const char * nodename, xmlNodePtr startnode = NULL) const;
+  void addMissingMeta(xmlNodePtr meta) const;
+  void addMissingHeader(xmlNodePtr meta,xmlNodePtr descrittori,xmlNodePtr intestazione,
+			      xmlNodePtr formulainiziale, int tdoc) const;
+  void HeaderParser::addMissingFooter(xmlNodePtr meta,xmlNodePtr descrittori,
+  			xmlNodePtr formulafinale,xmlNodePtr conclusione,int tdoc) const;
 };
 
 #endif
