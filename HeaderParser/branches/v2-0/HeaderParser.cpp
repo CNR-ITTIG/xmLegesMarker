@@ -207,14 +207,19 @@ void HeaderParser::init(istream& in)
   root_node = NULL;
 }
 
+//Aggiunto l'argomento tdoc che indica il tipo di documento:
+//0: generico
+//1: disegno di legge
+//2: provvedimento CNR
 int HeaderParser::parseHeader(std::string& header, 
 			      xmlNodePtr meta,
 			      xmlNodePtr descrittori,
 			      xmlNodePtr intestazione,
 			      xmlNodePtr formulainiziale,
+			      int tdoc,
 			      int notes)
 {
-  
+
   bool found = false, pub_found = false;
   unsigned int last = 0, first = 0, offset = 0;
   int * states = NULL, * pub_states = NULL;
@@ -225,7 +230,7 @@ int HeaderParser::parseHeader(std::string& header,
   string strbuffer = header;
   SqueezeWords(strbuffer);
   const char * buffer = strbuffer.c_str();
- 
+  
   // extract terms
   vector<int> sequence, offsets;
   if(!header_extractor.buildExample(sequence, offsets, buffer, strlen(buffer), 0)){
@@ -233,29 +238,171 @@ int HeaderParser::parseHeader(std::string& header,
     return notes;
   }
 
+//printf("\nHeaderParser\nbuffer: %s\n\n", header.c_str());
+//printf("\nHeaderParser\ntdoc: %d\n", tdoc);
+
+//Disegno di legge
+if(tdoc == 1) {
+	if(sequence.size() > 0) {
+		found = true;
+		//Aggiungi tag specifici
+		xmlNodePtr nApprovazione = xmlNewChild(descrittori, NULL, BAD_CAST "approvazione", NULL);
+		xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
+		xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
+		xmlNewProp(nApprovazione, BAD_CAST "internal_id", BAD_CAST "");
+		xmlNewProp(nApprovazione, BAD_CAST "leg", BAD_CAST "");
+		xmlNewProp(nApprovazione, BAD_CAST "norm", BAD_CAST "");	
+		xmlNewProp(nApprovazione, BAD_CAST "tipodoc", BAD_CAST "");
+		xmlNewProp(nRedazione, BAD_CAST "nome", BAD_CAST "");
+		xmlNewProp(nRedazione, BAD_CAST "norm", BAD_CAST "");
+		//xmlNewProp(redazione, BAD_CAST "url", BAD_CAST ""); //non obbligatorio nella dtd
+		
+		states = new int[sequence.size()];
+		header_intestazione_model.viterbiPath(sequence, states, sequence.size());
+		if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()){
+	    	found = true;
+			//for(int kk=0; kk < sequence.size(); kk++)
+				//printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
+			
+	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_intestazione_tags, tdoc);      
+	        removeProcessedElements(sequence, last);
+	        offset += last + 1;
+		}
+		delete[] states;
+	} 
+	if(sequence.size() > 0 || found == false) { 
+		//Se non è stato rilevata l'intestazione viene messo tutto in error:
+		//printf("\noffset:%d size:%d\n",offset,offsets.size());
+		// se rimane qualcosa mettilo in un tag errore
+    	if (offset < offsets.size())
+      		saveTag(hp_sconosciuto, offsets[offset], strbuffer.length(), strbuffer, intestazione, tdoc); 
+      	//Devono essere aggiunti dei tag di default vuoti per i disegni di legge
+      	addMissingHeader(meta, descrittori, intestazione, formulainiziale, tdoc);
+	}
+	return notes; 	
+}
+
+//Provvedimenti CNR
+if(tdoc == 2) {
+	xmlNodePtr errorNode = intestazione; //per inserire il testo non rilevato nella giusta posizione
+	if(sequence.size() > 0) {
+		found = true;
+		//Aggiungi tag 'proprietario' vuoti
+		xmlNodePtr proprietario = xmlNewChild(meta, NULL, BAD_CAST "proprietario", BAD_CAST "");
+		xmlNewProp(proprietario, BAD_CAST "xlink:type", BAD_CAST "simple");
+		xmlNewProp(proprietario, BAD_CAST "xmlns:cnr", BAD_CAST "http://www.cnr.it/provvedimenti/1.0");
+		
+		xmlNodePtr cnrmeta = xmlNewChild(proprietario, NULL, BAD_CAST "cnr:meta", BAD_CAST "");
+		xmlNodePtr proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:strutturaEmanante", BAD_CAST "");
+		xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+		proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:autoritaEmanante", BAD_CAST "");
+		xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+		proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:tipoDestinatario", BAD_CAST "");
+		xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+		proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:disciplina", BAD_CAST "");
+		xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+		//disciplina e areaScientifica sono in OR nella DTD.
+		//proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:areaScientifica", BAD_CAST "");
+		//xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+		
+		//Aggiungi tag specifici
+		xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
+		xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST "");
+		xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");		
+		xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "BUCNR");
+				
+		xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
+		xmlNewProp(nRedazione, BAD_CAST "id", BAD_CAST "red");
+		xmlNewProp(nRedazione, BAD_CAST "nome", BAD_CAST "Urp-Cnr");
+		xmlNewProp(nRedazione, BAD_CAST "norm", BAD_CAST "");
+		
+		xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
+		xmlAddChild(nUrn, xmlNewText(BAD_CAST "urn:nir:consiglio.nazionale.ricerche:provvedimento:"));
+
+		states = new int[sequence.size()];
+		header_intestazione_model.viterbiPath(sequence, states, sequence.size());
+		if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()){
+	        //Aggiungere emanante (valore costante per questo tipo di doc):
+	        xmlNodePtr emanante = xmlNewChild(intestazione, NULL, BAD_CAST "emanante", BAD_CAST "");
+			xmlAddChild(emanante, xmlNewText(BAD_CAST "Consiglio Nazionale delle Ricerche"));
+			
+			//xmlNodePtr docnode = intestazione->parent;
+
+		  //Se provv.CNR tralasciare l'inizio di formula iniziale...
+		  //(vedi parser_config per sapere lo stato in cui inizia la formula iniziale)
+		  int klast = 0;
+	      for(int kk=0; kk < sequence.size(); kk++) {
+			//printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
+			if(tdoc == 2 && states[kk] == 53) { //<-- 'IL' presidente/dirigente/ecc...
+				klast = kk;
+				errorNode = formulainiziale;
+			}
+	      }
+	      
+     		//salva i tag riferiti a 'intestazione'		
+	        last = saveTags(strbuffer, states, klast, offsets, offset, last, intestazione, header_intestazione_tags, tdoc);              
+	        //salva i tag di 'formulainiziale'
+	        last = saveTags(strbuffer, states, sequence.size(), offsets, 0, klast, formulainiziale, header_intestazione_tags, tdoc);              
+	        removeProcessedElements(sequence, last);
+	        offset = last+1;
+	        delete[] states;
+	        
+	        
+	        /*
+	        //Utilizzo 2 modelli separati:
+	        //cerca intestazione
+	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_intestazione_tags, tdoc);
+	        removeProcessedElements(sequence, last);
+		    offset+=last+1;
+		    delete[] states;
+	       	printf("\n size:%d\n", sequence.size());
+	        if(sequence.size()>0) { //cerca formulainiziale
+	        	last = 0;
+			    states = new int[sequence.size()];	
+	        	header_formulainiziale_model.viterbiPath(sequence, states, sequence.size());
+			    if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()) {
+			    	last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, formulainiziale, header_formulainiziale_tags, tdoc);
+			        removeProcessedElements(sequence, last);
+				    offset+=last+1;
+				    delete[] states;
+			    }
+			}
+			*/
+		}
+		if(sequence.size() > 0 || found == false) { //Se non è stato rilevata l'intestazione viene messo tutto in error:
+			//printf("\n HeaderParser -- Testo non rilevato (error tag) -- offset:%d size:%d\n",offset,offsets.size());
+			// se rimane qualcosa mettilo in un tag errore
+	    	if (offset < offsets.size())
+	      		saveTag(hp_sconosciuto, offsets[offset], strbuffer.length(), strbuffer, errorNode, tdoc); 
+		}
+		return notes; 	
+	}
+}
+
   // parse intestazione
   if(sequence.size() > 0){
     states = new int[sequence.size()];
     header_intestazione_model.viterbiPath(sequence, states, sequence.size());
     if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()){
       found = true;
+      
       // recover eventual pubblicazione before intestazione
       if(first > 0){
-	pub_states = new int[first];
-	vector<int> pub_sequence;
-	copyElements(sequence, pub_sequence, 0, first-1);
-	header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
-	pub_found = savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
-	if(pub_found)
-	  last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, meta ,header_pubblicazione_tags, &notes, NULL, intestazione);     
-	if(last < first-1)
-	  saveTag(hp_sconosciuto, offsets[last], offsets[first], strbuffer, root_node, NULL, intestazione); 	
-	last = first;
-	delete[] pub_states;
+		pub_states = new int[first];
+		vector<int> pub_sequence;
+		copyElements(sequence, pub_sequence, 0, first-1);
+		header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
+		pub_found = savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
+		if(pub_found)
+	 	 last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, meta ,header_pubblicazione_tags, tdoc, &notes, NULL, intestazione);     
+		if(last < first-1)
+		  saveTag(hp_sconosciuto, offsets[last], offsets[first], strbuffer, root_node, tdoc, NULL, intestazione); 	
+		last = first;
+		delete[] pub_states;
       }
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_intestazione_tags);      
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_intestazione_tags, tdoc);            
       removeProcessedElements(sequence, last);
-      offset += last + 1;
+      offset+=last+1;
     }
     delete[] states;
   }
@@ -268,28 +415,26 @@ int HeaderParser::parseHeader(std::string& header,
     if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()){
       // recover eventual pubblicazione before formulainiziale
       if(first > 0){
-	pub_states = new int[first];
-	vector<int> pub_sequence;
-	copyElements(sequence, pub_sequence, 0, first-1);
-	header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
-	if(!pub_found)
-	  pub_found = savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
-	last = saveTitle(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, descrittori, intestazione, meta, found, header_pubblicazione_tags, &notes);
-	last++;
-	delete[] pub_states;
+		pub_states = new int[first];
+		vector<int> pub_sequence;
+		copyElements(sequence, pub_sequence, 0, first-1);
+		header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
+		if(!pub_found)
+		  pub_found = savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
+		last = saveTitle(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, descrittori, intestazione, meta, found, header_pubblicazione_tags, &notes);
+		last++;
+		delete[] pub_states;
+      } else{
+		if(!found)
+		  defaultHeader(descrittori, intestazione);
+		else
+		  xmlNewChild(intestazione, NULL, BAD_CAST "titoloDoc", BAD_CAST "");
       }
-      else{
-	if(!found)
-	  defaultHeader(descrittori, intestazione);
-	else
-	  xmlNewChild(intestazione, NULL, BAD_CAST "titoloDoc", BAD_CAST "");
-      }
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, formulainiziale, header_formulainiziale_tags);      
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, formulainiziale, header_formulainiziale_tags, tdoc);      
       removeProcessedElements(sequence, last);
-      offset += last + 1;
+      offset+=last+1;
       found = true;
-    }
-    else{ // search pubblicazione, otherwise put all in titolodoc
+    } else{ // search pubblicazione, otherwise put all in titolodoc
       header_pubblicazione_model.viterbiPath(sequence, states, sequence.size());
       if(!pub_found)
 	pub_found = savePubblicazione(strbuffer, states, sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
@@ -339,7 +484,62 @@ void  HeaderParser::defaultHeader(xmlNodePtr descrittori, xmlNodePtr intestazion
   xmlNodePtr titolodoc = xmlNewChild(intestazione, NULL, BAD_CAST "titoloDoc", BAD_CAST "");
 }
 
+//Affinchè il documento sia valido aggiunge i tag obbligatori secondo il tipo di doc.
+void HeaderParser::addMissingHeader(xmlNodePtr meta,xmlNodePtr descrittori,xmlNodePtr intestazione,
+			      xmlNodePtr formulainiziale, int tdoc) const 
+{
+	xmlNodePtr tmpnode = NULL;
+	
+	if(tdoc==1) { //disegno di legge
+		//elementi sotto intestazione:
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "emanante", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST "Consiglio Nazionale delle Ricerche"));
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "legislatura", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "numDoc", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "tipoDoc", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "dataDoc", BAD_CAST "");
+		xmlNewProp(tmpnode, BAD_CAST "norm", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "titoloDoc", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		
+		//relazione?
+		//tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "relazione", BAD_CAST "");
+		//xmlAddNextSibling(intestazione,);
+	}
 
+	if(tdoc==2) { //Provvedimenti CNR
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "emanante", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "numDoc", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "dataDoc", BAD_CAST "");
+		xmlNewProp(tmpnode, BAD_CAST "norm", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));		
+		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "titoloDoc", BAD_CAST "");
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));	
+	}
+}
+
+//Affinchè il documento sia valido aggiunge i tag obbligatori secondo il tipo di doc.
+void HeaderParser::addMissingFooter(xmlNodePtr meta,xmlNodePtr descrittori,xmlNodePtr formulafinale,
+			      xmlNodePtr conclusione,int tdoc) const 
+{
+	if(tdoc==2) { //Provvedimenti CNR
+		//All'interno di sottoscrizioni deve esserci un 'visto'
+		xmlNodePtr tmpnode = findChild("sottoscrizioni", conclusione);
+		if(tmpnode == NULL) return;
+		xmlNodePtr vistonode = findChild("visto", tmpnode);
+		if(vistonode == NULL) {
+			vistonode = xmlNewNode(NULL, BAD_CAST "visto");
+			xmlAddChild(vistonode, xmlNewText(BAD_CAST ""));
+			xmlAddChild(tmpnode,vistonode);
+		}
+	}
+}
 
 unsigned int HeaderParser::saveTitle(const string& strbuffer, 
 				     int * states, 
@@ -358,24 +558,24 @@ unsigned int HeaderParser::saveTitle(const string& strbuffer,
   // if no pubblicazione found
   if ((first = getFirstMatchingState(states, statesnumber, tags)) == statesnumber){
     if (found) // if tipo previously found, consider text as title
-      saveTag(hp_titolodoc, offsets[offset], offsets[offset+first], strbuffer, intestazione); 	
+      saveTag(hp_titolodoc, offsets[offset], offsets[offset+first], strbuffer, intestazione, 0); 	
     else{
       defaultHeader(descrittori, intestazione);
-      saveTag(hp_sconosciuto, offsets[offset], offsets[offset+first], strbuffer, root_node, intestazione, NULL); 	
+      saveTag(hp_sconosciuto, offsets[offset], offsets[offset+first], strbuffer, root_node, 0, intestazione, NULL); 	
     }
     return first-1;
   }
   // else choose as title the longer part either before or after match
   last = getLastMatchingState(states, statesnumber, tags);
   if((statesnumber - last) > first){
-    xmlNodePtr titlenode = saveTag(hp_titolodoc,offsets[offset+last+1], offsets[offset+statesnumber], strbuffer, intestazione);     
-    saveTags(strbuffer, states, statesnumber, offsets, offset, state, meta, tags, id, NULL, titlenode);    
+    xmlNodePtr titlenode = saveTag(hp_titolodoc,offsets[offset+last+1], offsets[offset+statesnumber], strbuffer, intestazione, 0);     
+    saveTags(strbuffer, states, statesnumber, offsets, offset, state, meta, tags, 0, id, NULL, titlenode);    
     
     return statesnumber-1;
   }
   else{
-    xmlNodePtr titlenode = saveTag(hp_titolodoc,offsets[offset], offsets[offset+first], strbuffer, intestazione); 
-    return saveTags(strbuffer, states, statesnumber, offsets, offset, first, meta, tags, id, titlenode, NULL);    
+    xmlNodePtr titlenode = saveTag(hp_titolodoc,offsets[offset], offsets[offset+first], strbuffer, intestazione, 0); 
+    return saveTags(strbuffer, states, statesnumber, offsets, offset, first, meta, tags, 0, id, titlenode, NULL);    
   }
 }
 
@@ -435,16 +635,28 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
 			      xmlNodePtr descrittori,
 			      xmlNodePtr formulafinale,
 			      xmlNodePtr conclusione,
+			      int tdoc,
 			      int notes) 
 {
   xmlChar* content = xmlNodeGetContent(lastcomma);
+  //printf("\nFooter tdoc:%d\n",tdoc);
   if(content == NULL){
-    defaultFooter("", lastcomma);
-    addMissingMeta(descrittori);
+  	//printf("\nFooter NULL\n");
+    defaultFooter("", lastcomma); 
+    //Aggiunta -- addMissingMeta() solo nel caso generico...
+    if(tdoc==0)
+	  addMissingMeta(descrittori);
     return notes;
   }
+    
   string strbuffer = (char *) content;
   xmlFree(content);
+  
+  //printf("\nParseFooter\nbuffer: %s\n\n", strbuffer.c_str());
+  
+  //Last Comma Init: (inutile non cambia niente rimane il <mod> )
+  //xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.c_str());
+  //defaultFooter(strbuffer, lastcomma);
 
   // recover URN if present
   string urn = extractURN(strbuffer);
@@ -457,7 +669,9 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
   vector<int> sequence, offsets, header_sequence, header_offsets;
   if(!footer_extractor.buildExample(sequence, offsets, strbuffer.c_str(), strbuffer.length(), 0)){
     defaultFooter(strbuffer, lastcomma);	
-    addMissingMeta(descrittori);
+    //Aggiunta -- addMissingMeta() solo nel caso generico...
+    if(tdoc==0)
+	    addMissingMeta(descrittori);//addMissingMeta(descrittori);
     return notes;
   }
   header_extractor.buildExample(header_sequence, header_offsets, strbuffer.c_str(), strbuffer.length(), 0);
@@ -466,13 +680,18 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
   if(sequence.size() > 0){
     states = new int[sequence.size()];
     footer_formulafinale_model.viterbiPath(sequence, states, sequence.size());
+    
+   //for(int kk=0; kk < sequence.size(); kk++)
+	//	printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
+    
     if (hasCorrectStates(states, sequence.size())){
       if (!found){
-	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_formulafinale_tags, 
+      	//printf("\nformulafinale\n");
+		last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_formulafinale_tags, 
 			     header_sequence, header_offsets, &notes);
-	found = true;
+		found = true;
       }
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, formulafinale, footer_formulafinale_tags);
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, formulafinale, footer_formulafinale_tags, tdoc);
       removeProcessedElements(sequence, last);
       removeProcessedElements(header_sequence, last);
       offset += last + 1;
@@ -485,40 +704,44 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
     states = new int[sequence.size()];
     footer_dataeluogo_model.viterbiPath(sequence, states, sequence.size());
     if (hasCorrectStates(states, sequence.size())){
-      last = 0;
-      if (!found)
-	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_dataeluogo_tags,
-			     header_sequence, header_offsets, &notes);
-      else{ // search for pubblicazione
-	last = getFirstMatchingState(states, sequence.size(), footer_dataeluogo_tags); 
-	findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, meta, conclusione, &notes);
-      }
+      	//printf("\ndataeluogo\n");
+    	last = 0;
+    	if (!found)
+			last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_dataeluogo_tags,
+				header_sequence, header_offsets, &notes);
+    	else { // search for pubblicazione
+			last = getFirstMatchingState(states, sequence.size(), footer_dataeluogo_tags); 
+			findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, meta, conclusione, &notes);
+      	}
       found = true;
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, conclusione, footer_dataeluogo_tags);
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, conclusione, footer_dataeluogo_tags, tdoc);
       removeProcessedElements(sequence, last);
       removeProcessedElements(header_sequence, last);
       offset += last + 1;
     }
-    delete[] states;
-  }
+  delete[] states;
+  }	
 
   // parse sottoscrizioni
   if(sequence.size() > 0){
     states = new int[sequence.size()];
     footer_sottoscrizioni_model.viterbiPath(sequence, states, sequence.size());
     if (hasCorrectStates(states, sequence.size())){
+      	//printf("\nsottoscrizioni\n");    	
+    	
       last = 0;
       if (!found)
-	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_sottoscrizioni_tags,
+		last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_sottoscrizioni_tags,
 			     header_sequence, header_offsets, &notes);
       else{ // search for pubblicazione
-	last = getFirstMatchingState(states, sequence.size(), footer_sottoscrizioni_tags); 
-	findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, meta, conclusione, &notes);
+		last = getFirstMatchingState(states, sequence.size(), footer_sottoscrizioni_tags); 
+		findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, meta, conclusione, &notes);
       }
       found = true;
       xmlNodePtr sottoscrizioni = xmlNewChild(conclusione, NULL, BAD_CAST "sottoscrizioni", NULL);
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, sottoscrizioni, footer_sottoscrizioni_tags);
-      addChildIfMissing("visto", NULL, sottoscrizioni);
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, sottoscrizioni, footer_sottoscrizioni_tags, tdoc);
+      if(tdoc==0)
+      	addChildIfMissing("visto", NULL, sottoscrizioni);
       removeProcessedElements(sequence, last);
       removeProcessedElements(header_sequence, last);
       offset += last + 1;
@@ -531,16 +754,17 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
     states = new int[sequence.size()];
     footer_annessi_model.viterbiPath(sequence, states, sequence.size());
     if (hasCorrectStates(states, sequence.size())){
+      //printf("\nannessi\n");
       last = 0;
       if (!found)
-	last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_annessi_tags,
+		last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_annessi_tags,
 			     header_sequence, header_offsets, &notes);
       else{ // search for pubblicazione
-	last = getFirstMatchingState(states, sequence.size(), footer_annessi_tags); 
-	findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, meta, root_node, &notes);
+		last = getFirstMatchingState(states, sequence.size(), footer_annessi_tags); 
+		findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, meta, root_node, &notes);
       }
       found = true;
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, meta, footer_annessi_tags, &notes, conclusione);
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, meta, footer_annessi_tags, tdoc, &notes, conclusione);
       removeProcessedElements(sequence, last);
       removeProcessedElements(header_sequence, last);
       offset += last + 1;
@@ -548,13 +772,16 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
     delete[] states;
   }
 
+  if(!found)
+  	//printf("\nNon è stato rilevato niente");
+  
   // if nothing found print default footer
   if(!found)
     defaultFooter(strbuffer, lastcomma);	
   else{
     // put remains (annessi) in error tag
     if (offset < offsets.size())
-      saveTag(hp_sconosciuto, offsets[offset], strbuffer.length(), strbuffer, root_node); 
+      saveTag(hp_sconosciuto, offsets[offset], strbuffer.length(), strbuffer, root_node, tdoc); 
   }
   
   // save URN
@@ -562,23 +789,35 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
     addChildIfMissing("urn", NULL, descrittori, urn.c_str());
 
   // add compulsory meta
-  addMissingMeta(descrittori);
+
+  //Aggiunta -- addMissingMeta() solo nel caso generico...
+  if(tdoc==0)
+	    addMissingMeta(descrittori);
+
+  addMissingFooter(meta, descrittori, formulafinale, conclusione, tdoc);
   
+  //Last Comma Init:
+  //xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.c_str());
+    
+  //printf("\nFineFooter\n");
+    
   return notes;
 }
 
+//Cerca il carattere '.' e mette in lastcomma tutto ciò che è alla 
+//sinistra del carattere (il resto va in error, nel footer).
 void  HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) const
 {
+	//printf("\nDefault footer\n");
+	
   unsigned int dot = footer.find('.');
   if(dot != string::npos){
     xmlNodeSetContent(lastcomma, BAD_CAST footer.substr(0, dot+1).c_str());
     footer = footer.substr(dot+1);
   }
   if (footer.find_first_not_of(" \n\t\r") != string::npos)
-    saveTag(hp_sconosciuto, 0, footer.length(), footer, root_node, NULL, NULL, false, NULL);
+    saveTag(hp_sconosciuto, 0, footer.length(), footer, root_node, 0, NULL, NULL, false, NULL);
 }
-
-
 
 xmlNodePtr HeaderParser::addChildIfMissing(const char * nodename, 
 					   bool * added,
@@ -628,6 +867,7 @@ void HeaderParser::addMissingMeta(xmlNodePtr descrittori) const
     xmlNewProp(vigenza, BAD_CAST "id", BAD_CAST "v1");
 }
 
+//TRUE se la sequenza non è completamente composta di stati -1 e 0
 bool HeaderParser::hasCorrectStates(int * states, int statesnumber)
 {
   for(int i = 0; i < statesnumber; i++)
@@ -685,26 +925,38 @@ void HeaderParser::findPubblicazione(const string& strbuffer,
   header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
   savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, findChild("descrittori", meta), header_pubblicazione_tags);
   if(hasCorrectStates(pub_states, pub_sequence.size()))
-    last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, 0, meta, header_pubblicazione_tags, notes, curr_node);     
+    last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, 0, meta, header_pubblicazione_tags, 0, notes, curr_node);     
   if(last < first-1)
-    saveTag(hp_sconosciuto, offsets[offset+last], offsets[offset+first], strbuffer, curr_node);
+    saveTag(hp_sconosciuto, offsets[offset+last], offsets[offset+first], strbuffer, curr_node, 0);
   delete[] pub_states;
 }   
 
 unsigned int HeaderParser::saveLastComma(const string& strbuffer, 
 					 int * states, 
-					 unsigned int statesnumber,
+					 unsigned int statesnumber, 
 					 const vector<int>& offsets, 
 					 unsigned int offset, 
-					 xmlNodePtr lastcomma,
-					 const hash_map<int,pair<int,int> >& tags,
+					 xmlNodePtr lastcomma, 
+					 const hash_map<int,pair<int,int> >& tags, 
 					 const vector<int>& header_sequence, 
 					 const vector<int>& header_offsets, 
-					 int * notes) const
+					 int * notes) const 
 {
   int state = getFirstMatchingState(states, statesnumber, tags);
-  if(state==0)
-    return state;
+  if(state==0) {
+  	//Aggiunto:
+  	//in questo caso viene rilevata una sequenza nel footer in uno dei modelli ma tale
+  	//sequenza inizia con l'inizio del buffer. In questo caso o si duplica il contenuto
+  	//del buffer (va sia nell'ultimo comma con tag <mod> (?) che nel footer) oppure
+  	//si lascia l'ultimo comma vuoto (l'errore è commesso dal modello del footer...):
+  	xmlNodeSetContent(lastcomma, BAD_CAST "");
+  	//Invece nel caso non venga rilevato niente, cioè nessuna sequenza con nessun modello
+  	//del footer, e dunque non viene mai richiamata la saveLastComma(), allora si
+  	//richiama defaultFooter() alla fine di parseFooter().
+    return state; 
+  }
+    				
+  //printf("\nSave last state:%d\n",state);
   // find eventual pubblicazione
   xmlNodePtr meta = findChild("meta");
   int * pub_states = new int[state];
@@ -712,14 +964,16 @@ unsigned int HeaderParser::saveLastComma(const string& strbuffer,
   copyElements(header_sequence, pub_sequence, 0, state-1);
   header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
   int first = getFirstMatchingState(pub_states, pub_sequence.size(), header_pubblicazione_tags);
-  if (first == pub_sequence.size())
+  if (first == pub_sequence.size()) {
     xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.substr(offsets[offset], offsets[offset+state]-offsets[offset]).c_str());
+    //printf("\nSave Here\n");
+  }
   else{
     xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.substr(offsets[offset], offsets[offset+first]-offsets[offset]).c_str());
     savePubblicazione(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, findChild("descrittori", meta), header_pubblicazione_tags);
-    int last = saveTags(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, first, meta, header_pubblicazione_tags, notes, lastcomma, NULL);     
+    int last = saveTags(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, first, meta, header_pubblicazione_tags, 0, notes, lastcomma, NULL);     
     if(last < state-1)
-      saveTag(hp_sconosciuto, offsets[offset+last], offsets[offset+state], strbuffer, lastcomma);
+      saveTag(hp_sconosciuto, offsets[offset+last], offsets[offset+state], strbuffer, lastcomma, 0);
   }
   delete[] pub_states;
   return state;
@@ -740,6 +994,7 @@ unsigned int HeaderParser::saveTags(const string& strbuffer,
 				    unsigned int initstate,
 				    xmlNodePtr startnode,
 				    const hash_map<int,pair<int,int> >& tags,
+				    int tdoc,
 				    int * id,
 				    xmlNodePtr prev_node,
 				    xmlNodePtr subs_node) const
@@ -764,7 +1019,7 @@ unsigned int HeaderParser::saveTags(const string& strbuffer,
 	((statetag->second).second > -2) &&
 	((statetag->second).second > 0 || (statetag->second).first != currtag)){
       if(currtag != -1)
-	saveTag(currtag, start, offsets[state+offset], strbuffer, startnode, prev_node, subs_node, ((currstatetag->second).second > -1), id);
+		saveTag(currtag, start, offsets[state+offset], strbuffer, startnode, tdoc, prev_node, subs_node, ((currstatetag->second).second > -1), id);
       currstatetag = statetag;
       currtag = (statetag->second).first;
       start = offsets[state+offset];
@@ -772,9 +1027,9 @@ unsigned int HeaderParser::saveTags(const string& strbuffer,
     if (state == last){
       if(currtag != -1){
 	//if(last < statesnumber-1)
-	  saveTag(currtag, start, offsets[state+offset+1], strbuffer, startnode, prev_node, subs_node, ((currstatetag->second).second != -1), id);
+	  saveTag(currtag, start, offsets[state+offset+1], strbuffer, startnode, tdoc, prev_node, subs_node, ((currstatetag->second).second != -1), id);
 	  //else
-	  //saveTag(currtag, start, strbuffer.length(), strbuffer, out, ((currstatetag->second).second > -1));
+	  //saveTag(currtag, start, strbuffer.length(), strbuffer, out, ((currstatetag->second).second > -1), tdoc);
       }
     }
   }
@@ -786,6 +1041,7 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
 				 int end,
 				 const string& buffer,
 				 xmlNodePtr startnode,
+				 int tdoc,
 				 xmlNodePtr prev_node,
 				 xmlNodePtr subs_node,
 				 bool withtags,
@@ -802,24 +1058,52 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
 
 	  return errornode;
   }
-  if(ignoreTag(tagvalue)){
+  if(ignoreTag(tagvalue)){ //scrive il testo fuori da un tag specifico (hp_varie)
     xmlAddChild(startnode, xmlNewText(BAD_CAST buffer.substr(start,end-start).c_str()));
     return NULL;
   }
+  //AGGIUNTO: non scrive niente (salta la parola). 
+  if(nothingTag(tagvalue)) 
+  	return NULL;
+  //
   xmlNodePtr currnode = (withtags) ? openTag(tagvalue, startnode, buffer.substr(start,end-start), id) : startnode;
+  
+  //Aggiunta:
+  if(tagvalue == hp_relazione) {
+	addFormatTagsDiv(buffer.substr(start,end-start), currnode);
+	xmlAddNextSibling(startnode,currnode);
+	return currnode;
+  }
+  
   if(formatTag(tagvalue)){
     if(tagvalue == hp_preambolo)
-      addSemicolumnFormatTags(buffer.substr(start,end-start), currnode);
+      if(tdoc==2) //Se provvedimento CNR considera solo i ritorni a capo e non i ';'
+        addFormatTags(buffer.substr(start,end-start), currnode);
+      else
+        addSemicolumnFormatTags(buffer.substr(start,end-start), currnode);
     else
       addFormatTags(buffer.substr(start,end-start), currnode);
   }
   else if(tagvalue == hp_formulafinale)
     xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST buffer.substr(start,buffer.find_last_not_of(" \r\n\t", end-1)-start+1).c_str());
-  else if(trimmedTag(tagvalue) && withtags){
+  else if( trimmedTag(tagvalue) && withtags ||
+  			(tdoc == 1 && trimmedTagDDL(tagvalue)) ){
     unsigned int trimmed = 0;
     xmlAddChild(currnode, xmlNewText(BAD_CAST trimEnd(buffer.substr(start,end-start), &trimmed).c_str()));
-    if (trimmed < end-start)
-      xmlAddChild(startnode, xmlNewText(BAD_CAST buffer.substr(start+trimmed,end-start-trimmed).c_str()));
+    if (trimmed < end-start) {
+    	if(tdoc==1) {
+    		//Con i DDL metti in error tutto ciò che non viene riconosciuto
+    		//(e che ha lunghezza 'trimmata' maggiore di 0...)
+    		int isblank = buffer.substr(start+trimmed,end-start-trimmed).find_last_not_of(" \n\t\r");
+    		if( isblank > 0 ) {
+	    	  	xmlNodePtr errnode = xmlNewPI(BAD_CAST "error", BAD_CAST buffer.substr(start+trimmed,end-start-trimmed).c_str());
+	    	  	xmlAddChild(startnode, errnode);
+    		}
+    	} else
+    	    //Ma se quello che rimane è tutta roba " \n\t\r" non la riscrivere neanche...
+    	    if( buffer.substr(start+trimmed,end-start-trimmed).find_last_not_of(" \n\t\r") != string::npos)
+	   			xmlAddChild(startnode, xmlNewText(BAD_CAST buffer.substr(start+trimmed,end-start-trimmed).c_str()));
+    }
   }
   else
     xmlAddChild(currnode, xmlNewText(BAD_CAST buffer.substr(start,end-start).c_str()));
@@ -903,18 +1187,63 @@ void HeaderParser::addSemicolumnFormatTags(string text, xmlNodePtr startnode) co
     xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST buf.substr(0,end+1).c_str());
 }
 
+//Modificata: non considerare righe composte solo da "-" e togli eventuali "-" ad inizio riga
 void HeaderParser::addFormatTags(string buf, xmlNodePtr startnode) const
 {
   istringstream in(buf);
   string line, out;
 
   while(Lexer::getLine(in, line))
-    if (line.find_first_not_of(" \n\t\r") != string::npos)
-      xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST line.c_str());
+    if (line.find_first_not_of(" -\n\t\r") != string::npos) {
+      int ststr = line.find_first_not_of(" -\n\t\r");
+      xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST line.substr(ststr,line.size()-ststr+1).c_str());
+    }
+}
+
+//Aggiunta:
+void HeaderParser::addFormatTagsDiv(string buf, xmlNodePtr startnode) const
+{
+  istringstream in(buf);
+  string line, out;
+
+  while(Lexer::getLine(in, line))
+    if (line.find_first_not_of(" -\n\t\r") != string::npos)
+      xmlNewChild(startnode, NULL, BAD_CAST "h:div", BAD_CAST line.c_str());
 }
 
 string normalizeDate(const string& buffer)
 {
+	//Aggiunta (data del tipo xx/yy/zz )
+	//if(buffer.find_first_not_of("0123456789/.- \n\r\t") == string::npos) {
+	if(buffer.find_first_of("gfmalsond") == string::npos) {
+		//int tmpfind = buffer.find_first_not_of("0123456789/.- \n\r\t");
+		int tmpfind = buffer.find_first_of("gfmalsond");
+		unsigned int beg = buffer.find_first_of("0123456789");
+		unsigned int end = buffer.find_last_of("0123456789");
+		if (beg == string::npos || end == string::npos) return "";
+		unsigned int sep_int = buffer.find_first_of("/.- ", beg);
+  		if (sep_int == string::npos) return "";		
+		string sep = buffer.substr(sep_int,1); //carattere separatore ( / . " " -)
+		unsigned int sep_mese = buffer.find_first_of(sep,beg);
+		unsigned int sep_anno = buffer.find_first_of(sep,sep_mese+1);
+  		if (sep_mese == string::npos || sep_anno == string::npos) return "";
+  		string day = buffer.substr(beg,sep_mese-beg);
+  		string mese = buffer.substr(sep_mese+1,sep_anno-sep_mese-1);
+		string anno = buffer.substr(sep_anno+1,end-sep_anno);
+		//printf("\nstring:%s beg:%d end:%d sep_mese:%d sep_anno:%d day:%s mese:%s anno:%s\n",
+			//		buffer.c_str(),beg,end,sep_mese,sep_anno,day.c_str(),mese.c_str(),anno.c_str());
+		if(day.length() == 1)
+			day = "0"+day;
+		if(mese.length() == 1)
+			mese = "0"+mese;
+		if(anno.length() == 2)
+			if(!strcmp(anno.substr(0,1).c_str(),"0"))
+				anno = "20"+anno;
+			else
+				anno = "19"+anno;
+		return anno+mese+day;
+	}
+  //Originale (data del tipo XX mese YYYY)
   unsigned int beg = buffer.find_first_of("0123456789");
   if (beg == string::npos) return "";
   unsigned int end = buffer.find_first_not_of("0123456789", beg);
@@ -990,6 +1319,21 @@ bool HeaderParser::trimmedTag(int tagvalue) const
   default: return false;
   }
 }
+//Aggiunta: con i DDL viene messo in error ciò che non viene riconosciuto
+//(funzione di prova...)
+bool HeaderParser::trimmedTagDDL(int tagvalue) const
+{
+  switch(HP_tagTipo(tagvalue)){
+  case hp_numdoc:
+  case hp_datadoc:
+  case hp_legislatura:
+  case hp_tipodoc:
+  //case hp_titolodoc:
+  case hp_emanante:
+  case hp_relazione: return true;
+  default: return false;
+  }
+}
 
 bool HeaderParser::noteTag(int tagvalue) const
 {
@@ -1009,6 +1353,16 @@ bool HeaderParser::ignoreTag(int tagvalue) const
 {
   switch(HP_tagTipo(tagvalue)){
   case hp_varie: return true;
+  default: return false;
+  }
+}
+
+//AGGIUNTO: non scrive niente (salta la parola). 
+//Inutile? Niente deve essere tolto dal documento, si deve marcare ciò che viene riconosciuto.
+bool HeaderParser::nothingTag(int tagvalue) const
+{
+  switch(HP_tagTipo(tagvalue)){
+  case hp_nothing: return true;
   default: return false;
   }
 }
@@ -1083,6 +1437,10 @@ const char * HeaderParser::tagName(int tagvalue)
   case hp_datapubbl: return "nota";
   case hp_numpubbl: return "nota";
   case hp_sopubbl: return "nota";
+  case hp_legislatura: return "legislatura";
+  case hp_relazione: return "relazione";
+  case hp_div: return "h:div";
+  case hp_nothing: return "nothing";
   default: return "";
   }
 }

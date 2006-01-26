@@ -49,7 +49,11 @@ typedef enum HeaderParser_tagTipo {
 	hp_virgolette=35,
 	hp_datapubbl=36,
 	hp_numpubbl=37,
-	hp_sopubbl=38} HP_tagTipo;
+	hp_sopubbl=38,
+	hp_legislatura=39,
+	hp_relazione=40,
+	hp_div=41,
+	hp_nothing=42} HP_tagTipo;
 
 //#define TAGTIPODIM 39
 
@@ -127,12 +131,14 @@ class HeaderParser
 		  xmlNodePtr descrittori,
 		  xmlNodePtr intestazione,
 		  xmlNodePtr formulainiziale,
+		  int tdoc,
 		  int notes);
   int parseFooter(xmlNodePtr lastcomma, 			      
 		  xmlNodePtr meta,
 		  xmlNodePtr descrittori,
 		  xmlNodePtr formulafinale,
 		  xmlNodePtr conclusione,
+		  int tdoc,
 		  int notes); 
   static const char * tagName(int tagvalue);
   static const char * tagIdName(int tagvalue);
@@ -164,12 +170,15 @@ class HeaderParser
 		     int * id = 0) const;
   xmlNodePtr openContextTags(int tagvalue, xmlNodePtr startnode) const ;
   bool ignoreTag(int tagvalue) const;
+  bool nothingTag(int tagvalue) const;
   bool trimmedTag(int tagvalue) const;
+  bool trimmedTagDDL(int tagvalue) const; //Aggiunta
   bool errorTag(int tagvalue) const;
   bool noteTag(int tagvalue) const;
   bool formatTag(int tagvalue) const;
   void addSemicolumnFormatTags(string text, xmlNodePtr startnode) const;  
   void addFormatTags(string buf, xmlNodePtr startnode) const;
+  void addFormatTagsDiv(string buf, xmlNodePtr startnode) const;
   void init(std::istream& in);
   void defaultFooter(std::string footer, xmlNodePtr lastcomma) const;
   void defaultHeader(xmlNodePtr descrittori, xmlNodePtr intestazione) const;				  
@@ -178,6 +187,7 @@ class HeaderParser
 		     int end,
 		     const string& buffer,
 		     xmlNodePtr startnode,
+		     int tdoc,
 		     xmlNodePtr prev_node = NULL,
 		     xmlNodePtr subs_node = NULL,
 		     bool withtags = true,
@@ -200,6 +210,7 @@ class HeaderParser
 			unsigned int initstate,
 			xmlNodePtr startnode,
 			const hash_map<int,pair<int,int> >& tags,
+			int tdoc,
 			int * id = 0,
 			xmlNodePtr prev_node = NULL,
 			xmlNodePtr subs_node = NULL) const;
@@ -230,7 +241,10 @@ class HeaderParser
 			       const char * content = "") const;
   xmlNodePtr findChild(const char * nodename, xmlNodePtr startnode = NULL) const;
   void addMissingMeta(xmlNodePtr meta) const;
-
+  void addMissingHeader(xmlNodePtr meta,xmlNodePtr descrittori,xmlNodePtr intestazione,
+			      xmlNodePtr formulainiziale, int tdoc) const;
+  void HeaderParser::addMissingFooter(xmlNodePtr meta,xmlNodePtr descrittori,
+  			xmlNodePtr formulafinale,xmlNodePtr conclusione,int tdoc) const;
 };
 
 #endif

@@ -74,9 +74,9 @@ int main(int argc, char **argv)
 
     HeaderParser headerparser("Models");    
     headerparser.setRootNode(tipo_node);
-    notes = headerparser.parseHeader(text, meta, descrittori, intestazione, formulainiziale, notes);
+    notes = headerparser.parseHeader(text, meta, descrittori, intestazione, formulainiziale, 0, notes);
     xmlNodePtr lastcomma_node = xmlNewChild(articolato_node, NULL, BAD_CAST "corpo", BAD_CAST text.c_str()); // prova
-    headerparser.parseFooter(lastcomma_node, meta, descrittori, formulafinale, conclusione, notes);
+    headerparser.parseFooter(lastcomma_node, meta, descrittori, formulafinale, conclusione, 0, notes);
 
     /* 
      * Dumping document to stdio or file
