@@ -97,6 +97,7 @@ class HeaderParser
   HMM header_intestazione_model;
   HMM header_pubblicazione_model;
   HMM header_formulainiziale_model;
+  HMM header_cnr_model;
   HMM footer_formulafinale_model;
   HMM footer_dataeluogo_model;
   HMM footer_sottoscrizioni_model;
@@ -106,6 +107,7 @@ class HeaderParser
   hash_map<int,pair<int,int> > header_intestazione_tags;
   hash_map<int,pair<int,int> > header_pubblicazione_tags;
   hash_map<int,pair<int,int> > header_formulainiziale_tags;
+  hash_map<int,pair<int,int> > header_cnr_tags;  
   hash_map<int,pair<int,int> > footer_formulafinale_tags;
   hash_map<int,pair<int,int> > footer_dataeluogo_tags;
   hash_map<int,pair<int,int> > footer_sottoscrizioni_tags;
@@ -117,6 +119,7 @@ class HeaderParser
 	       std::string header_intestazione_model_file = "header_intestazione_model",
 	       std::string header_pubblicazione_model_file = "header_pubblicazione_model",
 	       std::string header_formulainiziale_model_file = "header_formulainiziale_model",
+	       std::string header_cnr_model_file = "header_cnr_model",
 	       std::string footer_formulafinale_model_file = "footer_formulafinale_model",
 	       std::string footer_dataeluogo_model_file = "footer_dataeluogo_model",
 	       std::string footer_sottoscrizioni_model_file = "footer_sottoscrizioni_model",

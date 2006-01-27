@@ -11,6 +11,7 @@ HeaderParser::HeaderParser(std::string modeldir,
 			   std::string header_intestazione_model_file,
 			   std::string header_pubblicazione_model_file,
 			   std::string header_formulainiziale_model_file,
+			   std::string header_cnr_model_file,
 			   std::string footer_formulafinale_model_file,
 			   std::string footer_dataeluogo_model_file,
 			   std::string footer_sottoscrizioni_model_file,
@@ -49,6 +50,16 @@ HeaderParser::HeaderParser(std::string modeldir,
   else{
     istringstream in_s(header_formulainiziale_model_default);
     in_s >> header_formulainiziale_model;
+  }
+
+  ifstream in12((modeldir + "/" + header_cnr_model_file).c_str());
+  if(in12.good()){
+    in12 >> header_cnr_model;
+    in12.close();
+  }
+  else{
+    istringstream in_s(header_cnr_model_default);
+    in_s >> header_cnr_model;
   }
 
   ifstream in2((modeldir + "/" + footer_formulafinale_model_file).c_str());
@@ -162,6 +173,15 @@ void HeaderParser::init(istream& in)
     istringstream is(buf);
     is >> state >> tag >> open >> ws;
     header_formulainiziale_tags[state] = make_pair(tag,open);
+  }
+  if(!Lexer::getLine(in,buf) || buf != "CNR"){
+    cerr << "ERROR in reading parser config file" << endl;
+    exit(1);
+  }
+  while(Lexer::getLine(in,buf) && buf != ""){
+    istringstream is(buf);
+    is >> state >> tag >> open >> ws;
+    header_cnr_tags[state] = make_pair(tag,open);
   }
   if(!Lexer::getLine(in,buf) || buf != "FOOTER"){
     cerr << "ERROR in reading parser config file" << endl;
@@ -284,99 +304,106 @@ if(tdoc == 1) {
 
 //Provvedimenti CNR
 if(tdoc == 2) {
+	int cnrfirst = 0;
+	int * cnr_states = 0;
 	xmlNodePtr errorNode = intestazione; //per inserire il testo non rilevato nella giusta posizione
-	if(sequence.size() > 0) {
-		found = true;
-		//Aggiungi tag 'proprietario' vuoti
-		xmlNodePtr proprietario = xmlNewChild(meta, NULL, BAD_CAST "proprietario", BAD_CAST "");
-		xmlNewProp(proprietario, BAD_CAST "xlink:type", BAD_CAST "simple");
-		xmlNewProp(proprietario, BAD_CAST "xmlns:cnr", BAD_CAST "http://www.cnr.it/provvedimenti/1.0");
-		
-		xmlNodePtr cnrmeta = xmlNewChild(proprietario, NULL, BAD_CAST "cnr:meta", BAD_CAST "");
-		xmlNodePtr proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:strutturaEmanante", BAD_CAST "");
-		xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
-		proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:autoritaEmanante", BAD_CAST "");
-		xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
-		proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:tipoDestinatario", BAD_CAST "");
-		xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
-		proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:disciplina", BAD_CAST "");
-		xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
-		//disciplina e areaScientifica sono in OR nella DTD.
-		//proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:areaScientifica", BAD_CAST "");
-		//xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
-		
-		//Aggiungi tag specifici
-		xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
-		xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST "");
-		xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");		
-		xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "BUCNR");
-				
-		xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
-		xmlNewProp(nRedazione, BAD_CAST "id", BAD_CAST "red");
-		xmlNewProp(nRedazione, BAD_CAST "nome", BAD_CAST "Urp-Cnr");
-		xmlNewProp(nRedazione, BAD_CAST "norm", BAD_CAST "");
-		
-		xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
-		xmlAddChild(nUrn, xmlNewText(BAD_CAST "urn:nir:consiglio.nazionale.ricerche:provvedimento:"));
 
+	//Aggiungi tag 'proprietario' vuoti
+	xmlNodePtr proprietario = xmlNewChild(meta, NULL, BAD_CAST "proprietario", BAD_CAST "");
+	xmlNewProp(proprietario, BAD_CAST "xlink:type", BAD_CAST "simple");
+	xmlNewProp(proprietario, BAD_CAST "xmlns:cnr", BAD_CAST "http://www.cnr.it/provvedimenti/1.0");
+	
+	xmlNodePtr cnrmeta = xmlNewChild(proprietario, NULL, BAD_CAST "cnr:meta", BAD_CAST "");
+	xmlNodePtr proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:strutturaEmanante", BAD_CAST "");
+	xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+	proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:autoritaEmanante", BAD_CAST "");
+	xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+	proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:tipoDestinatario", BAD_CAST "");
+	xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+	proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:disciplina", BAD_CAST "");
+	xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+	//disciplina e areaScientifica sono in OR nella DTD.
+	//proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:areaScientifica", BAD_CAST "");
+	//xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+	
+	//Aggiungi tag specifici
+	xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
+	xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST "");
+	xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");		
+	xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "BUCNR");
+			
+	xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
+	xmlNewProp(nRedazione, BAD_CAST "id", BAD_CAST "red");
+	xmlNewProp(nRedazione, BAD_CAST "nome", BAD_CAST "Urp-Cnr");
+	xmlNewProp(nRedazione, BAD_CAST "norm", BAD_CAST "");
+	
+	xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
+	xmlAddChild(nUrn, xmlNewText(BAD_CAST "urn:nir:consiglio.nazionale.ricerche:provvedimento:"));
+
+	xmlNodePtr emanode = xmlNewChild(intestazione, NULL, BAD_CAST "emanante", BAD_CAST "");
+	xmlAddChild(emanode, xmlNewText(BAD_CAST "Consiglio Nazionale delle Ricerche"));
+
+	states = new int[sequence.size()];
+	
+	header_formulainiziale_model.viterbiPath(sequence, states, sequence.size());
+	if ((first = getFirstMatchingState(states, sequence.size(), header_formulainiziale_tags)) < sequence.size()){
+		found = true;
+		// recover eventual cnr-header before formulainiziale
+		if(first > 0){
+			cnr_states = new int[first];
+			vector<int> cnr_sequence;
+			copyElements(sequence, cnr_sequence, 0, first-1);
+			header_cnr_model.viterbiPath(cnr_sequence, cnr_states, cnr_sequence.size());
+
+				//for(int kk=0; kk < cnr_sequence.size(); kk++) //
+					//printf("\n %d: cnr_sequence[]=%d   cnr_states[]=%d", kk, cnr_sequence[kk], cnr_states[kk]);
+			
+			if ((cnrfirst = getFirstMatchingState(cnr_states, cnr_sequence.size(), header_cnr_tags)) < sequence.size()){
+		        last = saveTags(strbuffer, cnr_states, cnr_sequence.size(), offsets, offset, last, intestazione, header_cnr_tags, tdoc);
+		        //last = saveTitle(strbuffer, cnr_states, cnr_sequence.size(), offsets, offset, last, descrittori, intestazione, meta, found, header_cnr_tags, &notes);
+				//last++;
+				int cnrlast = getLastMatchingState(cnr_states, cnr_sequence.size(), header_cnr_tags);
+				//printf("\n last:%d first:%d cnrlast:%d\n",last,first,cnrlast);
+				if(last < first-1) {
+					saveTag(hp_titolodoc, offsets[last+1], offsets[first], strbuffer, intestazione, tdoc);
+				}
+				last = first;
+				delete[] cnr_states;
+			}
+		}
+		last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, formulainiziale, header_formulainiziale_tags, tdoc);            
+		removeProcessedElements(sequence, last);
+		offset+=last+1;
+	}
+    delete[] states;
+
+	/*
+	//in questo caso prova con il normale modello intestazione ??
+	//il rischio è avere un doc.non valido più difficile da gestire.
+	if(found == false) { 
+		// parse intestazione
+		printf("\nNo cnr header found, using generic header...\n");
+		last = 0;
 		states = new int[sequence.size()];
 		header_intestazione_model.viterbiPath(sequence, states, sequence.size());
 		if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()){
-	        //Aggiungere emanante (valore costante per questo tipo di doc):
-	        xmlNodePtr emanante = xmlNewChild(intestazione, NULL, BAD_CAST "emanante", BAD_CAST "");
-			xmlAddChild(emanante, xmlNewText(BAD_CAST "Consiglio Nazionale delle Ricerche"));
-			
-			//xmlNodePtr docnode = intestazione->parent;
-
-		  //Se provv.CNR tralasciare l'inizio di formula iniziale...
-		  //(vedi parser_config per sapere lo stato in cui inizia la formula iniziale)
-		  int klast = 0;
-	      for(int kk=0; kk < sequence.size(); kk++) {
-			//printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
-			if(tdoc == 2 && states[kk] == 53) { //<-- 'IL' presidente/dirigente/ecc...
-				klast = kk;
-				errorNode = formulainiziale;
-			}
-	      }
-	      
-     		//salva i tag riferiti a 'intestazione'		
-	        last = saveTags(strbuffer, states, klast, offsets, offset, last, intestazione, header_intestazione_tags, tdoc);              
-	        //salva i tag di 'formulainiziale'
-	        last = saveTags(strbuffer, states, sequence.size(), offsets, 0, klast, formulainiziale, header_intestazione_tags, tdoc);              
-	        removeProcessedElements(sequence, last);
-	        offset = last+1;
-	        delete[] states;
-	        
-	        
-	        /*
-	        //Utilizzo 2 modelli separati:
-	        //cerca intestazione
-	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_intestazione_tags, tdoc);
-	        removeProcessedElements(sequence, last);
-		    offset+=last+1;
-		    delete[] states;
-	       	printf("\n size:%d\n", sequence.size());
-	        if(sequence.size()>0) { //cerca formulainiziale
-	        	last = 0;
-			    states = new int[sequence.size()];	
-	        	header_formulainiziale_model.viterbiPath(sequence, states, sequence.size());
-			    if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()) {
-			    	last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, formulainiziale, header_formulainiziale_tags, tdoc);
-			        removeProcessedElements(sequence, last);
-				    offset+=last+1;
-				    delete[] states;
-			    }
-			}
-			*/
+			found = true;
+			last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_intestazione_tags, tdoc);            
+			removeProcessedElements(sequence, last);
+			offset+=last+1;
 		}
-		if(sequence.size() > 0 || found == false) { //Se non è stato rilevata l'intestazione viene messo tutto in error:
-			//printf("\n HeaderParser -- Testo non rilevato (error tag) -- offset:%d size:%d\n",offset,offsets.size());
-			// se rimane qualcosa mettilo in un tag errore
-	    	if (offset < offsets.size())
-	      		saveTag(hp_sconosciuto, offsets[offset], strbuffer.length(), strbuffer, errorNode, tdoc); 
-		}
-		return notes; 	
+	    delete[] states;
 	}
+	*/
+		
+	if(sequence.size() > 0 || found == false) { //Se non è stato rilevata l'intestazione viene messo tutto in error:
+		//printf("\n HeaderParser -- Testo non rilevato (error tag) -- offset:%d size:%d\n",offset,offsets.size());
+		// se rimane qualcosa mettilo in un tag errore
+    	if (offset < offsets.size())
+      		saveTag(hp_sconosciuto, offsets[offset], strbuffer.length(), strbuffer, errorNode, tdoc); 
+		addMissingHeader(meta, descrittori, intestazione, formulainiziale, tdoc);
+	}
+	return notes;
 }
 
   // parse intestazione
@@ -493,7 +520,7 @@ void HeaderParser::addMissingHeader(xmlNodePtr meta,xmlNodePtr descrittori,xmlNo
 	if(tdoc==1) { //disegno di legge
 		//elementi sotto intestazione:
 		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "emanante", BAD_CAST "");
-		xmlAddChild(tmpnode, xmlNewText(BAD_CAST "Consiglio Nazionale delle Ricerche"));
+		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
 		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "legislatura", BAD_CAST "");
 		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
 		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "numDoc", BAD_CAST "");
@@ -512,8 +539,15 @@ void HeaderParser::addMissingHeader(xmlNodePtr meta,xmlNodePtr descrittori,xmlNo
 	}
 
 	if(tdoc==2) { //Provvedimenti CNR
-		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "emanante", BAD_CAST "");
-		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
+
+		/*
+		  xmlNodePtr child = findChild(nodename, startnode);
+			  if(child == NULL){
+			    child = xmlNewChild(startnode, NULL, BAD_CAST nodename, BAD_CAST content);
+		*/
+
+		//tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "emanante", BAD_CAST "");
+		//xmlAddChild(tmpnode, xmlNewText(BAD_CAST "Consiglio Nazionale delle Ricerche"));
 		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "numDoc", BAD_CAST "");
 		xmlAddChild(tmpnode, xmlNewText(BAD_CAST ""));
 		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "dataDoc", BAD_CAST "");
@@ -876,6 +910,7 @@ bool HeaderParser::hasCorrectStates(int * states, int statesnumber)
   return false;
 }
 
+// primo stato diverso da errorTag (in particolare 0) ? 
 unsigned int HeaderParser::getFirstMatchingState(int * states, 
 						 unsigned int statesnumber,
 						 const hash_map<int,pair<int,int> >& tags) const
@@ -891,6 +926,7 @@ unsigned int HeaderParser::getFirstMatchingState(int * states,
   return state;
 }
 
+// ultimo stato diverso da errorTag (in particolare -1) ? 
 int HeaderParser::getLastMatchingState(int * states, 
 				       unsigned int statesnumber,
 				       const hash_map<int,pair<int,int> >& tags) const
@@ -1077,9 +1113,9 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
   
   if(formatTag(tagvalue)){
     if(tagvalue == hp_preambolo)
-      if(tdoc==2) //Se provvedimento CNR considera solo i ritorni a capo e non i ';'
-        addFormatTags(buffer.substr(start,end-start), currnode);
-      else
+      //if(tdoc==2) //Se provvedimento CNR considera solo i ritorni a capo e non i ';'
+        //addFormatTags(buffer.substr(start,end-start), currnode);
+      //else
         addSemicolumnFormatTags(buffer.substr(start,end-start), currnode);
     else
       addFormatTags(buffer.substr(start,end-start), currnode);
@@ -1160,10 +1196,11 @@ void HeaderParser::addTagAttributes(int tagvalue,
     //attr << (*id)++;
     xmlNewProp(tagnode, BAD_CAST "id", BAD_CAST attr.str().c_str());
     break;
-  }
+    }
   }
 }
 
+//Modifica: line.find(";"); -> line.find(";\n");
 void HeaderParser::addSemicolumnFormatTags(string text, xmlNodePtr startnode) const
 {
   istringstream in(text);
