@@ -354,18 +354,26 @@ if(tdoc == 2) {
 			vector<int> cnr_sequence;
 			copyElements(sequence, cnr_sequence, 0, first-1);
 			header_cnr_model.viterbiPath(cnr_sequence, cnr_states, cnr_sequence.size());
-
 				//for(int kk=0; kk < cnr_sequence.size(); kk++) //
 					//printf("\n %d: cnr_sequence[]=%d   cnr_states[]=%d", kk, cnr_sequence[kk], cnr_states[kk]);
 			
 			if ((cnrfirst = getFirstMatchingState(cnr_states, cnr_sequence.size(), header_cnr_tags)) < sequence.size()){
 		        last = saveTags(strbuffer, cnr_states, cnr_sequence.size(), offsets, offset, last, intestazione, header_cnr_tags, tdoc);
-		        //last = saveTitle(strbuffer, cnr_states, cnr_sequence.size(), offsets, offset, last, descrittori, intestazione, meta, found, header_cnr_tags, &notes);
-				//last++;
-				int cnrlast = getLastMatchingState(cnr_states, cnr_sequence.size(), header_cnr_tags);
+				//int cnrlast = getLastMatchingState(cnr_states, cnr_sequence.size(), header_cnr_tags);
 				//printf("\n last:%d first:%d cnrlast:%d\n",last,first,cnrlast);
 				if(last < first-1) {
-					saveTag(hp_titolodoc, offsets[last+1], offsets[first], strbuffer, intestazione, tdoc);
+					//saveTag(hp_titolodoc, offsets[last+1], offsets[first], strbuffer, intestazione, tdoc);
+					//si deve verificare se titoloDoc esiste già:
+					xmlNodePtr titolonode = findChild("titoloDoc", intestazione);
+					if(titolonode == NULL)
+						saveTag(hp_titolodoc, offsets[last+1], offsets[first], strbuffer, intestazione, tdoc);
+					else { //era presente 'Oggetto:'. Aggiornare il valore di titoloDoc:
+						xmlChar* content = xmlNodeGetContent(titolonode);
+						string strtitolo = (char *) content;
+						xmlFree(content);
+						strtitolo+=strbuffer.substr(offsets[last+1],offsets[first]-offsets[last+1]);
+						xmlNodeSetContent(titolonode, BAD_CAST strtitolo.c_str());
+					}
 				}
 				last = first;
 				delete[] cnr_states;
