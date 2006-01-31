@@ -1208,7 +1208,9 @@ void HeaderParser::addTagAttributes(int tagvalue,
   }
 }
 
-//Modifica: line.find(";"); -> line.find(";\n");
+//Modifica: 
+//Si deve chiudere il paragrafo solo quando si rileva un ';' (oppure un '.' ???) 
+//alla fine della riga, non se viene trovato in mezzo al testo.
 void HeaderParser::addSemicolumnFormatTags(string text, xmlNodePtr startnode) const
 {
   istringstream in(text);
@@ -1216,13 +1218,20 @@ void HeaderParser::addSemicolumnFormatTags(string text, xmlNodePtr startnode) co
   unsigned int end = 0;
 
   while(Lexer::getLine(in, line)){
-    unsigned int semicolumn = line.find(";");
-    if(semicolumn != string::npos){
-      xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST (buf + line.substr(0,semicolumn+1)).c_str());
+    //unsigned int semicolumn = line.find(";");
+    unsigned int lastchr = line.find_last_not_of(" \t\n\r");
+    if(lastchr != string::npos && 
+    		(line.substr(lastchr,1)==";" || line.substr(lastchr,1)==".") ) {
+    //if(semicolumn != string::npos){
+      //xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST (buf + line.substr(0,semicolumn+1)).c_str());
+      xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST (buf + line.substr(0,lastchr+1)).c_str());
+      /*
       if(semicolumn < line.length()-1)
-	buf = line.substr(semicolumn+1);
+		buf = line.substr(semicolumn+1);
       else
-	buf = "";
+		buf = "";
+		*/
+	  buf="";
       continue;
     }
     if (line.find_first_not_of(" \n\t\r") != string::npos)
@@ -1259,9 +1268,7 @@ void HeaderParser::addFormatTagsDiv(string buf, xmlNodePtr startnode) const
 string normalizeDate(const string& buffer)
 {
 	//Aggiunta (data del tipo xx/yy/zz )
-	//if(buffer.find_first_not_of("0123456789/.- \n\r\t") == string::npos) {
 	if(buffer.find_first_of("gfmalsond") == string::npos) {
-		//int tmpfind = buffer.find_first_not_of("0123456789/.- \n\r\t");
 		int tmpfind = buffer.find_first_of("gfmalsond");
 		unsigned int beg = buffer.find_first_of("0123456789");
 		unsigned int end = buffer.find_last_of("0123456789");
