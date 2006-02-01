@@ -12,6 +12,7 @@ HeaderParser::HeaderParser(std::string modeldir,
 			   std::string header_pubblicazione_model_file,
 			   std::string header_formulainiziale_model_file,
 			   std::string header_cnr_model_file,
+			   std::string header_ddl_model_file,
 			   std::string footer_formulafinale_model_file,
 			   std::string footer_dataeluogo_model_file,
 			   std::string footer_sottoscrizioni_model_file,
@@ -60,6 +61,16 @@ HeaderParser::HeaderParser(std::string modeldir,
   else{
     istringstream in_s(header_cnr_model_default);
     in_s >> header_cnr_model;
+  }
+
+  ifstream in13((modeldir + "/" + header_ddl_model_file).c_str());
+  if(in13.good()){
+    in13 >> header_ddl_model;
+    in13.close();
+  }
+  else{
+    istringstream in_s(header_ddl_model_default);
+    in_s >> header_ddl_model;
   }
 
   ifstream in2((modeldir + "/" + footer_formulafinale_model_file).c_str());
@@ -183,6 +194,15 @@ void HeaderParser::init(istream& in)
     is >> state >> tag >> open >> ws;
     header_cnr_tags[state] = make_pair(tag,open);
   }
+  if(!Lexer::getLine(in,buf) || buf != "DDL"){
+    cerr << "ERROR in reading parser config file" << endl;
+    exit(1);
+  }
+  while(Lexer::getLine(in,buf) && buf != ""){
+    istringstream is(buf);
+    is >> state >> tag >> open >> ws;
+    header_ddl_tags[state] = make_pair(tag,open);
+  }
   if(!Lexer::getLine(in,buf) || buf != "FOOTER"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
@@ -278,13 +298,13 @@ if(tdoc == 1) {
 		//xmlNewProp(redazione, BAD_CAST "url", BAD_CAST ""); //non obbligatorio nella dtd
 		
 		states = new int[sequence.size()];
-		header_intestazione_model.viterbiPath(sequence, states, sequence.size());
-		if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()){
+		header_ddl_model.viterbiPath(sequence, states, sequence.size());
+		if ((first = getFirstMatchingState(states, sequence.size(), header_ddl_tags)) < sequence.size()){
 	    	found = true;
 			//for(int kk=0; kk < sequence.size(); kk++)
 				//printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
 			
-	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_intestazione_tags, tdoc);      
+	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_ddl_tags, tdoc);      
 	        removeProcessedElements(sequence, last);
 	        offset += last + 1;
 		}
