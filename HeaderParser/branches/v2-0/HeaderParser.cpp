@@ -511,6 +511,9 @@ if(tdoc == 2) {
   if(urn != "")
     xmlNewChild(descrittori, NULL, BAD_CAST "urn", BAD_CAST urn.c_str());
   
+  //AGGIUNTA: addMissingMeta() qui? Esistono documenti senza footer...
+  addMissingMeta(descrittori);
+  
   // put remains in error tag
   //if (offset < offsets.size())
   //saveTag(sconosciuto, offsets[offset], strbuffer.length(), strbuffer, out); 
@@ -1275,14 +1278,35 @@ void HeaderParser::addFormatTags(string buf, xmlNodePtr startnode) const
 }
 
 //Aggiunta:
-void HeaderParser::addFormatTagsDiv(string buf, xmlNodePtr startnode) const
+void HeaderParser::addFormatTagsDiv(string text, xmlNodePtr startnode) const
 {
-  istringstream in(buf);
+  istringstream in(text);
+/*
+  //Vecchia:
   string line, out;
 
   while(Lexer::getLine(in, line))
     if (line.find_first_not_of(" -\n\t\r") != string::npos)
       xmlNewChild(startnode, NULL, BAD_CAST "h:div", BAD_CAST line.c_str());
+    */
+
+  string line, buf;
+  unsigned int end = 0;
+
+  while(Lexer::getLine(in, line)){
+    unsigned int lastchr = line.find_last_not_of(" \t\n\r");
+    if(lastchr != string::npos && line.substr(lastchr,1)=="." ) {
+      xmlNewChild(startnode, NULL, BAD_CAST "h:div", BAD_CAST (buf + line.substr(0,lastchr+1)).c_str());
+	  buf="";
+      continue;
+    }
+    if (line.find_first_not_of(" \n\t\r") != string::npos)
+      buf += line + "\n";
+  }
+  if ((end = buf.find_last_not_of(" \n\t\r")) != string::npos)
+    xmlNewChild(startnode, NULL, BAD_CAST "h:div", BAD_CAST buf.substr(0,end+1).c_str());
+
+
 }
 
 string normalizeDate(const string& buffer)
@@ -1517,7 +1541,70 @@ const char * HeaderParser::tagName(int tagvalue)
   }
 }
 
-string  extractURN(string& strbuffer)
+//Cerca di individuare il tipo di documento in base all'intestazione
+int HeaderParser::parseHeaderGetTipo(std::string& strbuffer, int notes)
+{
+	SqueezeWords(strbuffer);
+	const char * buffer = strbuffer.c_str();
+	
+	vector<int> sequence, offsets;
+	if(!header_extractor.buildExample(sequence, offsets, buffer, strlen(buffer), 0))
+		return notes;
+	
+	string tipodoc = "";
+	tipodoc = find_type(strbuffer, header_ddl_model, header_ddl_tags, sequence, offsets);
+	if(tipodoc == "") {
+		tipodoc = find_type(strbuffer, header_cnr_model, header_cnr_tags, sequence, offsets);
+		if(tipodoc == "") 
+			tipodoc = find_type(strbuffer, header_intestazione_model, header_intestazione_tags, sequence, offsets);
+	}
+
+	//manda il tipo di doc. allo stdout  <-- No, deve essere scritto su un file...
+	//printf("%s\n",tipodoc.c_str()); 
+	FILE * fo = NULL;
+	
+	if (!(fo = fopen("unknow_type.tmp", "w")))  // Nome file da concordare con xmLeges
+	{
+		fprintf(stderr, "Errore apertura file di uscita: unknow_type.tmp \n");
+		return notes;
+	}
+	fprintf(fo, "%s", tipodoc.c_str());
+	fclose(fo); 
+	return notes;
+}
+
+//Analizza la sequenza con un modello particolare e restituisci il contenuto del tag 'tipoDoc'
+string HeaderParser::find_type(string strbuffer,
+			HMM &model, hash_map<int,pair<int,int> > &tags,
+					vector<int> &sequence, vector<int> &offsets) 
+{	
+	int * states = NULL, first = 0, currtag = -1, start = 0, end = 0;
+	unsigned int trimmed = 0;
+	hash_map<int,pair<int,int> >::const_iterator statetag;
+	states = new int[sequence.size()];
+	string tipodoc = "";
+
+	model.viterbiPath(sequence, states, sequence.size());
+	if ((first = getFirstMatchingState(states, sequence.size(), tags)) < sequence.size()){
+		for(int k=0; k < sequence.size(); k++) {
+			if(states[k] < 1) continue;
+			statetag = tags.find(states[k]);
+			currtag = (statetag->second).first;
+			if(currtag == hp_tipodoc) {
+				if(start == 0) {
+					start = offsets[k];
+					end = offsets[k+1];
+					continue;
+				}
+				end = offsets[k+1];
+			}
+		}
+	}
+	delete[] states;
+	return trimEnd(strbuffer.substr(start,end-start), &trimmed);
+}
+
+string extractURN(string& strbuffer)
 {
   int beg = strbuffer.find("(urn:");
   if (beg != string::npos){

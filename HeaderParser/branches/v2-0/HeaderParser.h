@@ -146,6 +146,12 @@ class HeaderParser
 		  xmlNodePtr conclusione,
 		  int tdoc,
 		  int notes); 
+  int parseHeaderGetTipo(std::string& header, int notes);
+  std::string find_type(std::string strbuffer,
+		HMM &model,
+		hash_map<int,pair<int,int> > &tags,		
+		std::vector<int> &sequence, 
+		std::vector<int> &offsets);
   static const char * tagName(int tagvalue);
   static const char * tagIdName(int tagvalue);
 
