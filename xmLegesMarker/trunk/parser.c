@@ -15,9 +15,10 @@
 #include "annessi.h"	
 #include "tag.h"
 
-const char *versione = "1.0";
+const char *versione = "1.1";
 int visErrore = 0;
 char *bufferEnd;
+char *namebin = "";
 //char _DocNomeStringa[MAXSTRINGA+1] = "Esistente";
 
 //int flagAnnessi = 1;
@@ -33,6 +34,7 @@ int main(int argc, char *argv[])
 	register int i;
 	int c;
 	int lo = 0;
+	namebin=argv[0];
 	//static int flagAnnessi = 1;
 	//tipoUscita uscita = doc;
 	//tipoDTD dtd = completo;
@@ -181,6 +183,9 @@ int main(int argc, char *argv[])
 				else if (!strcmp(tmp, "circ"))	{configSetDocTesto(documentoNIR); configSetDocNome("Circolare"); }
 				else if (!strcmp(tmp, "prov"))	{configSetDocTesto(documentoNIR); configSetDocNome("Provvedimento"); }
 				else if (!strcmp(tmp, "rreg"))	{configSetDocTesto(documentoNIR); configSetDocNome("Regolamento Regionale"); }
+				// Parametro per individuare automaticamente il tipo di documento:
+				else if(!strcmp(tmp,"unknown"))	configSetDocTesto(unknown);
+				//
 				else	{
 						fprintf(stderr, "Errore tipo di documento: %s\n", tmp);
 						help();
@@ -429,7 +434,7 @@ int main(int argc, char *argv[])
 
 void help(void) 
 {
-	puts("ParserStruttura [opzioni] -f file");
+	printf("\n%s [opzioni] -f file\n", namebin);
 	puts("");
 	puts("Software sviluppato dall'ITTIG/CNR per conto del progetto \"Norme in Rete\".");
 	puts("");

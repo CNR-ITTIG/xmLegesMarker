@@ -32,6 +32,7 @@ typedef enum _tipoTesto {
 	comunicato,
 	disegnolegge,
 	provCNR,
+	unknown,
 	documentoNIR
 } tipoTesto;
 

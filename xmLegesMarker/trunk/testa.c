@@ -30,6 +30,13 @@ int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 
 	HeaderParser parser(configHeaderParserModels());
 	parser.setRootNode(ptipodoc);
+	int notes = 1;
+	
+	if(configGetDocTestoTipo() == unknown) {
+		//Esegui il parser per cercare di individuare il tipo di documento...
+		notes=parser.parseHeaderGetTipo(tmpstr, notes);
+		exit(-1);	
+	}
 
 	//Aggiunta
 	int tdoc = 0; //variabile che tiene conto del tipo di documento
@@ -38,7 +45,7 @@ int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 
 	if(configGetDocTestoTipo() == provCNR)
 		tdoc=2;
-	int notes = 1;
+
 	notes=parser.parseHeader(tmpstr, pmeta, pdescrittori, pintestazione, pformulainiziale, tdoc, notes);
 	
 	loggerInfo("FINE Testa");
