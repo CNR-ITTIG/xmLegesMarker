@@ -28,6 +28,7 @@ xmlNodePtr buildEmptyDocMeta(void);
 //char *estraiPrimaDiCoda(const char * coda);
 
 void help(void);
+void unknown_init(void);
 
 int main(int argc, char *argv[]) 
 {
@@ -184,7 +185,7 @@ int main(int argc, char *argv[])
 				else if (!strcmp(tmp, "prov"))	{configSetDocTesto(documentoNIR); configSetDocNome("Provvedimento"); }
 				else if (!strcmp(tmp, "rreg"))	{configSetDocTesto(documentoNIR); configSetDocNome("Regolamento Regionale"); }
 				// Parametro per individuare automaticamente il tipo di documento:
-				else if(!strcmp(tmp,"unknown"))	configSetDocTesto(unknown);
+				else if(!strcmp(tmp,"unknown")) { unknown_init(); configSetDocTesto(unknown); }
 				//
 				else	{
 						fprintf(stderr, "Errore tipo di documento: %s\n", tmp);
@@ -490,3 +491,13 @@ void help(void)
 	exit(1);
 }
 
+//Inizializza (crea o cancella il contenuto) il file temporaneo contenente
+//il tipoDoc per la funzione 'Importa' di xmLeges.
+void unknown_init(void) {
+	FILE *fo;
+	if(!(fo = fopen("temp/unknown_type.tmp", "w"))) {
+		fprintf(stderr,"Errore apertura file \"temp/unknown_type.tmp\"\n");
+		exit(1);
+	}
+	fclose(fo);	
+}
