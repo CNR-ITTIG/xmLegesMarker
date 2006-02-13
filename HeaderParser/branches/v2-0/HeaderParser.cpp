@@ -278,8 +278,11 @@ int HeaderParser::parseHeader(std::string& header,
     return notes;
   }
 
-//printf("\nHeaderParser\nbuffer: %s\n\n", header.c_str());
 //printf("\nHeaderParser\ntdoc: %d\n", tdoc);
+//for(int kk=0; kk < sequence.size(); kk++)
+	//printf("\n %d: sequence[]=%d", kk, sequence[kk]);
+//printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
+
 
 //Disegno di legge
 if(tdoc == 1) {
@@ -379,10 +382,8 @@ if(tdoc == 2) {
 			
 			if ((cnrfirst = getFirstMatchingState(cnr_states, cnr_sequence.size(), header_cnr_tags)) < sequence.size()){
 		        last = saveTags(strbuffer, cnr_states, cnr_sequence.size(), offsets, offset, last, intestazione, header_cnr_tags, tdoc);
-				//int cnrlast = getLastMatchingState(cnr_states, cnr_sequence.size(), header_cnr_tags);
 				//printf("\n last:%d first:%d cnrlast:%d\n",last,first,cnrlast);
 				if(last < first-1) {
-					//saveTag(hp_titolodoc, offsets[last+1], offsets[first], strbuffer, intestazione, tdoc);
 					//si deve verificare se titoloDoc esiste già:
 					xmlNodePtr titolonode = findChild("titoloDoc", intestazione);
 					if(titolonode == NULL)
@@ -474,6 +475,8 @@ if(tdoc == 2) {
 		vector<int> pub_sequence;
 		copyElements(sequence, pub_sequence, 0, first-1);
 		header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
+			//	for(int kk=0; kk < pub_sequence.size(); kk++) //
+				//	printf("\n %d: pub_sequence[]=%d   pub_states[]=%d", kk, pub_sequence[kk], pub_states[kk]);
 		if(!pub_found)
 		  pub_found = savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
 		last = saveTitle(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, descrittori, intestazione, meta, found, header_pubblicazione_tags, &notes);
@@ -632,10 +635,11 @@ unsigned int HeaderParser::saveTitle(const string& strbuffer,
   }
   // else choose as title the longer part either before or after match
   last = getLastMatchingState(states, statesnumber, tags);
-  if((statesnumber - last) > first){
+  string longpub = strbuffer.substr(offsets[offset+last+1],offsets[offset+statesnumber]-offsets[offset+last+1]);
+  int islongpub = longpub.find("e convertito in legge");
+  if( (statesnumber - last) > first && islongpub == string::npos ){
     xmlNodePtr titlenode = saveTag(hp_titolodoc,offsets[offset+last+1], offsets[offset+statesnumber], strbuffer, intestazione, 0);     
     saveTags(strbuffer, states, statesnumber, offsets, offset, state, meta, tags, 0, id, NULL, titlenode);    
-    
     return statesnumber-1;
   }
   else{
@@ -1563,9 +1567,9 @@ int HeaderParser::parseHeaderGetTipo(std::string& strbuffer, int notes)
 	//printf("%s\n",tipodoc.c_str()); 
 	FILE * fo = NULL;
 	
-	if (!(fo = fopen("unknow_type.tmp", "w")))  // Nome file da concordare con xmLeges
+	if (!(fo = fopen("temp/unknown_type.tmp", "w")))  // Nome file da concordare con xmLeges
 	{
-		fprintf(stderr, "Errore apertura file di uscita: unknow_type.tmp \n");
+		fprintf(stderr, "Errore apertura file \"temp/unknown_type.tmp\" \n");
 		return notes;
 	}
 	fprintf(fo, "%s", tipodoc.c_str());
