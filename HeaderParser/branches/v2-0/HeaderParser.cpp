@@ -283,7 +283,6 @@ int HeaderParser::parseHeader(std::string& header,
 	//printf("\n %d: sequence[]=%d", kk, sequence[kk]);
 //printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
 
-
 //Disegno di legge
 if(tdoc == 1) {
 	if(sequence.size() > 0) {
@@ -322,6 +321,11 @@ if(tdoc == 1) {
       	//Devono essere aggiunti dei tag di default vuoti per i disegni di legge
       	addMissingHeader(meta, descrittori, intestazione, formulainiziale, tdoc);
 	}
+	
+	//xmlNodePtr tit = findChild("titoloDoc", intestazione);
+	//xmlChar* titcontent = xmlNodeGetContent(tit);
+	//printf("\nHP - titoloDoc:\n%s\n",titcontent);
+	
 	return notes; 	
 }
 
@@ -389,11 +393,13 @@ if(tdoc == 2) {
 					if(titolonode == NULL)
 						saveTag(hp_titolodoc, offsets[last+1], offsets[first], strbuffer, intestazione, tdoc);
 					else { //era presente 'Oggetto:'. Aggiornare il valore di titoloDoc:
-						xmlChar* content = xmlNodeGetContent(titolonode);
-						string strtitolo = (char *) content;
-						xmlFree(content);
-						strtitolo+=strbuffer.substr(offsets[last+1],offsets[first]-offsets[last+1]);
-						xmlNodeSetContent(titolonode, BAD_CAST strtitolo.c_str());
+						//string strtitolo = (char *)xmlNodeGetContent(titolonode);
+						//xmlNodeSetContent(titolonode, BAD_CAST strtitolo.c_str());
+						//Attacca una lista testo/entità piuttosto che un nodo di testo:
+						//strtitolo+=strbuffer.substr(offsets[last+1],offsets[first]-offsets[last+1]);
+						//xmlNodeSetContent(titolonode, BAD_CAST "");
+						string strtitolo=strbuffer.substr(offsets[last+1],offsets[first]-offsets[last+1]);
+						xmlAddChild(titolonode, xmlStringGetNodeList(NULL, BAD_CAST strtitolo.c_str()));
 					}
 				}
 				last = first;
@@ -438,7 +444,7 @@ if(tdoc == 2) {
   // parse intestazione
   if(sequence.size() > 0){
     states = new int[sequence.size()];
-    header_intestazione_model.viterbiPath(sequence, states, sequence.size());
+  	header_intestazione_model.viterbiPath(sequence, states, sequence.size());
     if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()){
       found = true;
       
@@ -475,8 +481,6 @@ if(tdoc == 2) {
 		vector<int> pub_sequence;
 		copyElements(sequence, pub_sequence, 0, first-1);
 		header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
-			//	for(int kk=0; kk < pub_sequence.size(); kk++) //
-				//	printf("\n %d: pub_sequence[]=%d   pub_states[]=%d", kk, pub_sequence[kk], pub_states[kk]);
 		if(!pub_found)
 		  pub_found = savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
 		last = saveTitle(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, descrittori, intestazione, meta, found, header_pubblicazione_tags, &notes);
@@ -495,13 +499,13 @@ if(tdoc == 2) {
     } else{ // search pubblicazione, otherwise put all in titolodoc
       header_pubblicazione_model.viterbiPath(sequence, states, sequence.size());
       if(!pub_found)
-	pub_found = savePubblicazione(strbuffer, states, sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
-      last = saveTitle(strbuffer, states, sequence.size(), offsets, offset, last, descrittori, intestazione, meta, found, header_pubblicazione_tags, &notes);
-      removeProcessedElements(sequence, last);
-      offset += last + 1;
-      found = true;
-    }
-    delete[] states;
+		pub_found = savePubblicazione(strbuffer, states, sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
+	  last = saveTitle(strbuffer, states, sequence.size(), offsets, offset, last, descrittori, intestazione, meta, found, header_pubblicazione_tags, &notes);
+	  removeProcessedElements(sequence, last);
+	  offset += last + 1;
+	  found = true;
+	}
+	delete[] states;
   }
 
   // if nothing found print default header
@@ -635,17 +639,22 @@ unsigned int HeaderParser::saveTitle(const string& strbuffer,
   }
   // else choose as title the longer part either before or after match
   last = getLastMatchingState(states, statesnumber, tags);
-  string longpub = strbuffer.substr(offsets[offset+last+1],offsets[offset+statesnumber]-offsets[offset+last+1]);
-  int islongpub = longpub.find("e convertito in legge");
-  if( (statesnumber - last) > first && islongpub == string::npos ){
+  if( (statesnumber - last) > first ){ //significa che c'è testo prima e dopo la sequenza
+  										//di pubblicazione e quello dopo è più lungo.
+  	//Soluzione temporanea per DL con testo redazionale più lungo del titolo:
+	  string longpub = strbuffer.substr(offsets[offset+last+1],offsets[offset+statesnumber]-offsets[offset+last+1]);
+	  int islongpub = longpub.find("e convertito in legge");
+	  if(islongpub == string::npos) {
+  	//
     xmlNodePtr titlenode = saveTag(hp_titolodoc,offsets[offset+last+1], offsets[offset+statesnumber], strbuffer, intestazione, 0);     
     saveTags(strbuffer, states, statesnumber, offsets, offset, state, meta, tags, 0, id, NULL, titlenode);    
     return statesnumber-1;
+	  }
   }
-  else{
+  //else {
     xmlNodePtr titlenode = saveTag(hp_titolodoc,offsets[offset], offsets[offset+first], strbuffer, intestazione, 0); 
     return saveTags(strbuffer, states, statesnumber, offsets, offset, first, meta, tags, 0, id, titlenode, NULL);    
-  }
+  //}
 }
 
 bool HeaderParser::savePubblicazione(const string& strbuffer, 
@@ -707,9 +716,16 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
 			      int tdoc,
 			      int notes) 
 {
-  xmlChar* content = xmlNodeGetContent(lastcomma);
+	//Considerando il testo all'interno dei vari tag come una lista di nodi testo/entità
+	//non si può tirare fuori il contenuto del tag -errore- con la semplice xmlNodeGetContent(),
+	//in particolare quando si utilizzano testi in html (ricchi di entità).
+	xmlChar* content = xmlNodeGetContent(lastcomma);
+	printf("\nFOOTER GetContent:\n%s\n",content);
+	content = NULL;
+	content = xmlNodeListGetString(NULL, lastcomma, 0);
+	printf("\nFOOTER NodeListGetString:\n%s\n",content);  
   //printf("\nFooter tdoc:%d\n",tdoc);
-  if(content == NULL){
+  if(content == NULL || (char *)content == ""){
   	//printf("\nFooter NULL\n");
     defaultFooter("", lastcomma); 
     //Aggiunta -- addMissingMeta() solo nel caso generico...
@@ -719,6 +735,9 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
   }
     
   string strbuffer = (char *) content;
+  
+  	printf("\nFOOTER strbuffer:\n%s\n", strbuffer.c_str());  
+  
   xmlFree(content);
   
   //printf("\nParseFooter\nbuffer: %s\n\n", strbuffer.c_str());
@@ -841,9 +860,6 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
     delete[] states;
   }
 
-  if(!found)
-  	//printf("\nNon è stato rilevato niente");
-  
   // if nothing found print default footer
   if(!found)
     defaultFooter(strbuffer, lastcomma);	
@@ -877,11 +893,14 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
 //sinistra del carattere (il resto va in error, nel footer).
 void  HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) const
 {
-	//printf("\nDefault footer\n");
-	
   unsigned int dot = footer.find('.');
   if(dot != string::npos){
-    xmlNodeSetContent(lastcomma, BAD_CAST footer.substr(0, dot+1).c_str());
+  	printf("\nDEF.FOOTER setto come testo dell'ultimo comma:\n%s", footer.substr(0, dot+1).c_str());
+  	//xmlNodeSetContent(lastcomma, BAD_CAST footer.substr(0, dot+1).c_str());
+    //Attacca una lista testo/entità piuttosto che un nodo di testo:
+  	xmlNodeSetContent(lastcomma, BAD_CAST "");
+	xmlAddChild(lastcomma, xmlStringGetNodeList(NULL, BAD_CAST footer.substr(0, dot+1).c_str()));
+  	
     footer = footer.substr(dot+1);
   }
   if (footer.find_first_not_of(" \n\t\r") != string::npos)
@@ -1036,11 +1055,18 @@ unsigned int HeaderParser::saveLastComma(const string& strbuffer,
   header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
   int first = getFirstMatchingState(pub_states, pub_sequence.size(), header_pubblicazione_tags);
   if (first == pub_sequence.size()) {
-    xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.substr(offsets[offset], offsets[offset+state]-offsets[offset]).c_str());
-    //printf("\nSave Here\n");
-  }
-  else{
-    xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.substr(offsets[offset], offsets[offset+first]-offsets[offset]).c_str());
+    //xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.substr(offsets[offset], offsets[offset+state]-offsets[offset]).c_str());
+    //Attacca una lista testo/entità piuttosto che un nodo di testo:
+    xmlNodeSetContent(lastcomma, BAD_CAST "");
+    string nlstr = strbuffer.substr(offsets[offset], offsets[offset+state]-offsets[offset]);
+	xmlAddChild(lastcomma, xmlStringGetNodeList(NULL, BAD_CAST nlstr.c_str()));
+  } else {
+    //xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.substr(offsets[offset], offsets[offset+first]-offsets[offset]).c_str());
+    //Attacca una lista testo/entità piuttosto che un nodo di testo:
+    xmlNodeSetContent(lastcomma, BAD_CAST "");
+    string nlstr = strbuffer.substr(offsets[offset], offsets[offset+first]-offsets[offset]);
+	xmlAddChild(lastcomma, xmlStringGetNodeList(NULL, BAD_CAST nlstr.c_str()));
+
     savePubblicazione(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, findChild("descrittori", meta), header_pubblicazione_tags);
     int last = saveTags(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, first, meta, header_pubblicazione_tags, 0, notes, lastcomma, NULL);     
     if(last < state-1)
@@ -1131,6 +1157,7 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
   }
   if(ignoreTag(tagvalue)){ //scrive il testo fuori da un tag specifico (hp_varie)
     xmlAddChild(startnode, xmlNewText(BAD_CAST buffer.substr(start,end-start).c_str()));
+    //xmlNewChild(startnode, NULL, currnode->name, BAD_CAST buffer.substr(start,end-start).c_str());
     return NULL;
   }
   //AGGIUNTO: non scrive niente (salta la parola). 
@@ -1148,9 +1175,6 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
   
   if(formatTag(tagvalue)){
     if(tagvalue == hp_preambolo)
-      //if(tdoc==2) //Se provvedimento CNR considera solo i ritorni a capo e non i ';'
-        //addFormatTags(buffer.substr(start,end-start), currnode);
-      //else
         addSemicolumnFormatTags(buffer.substr(start,end-start), currnode);
     else
       addFormatTags(buffer.substr(start,end-start), currnode);
@@ -1160,7 +1184,9 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
   else if( trimmedTag(tagvalue) && withtags ||
   			(tdoc == 1 && trimmedTagDDL(tagvalue)) ){
     unsigned int trimmed = 0;
-    xmlAddChild(currnode, xmlNewText(BAD_CAST trimEnd(buffer.substr(start,end-start), &trimmed).c_str()));
+    //xmlNewChild(startnode, NULL, currnode->name, BAD_CAST trimEnd(buffer.substr(start,end-start), &trimmed).c_str());
+    //Attacca il testo come una lista testo/entità!
+    xmlAddChild(currnode, xmlStringGetNodeList(NULL, BAD_CAST trimEnd(buffer.substr(start,end-start), &trimmed).c_str()));
     if (trimmed < end-start) {
     	if(tdoc==1) {
     		//Con i DDL metti in error tutto ciò che non viene riconosciuto
@@ -1173,11 +1199,17 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
     	} else
     	    //Ma se quello che rimane è tutta roba " \n\t\r" non la riscrivere neanche...
     	    if( buffer.substr(start+trimmed,end-start-trimmed).find_last_not_of(" \n\t\r") != string::npos)
-	   			xmlAddChild(startnode, xmlNewText(BAD_CAST buffer.substr(start+trimmed,end-start-trimmed).c_str()));
+	   			//xmlAddChild(startnode, xmlNewText(BAD_CAST buffer.substr(start+trimmed,end-start-trimmed).c_str()));
+	   			//Attacca il testo come una lista testo/entità!
+	   			xmlAddChild(startnode, xmlStringGetNodeList(NULL, BAD_CAST buffer.substr(start+trimmed,end-start-trimmed).c_str()));
     }
   }
   else
-    xmlAddChild(currnode, xmlNewText(BAD_CAST buffer.substr(start,end-start).c_str()));
+    //xmlNodePtr nodetxt = xmlStringGetNodeList(NULL, BAD_CAST buffer.substr(start,end-start).c_str());
+    //xmlAddChild(currnode, xmlNewText(BAD_CAST buffer.substr(start,end-start).c_str()));
+    //xmlNewChild(startnode, NULL, currnode->name, BAD_CAST buffer.substr(start,end-start).c_str());
+    //Attacca il testo come una lista testo/entità!
+    xmlAddChild(currnode, xmlStringGetNodeList(NULL, BAD_CAST buffer.substr(start,end-start).c_str()));
   return currnode;
 }
 
@@ -1236,7 +1268,7 @@ void HeaderParser::addTagAttributes(int tagvalue,
 }
 
 //Modifica: 
-//Si deve chiudere il paragrafo solo quando si rileva un ';' (oppure un '.' ???) 
+//Si deve chiudere il paragrafo solo quando si rileva un ';' (oppure un '.' ?!) 
 //alla fine della riga, non se viene trovato in mezzo al testo.
 void HeaderParser::addSemicolumnFormatTags(string text, xmlNodePtr startnode) const
 {
@@ -1285,15 +1317,6 @@ void HeaderParser::addFormatTags(string buf, xmlNodePtr startnode) const
 void HeaderParser::addFormatTagsDiv(string text, xmlNodePtr startnode) const
 {
   istringstream in(text);
-/*
-  //Vecchia:
-  string line, out;
-
-  while(Lexer::getLine(in, line))
-    if (line.find_first_not_of(" -\n\t\r") != string::npos)
-      xmlNewChild(startnode, NULL, BAD_CAST "h:div", BAD_CAST line.c_str());
-    */
-
   string line, buf;
   unsigned int end = 0;
 
@@ -1309,8 +1332,6 @@ void HeaderParser::addFormatTagsDiv(string text, xmlNodePtr startnode) const
   }
   if ((end = buf.find_last_not_of(" \n\t\r")) != string::npos)
     xmlNewChild(startnode, NULL, BAD_CAST "h:div", BAD_CAST buf.substr(0,end+1).c_str());
-
-
 }
 
 string normalizeDate(const string& buffer)
