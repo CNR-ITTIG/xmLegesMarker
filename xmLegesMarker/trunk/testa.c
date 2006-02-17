@@ -15,10 +15,14 @@ int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 
 	loggerInfo("INIZIO Testa");
 	
+
 	char *tmptxt;
-	if (pTextNode){
-		tmptxt=(char *)xmlNodeGetContent(pTextNode);
-	}
+	if (pTextNode)
+		//Considerando il testo all'interno dei vari tag come una lista di nodi testo/entità
+		//non si può tirare fuori il contenuto del tag -errore- con la semplice xmlNodeGetContent(),
+		//in particolare quando si utilizzano testi in html (ricchi di entità).
+		//tmptxt=(char *)xmlNodeGetContent(pTextNode);
+		tmptxt=(char *)xmlNodeListGetString(NULL, pTextNode, 0); //0 lascia &agrave;
 	else { //Se non vi è testo
 		tmptxt="";
 	}

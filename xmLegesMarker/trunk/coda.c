@@ -37,6 +37,7 @@ int coda( int pnotes,xmlNodePtr ptipodoc, xmlNodePtr pCorpo,xmlNodePtr pmeta,xml
 		tdoc=2;
 		
 	pnotes=parser.parseFooter(pCorpo, pmeta, pdescrittori, pformulafinale, pconclusione, tdoc, pnotes);
+	printf("\nLastComma Content:\n%s\n", (char *)xmlNodeGetContent(pCorpo));
 	loggerInfo("FINE Coda");
 	
 	utilPercCalc(43);

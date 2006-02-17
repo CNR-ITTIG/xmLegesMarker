@@ -56,8 +56,11 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 		xxxSetIDtoNode(newNodoMod, mod,IDMOD,0,NULL);
 		//Sposta tutti i figli del CORPO nel nuovo nodo MOD
 		MoveAllChildren(pNodoCorpo,newNodoMod);
+				
 		//Aggancia il MOD al CORPO
-		xmlAddChild(pNodoCorpo,newNodoMod);
+		//Prossima linea: SegFault se si utilizzano liste testo/entità per il testo
+		//e sono presenti entità (testo html)
+		xmlAddChild(pNodoCorpo,newNodoMod); 
 		areInMod=1;
 	}
 
@@ -69,8 +72,8 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 			//Crea un nodo errore PRIMA
 			xmlNodePtr newNodoErrPre=xmlNewNode(NULL, BAD_CAST tagTipoToNome(tagerrore));
 			xmlAddChild(newNodoErrPre,xmlNewText("--- Partizione con virgolette: controllare se modificativa ---"));
+			
 			//xmlNodePtr newNodoErrAfter=xmlNewNode(NULL, BAD_CAST tagTipoToNome(tagerrore));
-
 			xmlChar *allText=xmlNodeListGetRawString(NULL,cur->children,1);
 			xmlNodePtr newNodoTxt=xmlNewText(allText);
 			xmlReplaceNode(cur,newNodoTxt);
@@ -82,8 +85,6 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 			
 			//Virgolette2Errore(pNodoCorpo);
 			}
-
-		
 		cur=cur->next;
 	}
 }

@@ -134,8 +134,11 @@ void xxxClose(void)
 	if (strbuff)
 	{
 		slen = strlen(strbuff);
-		mtext=xmlNewText(BAD_CAST strbuff);
-		xmlAddChild(lastChild,mtext);
+		//mtext=xmlNewText(BAD_CAST strbuff);
+		//xmlAddChild(lastChild,mtext);
+		
+		//Attacca una lista testo/entità piuttosto che un nodo di testo:
+		xmlAddChild(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
 	}
 }
 
@@ -156,8 +159,12 @@ void xxxAppendTextToLastNode(int pIndex)
 	char *strbuff=xxxExtractStringBeforeIndex(pIndex);
 	if (strbuff)
 	{
-		xmlNodePtr	mtext=xmlNewText(BAD_CAST strbuff);
-		xmlAddChild(lastChild,mtext);
+		//xmlNodePtr	mtext=xmlNewText(BAD_CAST strbuff);
+		//xmlAddChild(lastChild,mtext);
+		
+		//Attacca una lista testo/entità piuttosto che un nodo di testo:
+		xmlAddChild(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
+		
 		free(strbuff);
 	}
 }
@@ -178,30 +185,37 @@ xmlNodePtr xxxTagOpen(tagTipo ptag,int pindex,int plen)
 	strbuff=xxxExtractStringBeforeIndex(pindex);
 	if (strbuff)
 	{
-		mtext=xmlNewText(BAD_CAST strbuff);
-		xmlAddChild(lastChild,mtext);
+		//mtext=xmlNewText(BAD_CAST strbuff);
+		//xmlAddChild(lastChild,mtext);
+		
+		xmlNodePtr nlist = xmlStringGetNodeList(NULL, BAD_CAST strbuff);
+		//Attacca una lista testo/entità piuttosto che un nodo di testo:
+		xmlAddChild(lastChild, nlist);
 	}
 
 	//elimina dallo STATOBUFFER tutti i nodi con enumerazione maggiore
-	for(n=(int)ptag;n<TAGTIPODIM;n++)xxxTagClose(n);
-
+	for(n=(int)ptag;n<TAGTIPODIM;n++) {
+		xxxTagClose(n);
+	}
+	
 	//creazione del nodo di tipo PTAG
 	currnode = xmlNewNode(NULL, BAD_CAST tagTipoToNome(ptag));
 	xmlAddChild(mparent, currnode);
 	xxxTextBufferIndex=pindex;
 
-	if (plen>0 ) {
+	if(plen>0) {
 		strbuff=utilGetPartialText(xxxTextBuffer,pindex,plen);
 		
 		char *t=utilConvertiText(strbuff);
-
-		mtext=xmlNewText(BAD_CAST t);
-
-		xmlAddChild(currnode,mtext);
+		//mtext=xmlNewText(BAD_CAST t);
+		//xmlAddChild(currnode,mtext);
+		
+		//Attacca una lista testo/entità piuttosto che un nodo di testo:
+		xmlAddChild(currnode, xmlStringGetNodeList(NULL, BAD_CAST t));
 
 		xxxTextBufferIndex=pindex + plen;
 
-	}else {
+	} else {
 		
 		xxxSetCurrentTagState(ptag,currnode);
 	}

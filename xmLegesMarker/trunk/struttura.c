@@ -161,8 +161,9 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 
 		//Viene individuato il primo ERRORE presente nel nodo ARTICOLATO e viene passato all'HeaderParser
 		mFirstError=GetFirstNodebyTagTipo(mNodoArticolato, BAD_CAST tagTipoToNome(tagerrore));
+		
 		mFirstErrorText=GetFirstTextNode(mFirstError);
-
+		
 		mnotes=testa(mFirstErrorText,mNodoTipoDocumento,nmeta,ndescrittori,nintestazione,nformulainiziale);
 
 		//Sgancia il nodo TAGERRORE e lo libera
@@ -286,7 +287,10 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			if (!narticolato)
 				narticolato=mNodoArticolato;
 			
-			xmlChar* contNodo = xmlNodeGetContent(nformulainiziale);				// formula iniziale
+			//Trattare il testo come una lista testo/entità:
+			//xmlChar* contNodo = xmlNodeGetContent(nformulainiziale);// formula iniziale
+			xmlChar* contNodo = xmlNodeListGetString(NULL, nformulainiziale, 0);
+			
 			if (contNodo)
 			{
 				nnodo = xmlNewChild(nintestazione, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);
@@ -296,7 +300,10 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			}
 			utilNodeDelete(nformulainiziale);
 			
-			contNodo = xmlNodeGetContent(nformulafinale);				// formula finale
+			//Trattare il testo come una lista testo/entità:
+			//contNodo = xmlNodeGetContent(nformulafinale);	// formula finale
+			contNodo = xmlNodeListGetString(NULL, nformulafinale, 0);
+			
 			if (contNodo)
 			{
 				nnodo = xmlNewChild(narticolato, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);
@@ -306,7 +313,10 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			}
 			utilNodeDelete(nformulafinale);
 			
-			contNodo = xmlNodeGetContent(nconclusione);					// conclusione
+			//Trattare il testo come una lista testo/entità:
+			//contNodo = xmlNodeGetContent(nconclusione);	// conclusione
+			contNodo = xmlNodeListGetString(NULL, nconclusione, 0);
+			
 			if (contNodo)
 			{
 				nnodo = xmlNewChild(narticolato, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);

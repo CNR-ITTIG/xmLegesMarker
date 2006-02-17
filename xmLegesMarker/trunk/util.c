@@ -262,6 +262,7 @@ int IsNode(xmlNodePtr pNodo,tagTipo ptipo)
 	return 0;
 }
 
+/*
 void MoveAllChildren(xmlNodePtr pFrom,xmlNodePtr pTo)
 {
 	
@@ -277,6 +278,36 @@ void MoveAllChildren(xmlNodePtr pFrom,xmlNodePtr pTo)
 		xmlAddChild(pTo,tmp);
 	}
 }
+*/
+/* <sostituzione> 16-02-06 
+ * Sostituita a causa di DDL3621.htm (art.4 comma 3 assente)
+ * in quel caso provoca un non corretto spostamento e unlink
+ * dei figli che causa un seg.fault nella successiva addChild
+ * in virgolette.c.
+ */
+void MoveAllChildren(xmlNodePtr pFrom,xmlNodePtr pTo)
+{
+	xmlNodePtr cur = pFrom->children;	//FirstChild
+	xmlNodePtr tmp = NULL;
+	if(cur == NULL) return;
+	
+	//Utilizzo una NodeList (addChild nodo per nodo aggiorna sempre il 
+	//puntatore al parent e questo non è corretto in caso di liste nodo/entità)
+	xmlNodePtr nlist = xmlCopyNodeList(cur);
+	//Unlink e FreeNode a partire dall'ultimo nodo della lista:
+	while (cur != NULL) {
+		tmp=cur;
+		cur = cur->next;
+	}
+	while (tmp != NULL) {
+		cur = tmp;
+		tmp = tmp->prev;
+		xmlUnlinkNode(cur);
+		xmlFreeNode(cur);
+	}
+	xmlAddChild(pTo, nlist);
+}
+/* </sostituzione> */
 
 //NON RICORSIVA
 //Restituisce il primo nodo testo figlio di pNodoParent
@@ -300,7 +331,6 @@ xmlNodePtr GetFirstTextNode(xmlNodePtr pNodoParent)
 //Se il nodo è TAGERRORE e non è un PI, lo sostituisce con una nuova PI
 void utilErrore2ProcessingInstruction(xmlNodePtr pNodoParent )
 {
-	
 	unsigned char * xmlCont=NULL; //è come xmlchar *
 	xmlNodePtr cur,txtnode,pinode;
 	cur = pNodoParent->xmlChildrenNode;	//FirstChild
@@ -310,7 +340,10 @@ void utilErrore2ProcessingInstruction(xmlNodePtr pNodoParent )
 			txtnode=GetFirstTextNode(cur);
 	
 			if (txtnode){
-				xmlCont= xmlNodeGetContent(txtnode);
+				//Trattare il testo come una lista testo/entità:
+				//xmlCont= xmlNodeGetContent(txtnode);
+				xmlCont= xmlNodeListGetString(NULL, txtnode, 0);
+				
 				/*puts("---------------------------------------------------------------INIZIO PI NODE-----------------------------------------------\n");
 				puts(xmlCont);
 				puts("---------------------------------------------------------------FINE PI NODE-----------------------------------------------\n");			*/
