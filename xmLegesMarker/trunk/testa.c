@@ -16,16 +16,32 @@ int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 	loggerInfo("INIZIO Testa");
 	
 
-	char *tmptxt;
-	if (pTextNode)
+	char *tmptxt = NULL;
+	if (pTextNode) {  // <-- AGGIUSTARE UN PO' QUA SOTTO
 		//Considerando il testo all'interno dei vari tag come una lista di nodi testo/entità
 		//non si può tirare fuori il contenuto del tag -errore- con la semplice xmlNodeGetContent(),
 		//in particolare quando si utilizzano testi in html (ricchi di entità).
-		//tmptxt=(char *)xmlNodeGetContent(pTextNode);
-		tmptxt=(char *)xmlNodeListGetString(NULL, pTextNode, 0); //0 lascia &agrave;
-	else { //Se non vi è testo
+		
+		//Problema: a volta pTextNode è un nodo di testo, altre è un nodo di nome "error"
+		//che ha come figlio il nodo (o la lista di nodi) di testo:
+		//tmptxt=(char *)xmlNodeGetContent(pTextNode);NodePtr
+		//string nname = (char *)pTextNode->name;
+		//if ((char *)pTextNode->name == (char *)"error")
+			//pTextNode = pTextNode->children;	
+		if(pTextNode->children != NULL)
+			pTextNode = pTextNode->children;
+		
+		xmlChar  *xmltxt=NULL;
+		xmltxt=xmlNodeListGetString(NULL, pTextNode, 0); //0 lascia &agrave;
+		tmptxt = (char *)xmltxt;
+		//xmlFreeNode((xmlNodePtr)xmltxt);
+		if(tmptxt == NULL)
+			tmptxt = "";
+	} else { //Se non vi è testo
 		tmptxt="";
 	}
+	
+	//Si ma qui, se tmptxt=="", si potrebbe anche returnare?
 
 	std::string	tmpstr=tmptxt;
 	tmpstr.insert(0,"\n"); //inserito un \n prima del testo xchè l'header parser altrimenti mangia il testo
