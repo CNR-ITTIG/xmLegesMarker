@@ -719,11 +719,8 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
 	//Considerando il testo all'interno dei vari tag come una lista di nodi testo/entità
 	//non si può tirare fuori il contenuto del tag -errore- con la semplice xmlNodeGetContent(),
 	//in particolare quando si utilizzano testi in html (ricchi di entità).
-	xmlChar* content = xmlNodeGetContent(lastcomma);
-	printf("\nFOOTER GetContent:\n%s\n",content);
-	content = NULL;
-	content = xmlNodeListGetString(NULL, lastcomma, 0);
-	printf("\nFOOTER NodeListGetString:\n%s\n",content);  
+	//xmlChar* content = xmlNodeGetContent(lastcomma);
+	xmlChar* content = xmlNodeListGetString(NULL, lastcomma, 0);
   //printf("\nFooter tdoc:%d\n",tdoc);
   if(content == NULL || (char *)content == ""){
   	//printf("\nFooter NULL\n");
@@ -735,9 +732,6 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
   }
     
   string strbuffer = (char *) content;
-  
-  	printf("\nFOOTER strbuffer:\n%s\n", strbuffer.c_str());  
-  
   xmlFree(content);
   
   //printf("\nParseFooter\nbuffer: %s\n\n", strbuffer.c_str());
@@ -895,7 +889,6 @@ void  HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) cons
 {
   unsigned int dot = footer.find('.');
   if(dot != string::npos){
-  	printf("\nDEF.FOOTER setto come testo dell'ultimo comma:\n%s", footer.substr(0, dot+1).c_str());
   	//xmlNodeSetContent(lastcomma, BAD_CAST footer.substr(0, dot+1).c_str());
     //Attacca una lista testo/entità piuttosto che un nodo di testo:
   	xmlNodeSetContent(lastcomma, BAD_CAST "");
