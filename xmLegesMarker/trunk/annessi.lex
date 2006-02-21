@@ -6,6 +6,7 @@
 #include "tag.h"
 #include <IttigLogger.h>
 #include "xxx.h"
+#include "config.h"
 #define __DEBUG__  0
 
 long EndOfLastAllegato=0;
@@ -13,6 +14,7 @@ long StartOfLastAllegato=0;
 long ann_pos=0;
 int firstAnnesso=0;
 int LastIDAnnesso=0;
+int disegno=0;
 
 void annIncPos(void){
 	ann_pos+=annleng;
@@ -61,6 +63,7 @@ ANNESSO		(a{S}*n{S}*n{S}*e{S}*s{S}*s{S}*o)
 ALL		(a{S}*l{S}*l{S}*e{S}*g{S}*a{S}*t{S}*o)
 SUBALL		(s{S}*u{S}*b{S}*{ALL})
 ALLEGATO	({ALL}|{SUBALL}|{ANNESSO}|{TABELLA})
+DISEGNO		((disegno|progetto|proposta){S}+di{S}+legge)
 
 NUM		([0-9]+)
 LAT09		(un|bis|duo|ter|quater|quinquies|sexies|septies|octies|novies)
@@ -75,11 +78,29 @@ TUTTINUMERI	({NUM}|{ROMANO}|{LATINO}|{ORD})
 
 %s InCorpoAllegato
 %s InTestaAllegato
+%s InTestaDisegno
 
 %%
 
+^({S}*{DISEGNO}{S}*)	{   // disegno di legge
+						if(configGetDocTestoTipo() != disegnolegge)
+							REJECT;
+						BEGIN(InTestaDisegno);
+						MaybeAllegato();
+						annIncPos();
+					}
+
+<InTestaDisegno>{NL}			{ 
+						disegno++;
+						BEGIN(0);
+						MaybeEndOfAllegato();
+						annIncPos();
+					}
+							
 ^({S}*{ALLEGATO}{S}*)	{   // NL c'è per forza alla fine???
 						
+						if(configGetDocTestoTipo() == disegnolegge && disegno < 2)
+							REJECT;
 						BEGIN(InTestaAllegato);
 						MaybeAllegato();
 						annIncPos();
