@@ -884,10 +884,51 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
 }
 
 //Cerca il carattere '.' e mette in lastcomma tutto ciò che è alla 
-//sinistra del carattere (il resto va in error, nel footer).
+//sinistra del carattere (il resto va in error, nel footer). <<-- deve cercare '.' e A CAPO!
 void  HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) const
 {
   unsigned int dot = footer.find('.');
+
+  while(dot != string::npos) {
+	  unsigned int ret1 = footer.find('\n',dot);
+	  unsigned int ret2 = footer.find('\r',dot);
+	  unsigned int ret = 0; //primo carattere \n opp. \r dopo il '.'
+
+	  if(ret1 != string::npos)
+	  	if(ret2 != string::npos)
+	  		if(ret1 < ret2)
+	  			ret = ret1;
+	  		else
+	  			ret = ret2;
+	  	else
+	  		ret = ret1;
+	  	
+	  string middlestr = footer.substr(dot+1,ret-dot-1);
+	  
+	  if(middlestr.find_first_not_of(" \n\t\r") != string::npos)
+	  	dot = footer.find('.',dot+1); //non è un punto e a capo, guarda il punto successivo
+	  else
+	  	break;
+  }
+
+  	//xmlNodeSetContent(lastcomma, BAD_CAST footer.substr(0, dot+1).c_str());
+    //Attacca una lista testo/entità piuttosto che un nodo di testo:
+  	xmlNodeSetContent(lastcomma, BAD_CAST "");
+	xmlAddChild(lastcomma, xmlStringGetNodeList(NULL, BAD_CAST footer.substr(0, dot+1).c_str()));
+  	
+    footer = footer.substr(dot+1);
+    
+  if (footer.find_first_not_of(" \n\t\r") != string::npos)
+    saveTag(hp_sconosciuto, 0, footer.length(), footer, root_node, 0, NULL, NULL, false, NULL);
+}
+
+/*
+//Cerca il carattere '.' e mette in lastcomma tutto ciò che è alla 
+//sinistra del carattere (il resto va in error, nel footer). <<-- deve cercare '.' e A CAPO!
+void  HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) const
+{
+  unsigned int dot = footer.find('.');
+  
   if(dot != string::npos){
   	//xmlNodeSetContent(lastcomma, BAD_CAST footer.substr(0, dot+1).c_str());
     //Attacca una lista testo/entità piuttosto che un nodo di testo:
@@ -899,6 +940,7 @@ void  HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) cons
   if (footer.find_first_not_of(" \n\t\r") != string::npos)
     saveTag(hp_sconosciuto, 0, footer.length(), footer, root_node, 0, NULL, NULL, false, NULL);
 }
+*/
 
 xmlNodePtr HeaderParser::addChildIfMissing(const char * nodename, 
 					   bool * added,
@@ -1330,8 +1372,9 @@ void HeaderParser::addFormatTagsDiv(string text, xmlNodePtr startnode) const
 string normalizeDate(const string& buffer)
 {
 	//Aggiunta (data del tipo xx/yy/zz )
-	if(buffer.find_first_of("gfmalsond") == string::npos) {
-		int tmpfind = buffer.find_first_of("gfmalsond");
+	if(buffer.find_first_of("gfmalsond") == string::npos && 
+			buffer.find_first_of("GFMALSOND") == string::npos) {
+		//int tmpfind = buffer.find_first_of("gfmalsond");
 		unsigned int beg = buffer.find_first_of("0123456789");
 		unsigned int end = buffer.find_last_of("0123456789");
 		if (beg == string::npos || end == string::npos) return "";
