@@ -309,6 +309,7 @@ if(tdoc == 1) {
 	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_ddl_tags, tdoc);      
 	        removeProcessedElements(sequence, last);
 	        offset += last + 1;
+	        addDivDecorations(intestazione->parent);
 		}
 		delete[] states;
 	} 
@@ -1187,8 +1188,7 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
 		xmlAddPrevSibling(subs_node, errornode);
 	else
 		xmlAddChild(startnode, errornode);
-
-	  return errornode;
+    return errornode;
   }
   if(ignoreTag(tagvalue)){ //scrive il testo fuori da un tag specifico (hp_varie)
     xmlAddChild(startnode, xmlNewText(BAD_CAST buffer.substr(start,end-start).c_str()));
@@ -1199,15 +1199,20 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
   if(nothingTag(tagvalue)) 
   	return NULL;
   //
+    if(tdoc == 1 && tagvalue == hp_div) {
+  	addFormatTagsDiv(buffer.substr(start,end-start), startnode);
+  	return NULL;	
+  }
+  
   xmlNodePtr currnode = (withtags) ? openTag(tagvalue, startnode, buffer.substr(start,end-start), id) : startnode;
   
   //Aggiunta:
   if(tagvalue == hp_relazione) {
-	addFormatTagsDiv(buffer.substr(start,end-start), currnode);
+	addFormatTagsDivPeriod(buffer.substr(start,end-start), currnode);
 	xmlAddNextSibling(startnode,currnode);
 	return currnode;
   }
-  
+    
   if(formatTag(tagvalue)){
     if(tagvalue == hp_preambolo)
         addSemicolumnFormatTags(buffer.substr(start,end-start), currnode);
@@ -1335,21 +1340,38 @@ void HeaderParser::addSemicolumnFormatTags(string text, xmlNodePtr startnode) co
     xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST buf.substr(0,end+1).c_str());
 }
 
-//Modificata: non considerare righe composte solo da "-" e togli eventuali "-" ad inizio riga
+//Modificata: *considera* anche righe composte solo da "-" e *non* togliere eventuali "-" ad inizio riga
 void HeaderParser::addFormatTags(string buf, xmlNodePtr startnode) const
 {
   istringstream in(buf);
   string line, out;
 
   while(Lexer::getLine(in, line))
-    if (line.find_first_not_of(" -\n\t\r") != string::npos) {
-      int ststr = line.find_first_not_of(" -\n\t\r");
+    if (line.find_first_not_of(" \n\t\r") != string::npos) {
+      int ststr = line.find_first_not_of(" \n\t\r");
       xmlNewChild(startnode, NULL, BAD_CAST "h:p", BAD_CAST line.substr(ststr,line.size()-ststr+1).c_str());
     }
 }
 
-//Aggiunta:
-void HeaderParser::addFormatTagsDiv(string text, xmlNodePtr startnode) const
+//Metti h:div al posto di h:p (uno per riga)
+void HeaderParser::addFormatTagsDiv(string buf, xmlNodePtr startnode) const
+{
+  istringstream in(buf);
+  string line, out;
+
+  while(Lexer::getLine(in, line))
+    if (line.find_first_not_of(" \n\t\r") != string::npos) {
+      int ststr = line.find_first_not_of(" \n\t\r");
+      //printf("\nDIV ststr:%d contents:%s", ststr, line.substr(ststr,line.size()-ststr+1).c_str());
+
+      //xmlNewChild(startnode, NULL, BAD_CAST "h:div", BAD_CAST line.substr(ststr,line.size()-ststr+1).c_str());
+      xmlNodePtr div = xmlNewChild(startnode, NULL, BAD_CAST "h:div", NULL);
+      xmlAddChild(div, xmlStringGetNodeList(NULL, BAD_CAST line.substr(ststr,line.size()-ststr+1).c_str()));
+    }
+}
+
+//Aggiunta: formatta il testo in h:div (uno per periodo)
+void HeaderParser::addFormatTagsDivPeriod(string text, xmlNodePtr startnode) const
 {
   istringstream in(text);
   string line, buf;
@@ -1367,6 +1389,37 @@ void HeaderParser::addFormatTagsDiv(string text, xmlNodePtr startnode) const
   }
   if ((end = buf.find_last_not_of(" \n\t\r")) != string::npos)
     xmlNewChild(startnode, NULL, BAD_CAST "h:div", BAD_CAST buf.substr(0,end+1).c_str());
+}
+
+//Aggiungi attributi di stile ai div nei DDL
+//(metti l'allineamento centrale e se il contenuto inizia con '(' e termina con ')' metti in grassetto.
+void addDivDecorations(xmlNodePtr parent) {
+	xmlNodePtr ptr1 = NULL, ptr2 = NULL;
+	string name = "", content = "", c1 = "", c2 = "";
+	if(parent == NULL) return;
+	ptr1 = parent->children;
+	while(ptr1!=NULL) {
+		ptr2 = ptr1->children;
+		while(ptr2!=NULL) {
+			name = (char *)ptr2->name;
+			xmlChar *xchar = xmlNodeGetContent(ptr2);
+			content = (char *)xchar;
+			if(xchar!=NULL && content.length()>0) {
+				c1=content.substr(content.find_first_not_of(" \n\t\r"),1);
+				c2=content.substr(content.find_last_not_of(" \n\t\r"),1);
+				if(name.compare("h:div")==0) {
+					xmlAttrPtr attr;
+					if(c1.compare("(")==0  && c2.compare(")")==0)
+						attr = xmlNewProp(ptr2,BAD_CAST "style",BAD_CAST "text-align:center; font:bold");
+					else
+						attr = xmlNewProp(ptr2,BAD_CAST "style",BAD_CAST "text-align:center");
+				}
+			}
+			xmlFree(xchar);
+			ptr2=ptr2->next;
+		}
+		ptr1=ptr1->next;
+	}
 }
 
 string normalizeDate(const string& buffer)
