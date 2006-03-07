@@ -252,16 +252,21 @@ int GetAllNodebyTagTipo(xmlNodePtr *bufdest, xmlNodePtr pNodoParent , xmlChar *p
 	return count;
 }
 
+//Verifica se pNodo è del tipo ptipo
 int IsNode(xmlNodePtr pNodo,tagTipo ptipo)
 {
 	if (pNodo!=NULL)
-	if (!xmlStrcmp(pNodo->name, tagTipoToNome(ptipo)))
-	{
-		return 1;
-	}
+		if (!xmlStrcmp(pNodo->name, tagTipoToNome(ptipo)))
+			return 1;
 	return 0;
 }
 
+/* <sostituzione> 16-02-06 
+ * Sostituita a causa di DDL3621.htm (art.4 comma 3 assente)
+ * in quel caso provoca un non corretto spostamento e unlink
+ * dei figli che causa un seg.fault nella successiva addChild
+ * in virgolette.c.
+ */
 /*
 void MoveAllChildren(xmlNodePtr pFrom,xmlNodePtr pTo)
 {
@@ -279,12 +284,6 @@ void MoveAllChildren(xmlNodePtr pFrom,xmlNodePtr pTo)
 	}
 }
 */
-/* <sostituzione> 16-02-06 
- * Sostituita a causa di DDL3621.htm (art.4 comma 3 assente)
- * in quel caso provoca un non corretto spostamento e unlink
- * dei figli che causa un seg.fault nella successiva addChild
- * in virgolette.c.
- */
 void MoveAllChildren(xmlNodePtr pFrom,xmlNodePtr pTo)
 {
 	xmlNodePtr cur = pFrom->children;	//FirstChild
@@ -292,7 +291,7 @@ void MoveAllChildren(xmlNodePtr pFrom,xmlNodePtr pTo)
 	if(cur == NULL) return;
 	
 	//Utilizzo una NodeList (addChild nodo per nodo aggiorna sempre il 
-	//puntatore al parent e questo non è corretto in caso di liste nodo/entità)
+	//puntatore al parent e questo non è corretto in caso di liste nodo-testo/nodo-entità)
 	xmlNodePtr nlist = xmlCopyNodeList(cur);
 	//Unlink e FreeNode a partire dall'ultimo nodo della lista:
 	while (cur != NULL) {

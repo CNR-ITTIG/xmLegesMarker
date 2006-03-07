@@ -13,7 +13,7 @@ extern "C" {
 #include <libxml/tree.h>
 
 void virgoletteInMod(xmlNodePtr pParentNode);
-int checkCommaMod(char *txt);
+int checkCommaMod(char *txt, xmlNodePtr corpo);
 
 #ifdef __cplusplus
 }

@@ -6,6 +6,26 @@
 
 static int IDMOD=0;
 
+//Aggiunta (03/03/06)
+//-->true se è presente almeno un nodo di tipo 'virgolette' in corpo
+int virgoletteInCorpo(xmlNodePtr corpo) {
+	if(corpo==NULL) return 0;
+	xmlNodePtr cur = corpo->children;
+
+	while(cur!=NULL) {
+		if(IsNode(cur, virgolette))
+			return 1;
+		cur=cur->next;	
+	}	
+	return 0;
+}
+
+/*
+ * <sostituzione> (03/03/06)
+ * --> true anche se non contiene nodi di tipo 'virgolette' solo
+ *  nei casi -abrogazione- e -soppressione-
+ */ 
+/*
 int checkCommaMod(char *txt) {
 	int ret = 0;
 	if (txt!=NULL){
@@ -19,7 +39,23 @@ int checkCommaMod(char *txt) {
 	}
 	return ret;
 }
+*/
+int checkCommaMod(char *txt, xmlNodePtr corpo) {
+	if (txt==NULL) return 0;
+	
+	//if (strstr(txt, "soppress") || strstr(txt, "abrogat") ) <-- "soppressione" solitamente non indica una mod...
+	if (strstr(txt, "soppresso") || strstr(txt, "soppressa") || strstr(txt, "abrogat") ||
+			strstr(txt, "soppressi") || strstr(txt, "soppresse") )
+		return 1;
+		
+	if ( (strstr(txt, "sostituit") || strstr(txt, "aggiunt") ||
+			strstr(txt, "modificat") ||	strstr(txt, "inserit") ) &&
+				virgoletteInCorpo(corpo) )
+		return 1;
 
+	return 0;
+}
+//</sostituzione>
 
 // NON RICORSIVA
 void Virgolette2Errore(xmlNodePtr pParentNode){
@@ -49,7 +85,7 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 	
 	int areInMod=0;
 	char *desc=(char *)xmlNodeListGetRawString(NULL,pNodoCorpo->children,1);
-	if(checkCommaMod(desc))
+	if(checkCommaMod(desc, pNodoCorpo))
 	{
 		IDMOD++;
 		xmlNodePtr newNodoMod=xmlNewNode(NULL, BAD_CAST tagTipoToNome(mod));
@@ -70,14 +106,19 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 			//se è presente una VIRGOLETTA
 			//nel caso in cui NON sia un comma di modifica sostituisce VIRGOLETTE con ERRORE
 			//Crea un nodo errore PRIMA
-			xmlNodePtr newNodoErrPre=xmlNewNode(NULL, BAD_CAST tagTipoToNome(tagerrore));
-			xmlAddChild(newNodoErrPre,xmlNewText("--- Partizione con virgolette: controllare se modificativa ---"));
+
+			//Messaggio di verifica temporaneamente tolto:
+			//xmlNodePtr newNodoErrPre=xmlNewNode(NULL, BAD_CAST tagTipoToNome(tagerrore));
+			//xmlAddChild(newNodoErrPre,xmlNewText("--- Partizione con virgolette: controllare se modificativa ---"));
 			
 			//xmlNodePtr newNodoErrAfter=xmlNewNode(NULL, BAD_CAST tagTipoToNome(tagerrore));
 			xmlChar *allText=xmlNodeListGetRawString(NULL,cur->children,1);
 			xmlNodePtr newNodoTxt=xmlNewText(allText);
 			xmlReplaceNode(cur,newNodoTxt);
-			xmlAddPrevSibling(newNodoTxt,newNodoErrPre);
+			
+			//Messaggio di verifica temporaneamente tolto:
+			//xmlAddPrevSibling(newNodoTxt,newNodoErrPre);
+			
 			//xmlAddNextSibling(newNodoTxt,newNodoErrAfter);
 			
 			cur=newNodoTxt;
