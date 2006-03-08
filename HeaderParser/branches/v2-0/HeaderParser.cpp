@@ -1395,24 +1395,31 @@ void HeaderParser::addFormatTagsDivPeriod(string text, xmlNodePtr startnode) con
 //(metti l'allineamento centrale e se il contenuto inizia con '(' e termina con ')' metti in grassetto.
 void addDivDecorations(xmlNodePtr parent) {
 	xmlNodePtr ptr1 = NULL, ptr2 = NULL;
-	string name = "", content = "", c1 = "", c2 = "";
+	string pname = "", name = "", content = "", c1 = "", c2 = "";
 	if(parent == NULL) return;
 	ptr1 = parent->children;
 	while(ptr1!=NULL) {
+		pname = (char *)ptr1->name;
 		ptr2 = ptr1->children;
 		while(ptr2!=NULL) {
 			name = (char *)ptr2->name;
 			xmlChar *xchar = xmlNodeGetContent(ptr2);
 			content = (char *)xchar;
 			if(xchar!=NULL && content.length()>0) {
-				c1=content.substr(content.find_first_not_of(" \n\t\r"),1);
-				c2=content.substr(content.find_last_not_of(" \n\t\r"),1);
-				if(name.compare("h:div")==0) {
-					xmlAttrPtr attr;
-					if(c1.compare("(")==0  && c2.compare(")")==0)
+				if(pname.compare("intestazione")==0) {
+					c1=content.substr(content.find_first_not_of(" \n\t\r"),1);
+					c2=content.substr(content.find_last_not_of(" \n\t\r"),1);
+					if(name.compare("h:div")==0) {
+						xmlAttrPtr attr;
+						if(c1.compare("(")==0  && c2.compare(")")==0)
+							attr = xmlNewProp(ptr2,BAD_CAST "style",BAD_CAST "text-align:center");
+						else
+							attr = xmlNewProp(ptr2,BAD_CAST "style",BAD_CAST "text-align:center; font:bold");
+				} else if(pname.compare("relazione")==0) {
+					if(content.compare("DISEGNO DI LEGGE") {
+						xmlAttrPtr attr;
 						attr = xmlNewProp(ptr2,BAD_CAST "style",BAD_CAST "text-align:center; font:bold");
-					else
-						attr = xmlNewProp(ptr2,BAD_CAST "style",BAD_CAST "text-align:center");
+					}
 				}
 			}
 			xmlFree(xchar);
