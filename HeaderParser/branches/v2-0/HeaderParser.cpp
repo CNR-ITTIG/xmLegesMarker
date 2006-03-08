@@ -1415,8 +1415,11 @@ void addDivDecorations(xmlNodePtr parent) {
 							attr = xmlNewProp(ptr2,BAD_CAST "style",BAD_CAST "text-align:center");
 						else
 							attr = xmlNewProp(ptr2,BAD_CAST "style",BAD_CAST "text-align:center; font:bold");
+					}
 				} else if(pname.compare("relazione")==0) {
-					if(content.compare("DISEGNO DI LEGGE") {
+					int first = content.find_first_not_of(" \n\r\t");
+					int last = content.find_last_not_of(" \n\t\r");
+					if(content.substr(first,last-first+1).compare("DISEGNO DI LEGGE") == 0) {
 						xmlAttrPtr attr;
 						attr = xmlNewProp(ptr2,BAD_CAST "style",BAD_CAST "text-align:center; font:bold");
 					}
