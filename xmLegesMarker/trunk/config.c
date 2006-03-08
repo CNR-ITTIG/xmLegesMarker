@@ -72,7 +72,9 @@ tipoInput _tipoInput = txt;
 int _configSequenzaCheck = 1;
 int _rubriche = 1;
 
-//MODULI
+int _disegni=0;
+
+//MODULI ==========================================================================
 
 void	configSetDisable(tipoModulo pmodulo)
 {
@@ -349,7 +351,7 @@ char *configGetDTDTipoStringa(void){
 		case base:		return _configDTDBaseMeta;
 		case completo:		return _configDTDCompletoMeta;
 		case flessibile:	return _configDTDFlessibileMeta;
-		default:		return "";
+		default:		return "";DdlTestate
 	}
 }
 */
@@ -388,6 +390,18 @@ char *configHeaderParserModels() {
 
 void configSetHeaderParserModels(char *models) {
 	strncpy(_configHeaderParserModels, models, MAXSTRINGA);
+}
+
+
+/******************************************************************************/
+/****************************************************** CONFIG DDL TESTATE ****/
+/******************************************************************************/
+int configDdlTestate() {
+	return _disegni;
+}
+
+void configSetDdlTestate(int numero) {
+	_disegni = numero;
 }
 
 

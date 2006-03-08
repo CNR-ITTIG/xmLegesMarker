@@ -29,8 +29,8 @@ OBJS = parser.o util.o tag.o config.o sequenze.o \
 	struttura.o \
 	tabelle.o tabelle.lex.yy.o\
 	xxx.o\
-	disposto.o disposto.lex.yy.o
-		
+	disposto.o disposto.lex.yy.o\
+	disegni.lex.yy.o		
 	
 	
 all: $(TARGETBIN)
@@ -64,6 +64,10 @@ pre.o: pre.c pre.h
 prehtml.lex.yy.o: prehtml.c prehtml.lex
 	flex $(LEXFLAGS) -Pprehtml -oprehtml.lex.yy.c prehtml.lex
 	$(CC) -c $(CFLAGS) prehtml.lex.yy.c
+
+disegni.lex.yy.o: disegni.lex disegni.h
+	flex $(LEXFLAGS) -Pddl -odisegni.lex.yy.c disegni.lex
+	$(CC) -c $(CFLAGS) disegni.lex.yy.c
 
 disposto.lex.yy.o: disposto.lex disposto.h
 	flex $(LEXFLAGS) -Pdis -odisposto.lex.yy.c disposto.lex

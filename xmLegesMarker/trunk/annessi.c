@@ -2,6 +2,7 @@
 
 #include "annessi.h"
 #include "struttura.h"
+#include "disegni.h"
 
 //extern int flagAnnessi;
 
@@ -21,6 +22,10 @@ const void AnnessiAnalizza( char *testo, xmlNodePtr pParentNode, tagTipo pTipoPa
 		//Inserisce il nodo mNodoAnnessi nello stato "annessi", inoltre passa al buffer di testo 
 		//l'intero documento
 		xxxInit(annessi,mNodoAnnessi,testo);
+
+		// conta testate di disegni di legge
+		if(configGetDocTestoTipo() == disegnolegge)
+			_disegniLexStart(testo);
 
 		//Chiamata alla funzione LEX
 		NumeroAnnessi = _annessiLexStart(testo);

@@ -21,6 +21,8 @@ int firstSave;
 int isArticolato;
 int co,cr;
 int tipoRubriche = 1;
+int numdis=0;
+int numtes=0;
 
 /******************************************************************* CHECK ****/
 int check(tagTipo tipo) {
@@ -158,6 +160,8 @@ NL	(\n)
 FR	({S}*{NL})
 DECORAZ	([(]{S}*[lr]({S}*-?[lr])?{S}*[)]{S}*[(]*(not)*(a|e)*{S}*[)]*)
 
+DISEGNO		((disegno|progetto|proposta){S}+di{S}+legge)
+
 TESTOLIBRO	(libro)
 TESTOPARTE	(parte)
 TESTOTITOLO	(titolo)
@@ -231,10 +235,21 @@ ROMANO		([ivxl]+{S}*)
 %s InNumero
 %s InNota
 %x InVirgolette InVirgoDoppie
+%x Disegno
 
 %option stack
 
 %%
+
+<Disegno>^({S}*{DISEGNO}{S}*)$	{
+											numdis++;
+											if (numdis==numtes)	BEGIN(0);
+											artpos+=artleng;
+											}
+
+<Disegno>[a-z]{0,1000}	artpos+=artleng;
+<Disegno>.|{NL}			artpos+=artleng;
+
 
 ^{LIBRO}/{NL}	{
 		if (!checkRomano(libro))
@@ -636,7 +651,6 @@ ROMANO		([ivxl]+{S}*)
 	artpos+=artleng;
 }
 
-
 #{0,1000}		artpos+=artleng;
 [a-z]{0,1000}	artpos+=artleng;
 .|{NL}			artpos+=artleng;
@@ -653,6 +667,12 @@ int artwrap() {
 int _ArticolatoLexStart(  char * buf)
 {
 	BEGIN(0);
+	if(configGetDocTestoTipo() == disegnolegge)
+		{
+		numtes=configDdlTestate();
+		if (numtes)	BEGIN(Disegno);
+		else				BEGIN(0);
+		}
 
 	numConv=0;
 	latConv=0;

@@ -15,6 +15,7 @@ long ann_pos=0;
 int firstAnnesso=0;
 int LastIDAnnesso=0;
 int disegno=0;
+int testate=0;
 
 void annIncPos(void){
 	ann_pos+=annleng;
@@ -78,28 +79,19 @@ TUTTINUMERI	({NUM}|{ROMANO}|{LATINO}|{ORD})
 
 %s InCorpoAllegato
 %s InTestaAllegato
-%s InTestaDisegno
 
 %%
 
-^({S}*{DISEGNO}{S}*)	{   // disegno di legge
+^({S}*{DISEGNO}{S}*)$	{   // disegno di legge
 						if(configGetDocTestoTipo() != disegnolegge)
 							REJECT;
-						BEGIN(InTestaDisegno);
-						MaybeAllegato();
+						disegno++;
 						annIncPos();
 					}
 
-<InTestaDisegno>{NL}			{ 
-						disegno++;
-						BEGIN(0);
-						MaybeEndOfAllegato();
-						annIncPos();
-					}
-							
 ^({S}*{ALLEGATO}{S}*)	{   // NL c'è per forza alla fine???
 						
-						if(configGetDocTestoTipo() == disegnolegge && disegno < 2)
+						if(configGetDocTestoTipo() == disegnolegge && disegno < testate)
 							REJECT;
 						BEGIN(InTestaAllegato);
 						MaybeAllegato();
@@ -146,6 +138,7 @@ int annwrap()
 //Restituisce il numero di annessi trovati
 int  _annessiLexStart(char *testo)
 {
+	testate=configDdlTestate();
 	BEGIN(0);
 	yy_init = 1;
 	ann_pos=0;

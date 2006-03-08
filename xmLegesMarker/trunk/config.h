@@ -106,6 +106,10 @@ char *configGetDocTestoString(void);
 void configSetDocNome(char *docNome);
 char *configGetDocNome(void);
 
+//Testate DDL
+int  configDdlTestate(void);
+void configSetDdlTestate(int numero);
+
 //Struttura del documento
 void configSetDocStruttura(tipoStruttura t);
 tipoStruttura configGetDocStruttura(void);
