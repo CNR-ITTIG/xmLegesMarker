@@ -22,9 +22,9 @@ CANC	([[/])
 
 VIRGO	(["])
 				/* virgolette sx: win e utf-8 */
-VIRG2A	([«\x93]|\xe0\x80\x9c)
+VIRG2A	([«\x93]|\xe0\x80\x9c|\xab)
 				/* virgolette dx: win e utf-8 */
-VIRG2C	([»\x94]|\xe0\x80\x9d)
+VIRG2C	([»\x94]|\xe0\x80\x9d\xbb)
 
 %x virgo virg2
 

@@ -208,9 +208,9 @@ PVACAPO		([;]{FR})
 
 VIRGO		(["])
 /* 						virgolette sx: win e utf-8 */
-VIRG2A		([«\x93]|\xe0\x80\x9c|<<)	
+VIRG2A		([«\x93]|\xe0\x80\x9c|<<\xab)	
 /* 						virgolette dx: win e utf-8 */
-VIRG2C		([»\x94]|\xe0\x80\x9d|>>)	
+VIRG2C		([»\x94]|\xe0\x80\x9d|>>|\xbb)	
 
 NOTAVVTESTO1	(n{S}*o{S}*t{S}*[ea])
 NOTAVVTESTO2	(a{S}*v{S}*v{S}*e{S}*r{S}*t{S}*e{S}*n{S}*z{S}*[ea])
@@ -591,9 +591,6 @@ ROMANO		([ivxl]+{S}*)
 }
 
 
-
-
-
 <InComma,InLettera,InNumero>{VIRGO}		{
 		artpos += artleng;
 		sequenzaInc(virgolette);	//Incrementa l'ID Vir
@@ -642,10 +639,11 @@ ROMANO		([ivxl]+{S}*)
 
 <InVirgolette,InVirgoDoppie>{NL}		{
 	
-	xxxTagInsertEmpty(virgolette,h_br,artpos);
-	
+	if(configGetDocTestoTipo() != disegnolegge)    //La dtd dei DDL non permette 'h:br' all'interno di 'virgolette'
+		xxxTagInsertEmpty(virgolette,h_br,artpos);	
 	artpos+=artleng;
 }
+
 
 <InVirgolette,InVirgoDoppie>.			{
 	artpos+=artleng;

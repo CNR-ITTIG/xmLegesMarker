@@ -14,6 +14,7 @@ extern "C" {
 	#include <stdio.h>
 	#include "tag.h"
 	#include "util.h"
+	#include "config.h"
 
 	//Funzioni di Azione sul vettore "State"
 	void		xxxClearStateFrom(tagTipo ptag);

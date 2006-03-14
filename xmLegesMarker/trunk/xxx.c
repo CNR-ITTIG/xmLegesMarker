@@ -5,6 +5,41 @@ int			xxxTextBufferIndex;
 xmlNodePtr	mRoot;// = NULL;
 xmlNodePtr	mcurrTagState[TAGTIPODIM];
 
+//Aggiunta: ritorna l'ultimo nodo di una lista di "sibling"
+xmlNodePtr getLastSibling(xmlNodePtr node) {
+	xmlNodePtr tmp = node->next;
+	while(tmp!=NULL) {
+		node = tmp;
+		tmp = tmp->next;
+	}
+	return node;
+}
+//Aggiunta: aggiunge un nodo (una lista di nodi) nella lista 'children' di pnode
+//Nel caso di testi html aggancia il nodo "manualmente" (non usare xmlAddChild, xmlAddSibling, ecc...)
+void addSibling(xmlNodePtr pnode, xmlNodePtr cnode) {
+	
+	if(configTipoInput()!=html) {
+		xmlAddChild(pnode, cnode);
+		return;
+	}
+
+	if(pnode->children!=NULL) {
+		xmlNodePtr last = getLastSibling(pnode->children);
+
+		//xmlAddSibling(last, cnode);	// <-- NON FUNZIONA !!
+										// Se sotto 'virgolette' è già presente una lista testo/entità ed almeno
+										// un nodo 'h:br', la prossima lista nodo/entità non viene attaccata 
+										//correttamente: viene messo solo il primo nodo di testo!
+		last->next=cnode;		//<-- facendo "a mano" va tutto come dovrebbe!
+								//    (i nodi successivi nella lista sono già attaccati tramite next ma usando
+								//    xmlAddSibling vengono ignorati. (Approfondire...)
+	}
+	else
+		xmlAddChild(pnode, cnode);	// <-- xmlAddChild : se era già presente una lista nodo/entità
+									//     in pnode->children allora cnode viene attaccato non alla fine della
+									//     lista ma dopo il primo nodo (di testo?)  -- (Approfondire...)
+}
+
 xmlNodePtr	xxxGetLastTag(tagTipo ptag)
 {
 	return mcurrTagState[(int)ptag];
@@ -121,7 +156,7 @@ xmlNodePtr xxxGetLastChild(void)
 // Se vi è del testo non assegnato, viene aggiunto all'ultimo TAG (quello con enumerazione + alta)
 void xxxClose(void)
 {
-	xmlNodePtr mtext;
+	//xmlNodePtr mtext;
 	
 	int slen=0;
 	char *strbuff;
@@ -138,7 +173,8 @@ void xxxClose(void)
 		//xmlAddChild(lastChild,mtext);
 		
 		//Attacca una lista testo/entità piuttosto che un nodo di testo:
-		xmlAddChild(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
+		//xmlAddChild(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff)); //<--sostituita ma non dava problemi
+		addSibling(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
 	}
 }
 
@@ -163,7 +199,11 @@ void xxxAppendTextToLastNode(int pIndex)
 		//xmlAddChild(lastChild,mtext);
 		
 		//Attacca una lista testo/entità piuttosto che un nodo di testo:
-		xmlAddChild(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
+		//printf("\nVirgolette:%s\n",strbuff);
+		
+		//xmlAddChild(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
+		
+		addSibling(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));  //<--attacca la lista "a mano"...
 		
 		free(strbuff);
 	}
@@ -173,9 +213,10 @@ void xxxAppendTextToLastNode(int pIndex)
 //Tutto il testo non assegnato fino a PINDEX viene aggiunto "all'Ultimo" nodo
 xmlNodePtr xxxTagOpen(tagTipo ptag,int pindex,int plen)
 {
-	xmlNodePtr mtext;
+	//xmlNodePtr mtext;
 	xmlNodePtr currnode;
 	xmlNodePtr mparent=xxxGetLastNodeParent(ptag);
+	//xmlNodePtr mchildren=NULL;
 	char *strbuff;
 	int n;
 
@@ -188,9 +229,19 @@ xmlNodePtr xxxTagOpen(tagTipo ptag,int pindex,int plen)
 		//mtext=xmlNewText(BAD_CAST strbuff);
 		//xmlAddChild(lastChild,mtext);
 		
-		xmlNodePtr nlist = xmlStringGetNodeList(NULL, BAD_CAST strbuff);
+		//xmlNodePtr nlist = xmlStringGetNodeList(NULL, BAD_CAST strbuff);
 		//Attacca una lista testo/entità piuttosto che un nodo di testo:
-		xmlAddChild(lastChild, nlist);
+		//xmlAddChild(lastChild, nlist);
+		//xmlNewChild(lastChild,NULL, nlist, BAD_CAST strbuff);
+
+		/*
+		if(lastChild->children!=NULL)
+			xmlAddSibling(lastChild->children, nlist);
+		else
+			xmlAddChild(lastChild, nlist);
+		*/
+		addSibling(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
+		//xmlAddChild(lastChild, nlist);
 	}
 
 	//elimina dallo STATOBUFFER tutti i nodi con enumerazione maggiore
@@ -199,8 +250,21 @@ xmlNodePtr xxxTagOpen(tagTipo ptag,int pindex,int plen)
 	}
 	
 	//creazione del nodo di tipo PTAG
+	
 	currnode = xmlNewNode(NULL, BAD_CAST tagTipoToNome(ptag));
-	xmlAddChild(mparent, currnode);
+	//mchildren = mparent->children;
+
+	if(ptag == virgolette)
+		addSibling(mparent,currnode);
+	else
+		xmlAddChild(mparent, currnode);  //<-- problema: se c'è una lista nodo/entità
+										//le virgolette non sono messe alla fine della lista
+										//ma subito dopo il primo nodo di testo
+	
+	
+	//xmlNewChild(mparent, NULL, BAD_CAST tagTipoToNome(ptag), NULL);
+	//currnode = xmlGetLastChild(mparent);
+	
 	xxxTextBufferIndex=pindex;
 
 	if(plen>0) {
@@ -233,7 +297,17 @@ void xxxTagInsertEmpty(tagTipo tparent,tagTipo tcur,int pindex)
 		xxxAppendTextToLastNode(pindex);
 
 		xmlNodePtr ncur = xmlNewNode(NULL, BAD_CAST tagTipoToNome(tcur));
-		xmlAddChild(p,ncur);
+		//xmlAddChild(p,ncur);
+		
+		/*
+		if(p->children!=NULL)
+			xmlAddSibling(p->children, ncur);
+		else
+			xmlAddChild(p,ncur);
+		*/
+		addSibling(p,ncur);
+		//xmlAddChild(p,ncur);
+		
 	}
 }
 

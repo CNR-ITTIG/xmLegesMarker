@@ -22,7 +22,7 @@ int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 		//non si può tirare fuori il contenuto del tag -errore- con la semplice xmlNodeGetContent(),
 		//in particolare quando si utilizzano testi in html (ricchi di entità).
 		
-		//Problema: a volta pTextNode è un nodo di testo, altre è un nodo di nome "error"
+		//Problema: a volte pTextNode è un nodo di testo, altre è un nodo di nome "error"
 		//che ha come figlio il nodo (o la lista di nodi) di testo:
 		//tmptxt=(char *)xmlNodeGetContent(pTextNode);NodePtr
 		//string nname = (char *)pTextNode->name;
