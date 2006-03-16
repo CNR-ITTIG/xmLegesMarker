@@ -14,6 +14,7 @@ xmlNodePtr getLastSibling(xmlNodePtr node) {
 	}
 	return node;
 }
+
 //Aggiunta: aggiunge un nodo (una lista di nodi) nella lista 'children' di pnode
 //Nel caso di testi html aggancia il nodo "manualmente" (non usare xmlAddChild, xmlAddSibling, ecc...)
 void addSibling(xmlNodePtr pnode, xmlNodePtr cnode) {
@@ -173,7 +174,7 @@ void xxxClose(void)
 		//xmlAddChild(lastChild,mtext);
 		
 		//Attacca una lista testo/entità piuttosto che un nodo di testo:
-		//xmlAddChild(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff)); //<--sostituita ma non dava problemi
+		//xmlAddChild(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
 		addSibling(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
 	}
 }
@@ -195,14 +196,11 @@ void xxxAppendTextToLastNode(int pIndex)
 	char *strbuff=xxxExtractStringBeforeIndex(pIndex);
 	if (strbuff)
 	{
-		//xmlNodePtr	mtext=xmlNewText(BAD_CAST strbuff);
+		//xmlNodePtr mtext=xmlNewText(BAD_CAST strbuff);
 		//xmlAddChild(lastChild,mtext);
 		
 		//Attacca una lista testo/entità piuttosto che un nodo di testo:
-		//printf("\nVirgolette:%s\n",strbuff);
-		
 		//xmlAddChild(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
-		
 		addSibling(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));  //<--attacca la lista "a mano"...
 		
 		free(strbuff);
@@ -216,7 +214,6 @@ xmlNodePtr xxxTagOpen(tagTipo ptag,int pindex,int plen)
 	//xmlNodePtr mtext;
 	xmlNodePtr currnode;
 	xmlNodePtr mparent=xxxGetLastNodeParent(ptag);
-	//xmlNodePtr mchildren=NULL;
 	char *strbuff;
 	int n;
 
@@ -233,15 +230,7 @@ xmlNodePtr xxxTagOpen(tagTipo ptag,int pindex,int plen)
 		//Attacca una lista testo/entità piuttosto che un nodo di testo:
 		//xmlAddChild(lastChild, nlist);
 		//xmlNewChild(lastChild,NULL, nlist, BAD_CAST strbuff);
-
-		/*
-		if(lastChild->children!=NULL)
-			xmlAddSibling(lastChild->children, nlist);
-		else
-			xmlAddChild(lastChild, nlist);
-		*/
 		addSibling(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
-		//xmlAddChild(lastChild, nlist);
 	}
 
 	//elimina dallo STATOBUFFER tutti i nodi con enumerazione maggiore
@@ -250,9 +239,7 @@ xmlNodePtr xxxTagOpen(tagTipo ptag,int pindex,int plen)
 	}
 	
 	//creazione del nodo di tipo PTAG
-	
 	currnode = xmlNewNode(NULL, BAD_CAST tagTipoToNome(ptag));
-	//mchildren = mparent->children;
 
 	if(ptag == virgolette)
 		addSibling(mparent,currnode);
@@ -278,9 +265,8 @@ xmlNodePtr xxxTagOpen(tagTipo ptag,int pindex,int plen)
 		xmlAddChild(currnode, xmlStringGetNodeList(NULL, BAD_CAST t));
 
 		xxxTextBufferIndex=pindex + plen;
-
-	} else {
 		
+	} else {		
 		xxxSetCurrentTagState(ptag,currnode);
 	}
 	free(strbuff);
@@ -297,17 +283,9 @@ void xxxTagInsertEmpty(tagTipo tparent,tagTipo tcur,int pindex)
 		xxxAppendTextToLastNode(pindex);
 
 		xmlNodePtr ncur = xmlNewNode(NULL, BAD_CAST tagTipoToNome(tcur));
+
 		//xmlAddChild(p,ncur);
-		
-		/*
-		if(p->children!=NULL)
-			xmlAddSibling(p->children, ncur);
-		else
-			xmlAddChild(p,ncur);
-		*/
 		addSibling(p,ncur);
-		//xmlAddChild(p,ncur);
-		
 	}
 }
 

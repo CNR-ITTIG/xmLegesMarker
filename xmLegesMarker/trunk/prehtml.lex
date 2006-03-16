@@ -76,7 +76,8 @@ TAGDEL	(head|form|script|style)
 &nbsp;			prehtmlAppendChars(1, ' ');		// convertito spazio non divisibile
 
 &[a-z]+;		prehtmlAppendString(strdup(prehtmltext));	// lasciate entità simboliche
-&#128;			prehtmlAppendChars(1, '\x80');				//mapping dei caratteri "windows"
+
+&#128;			prehtmlAppendChars(1, '\x80');		//mapping dei caratteri "windows"
 &#129;			prehtmlAppendChars(1, '\x81');
 &#130;			prehtmlAppendChars(1, '\x82');
 &#131;			prehtmlAppendChars(1, '\x83');
@@ -108,9 +109,11 @@ TAGDEL	(head|form|script|style)
 &#157;			prehtmlAppendChars(1, '\x9D');
 &#158;			prehtmlAppendChars(1, '\x9E');
 &#159;			prehtmlAppendChars(1, '\x9F');
+
 &#171;			prehtmlAppendChars(1, '\xAB');		//#LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
 &#187;			prehtmlAppendChars(1, '\xBB');		//#RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
-&#[0-9]+;		prehtmlAppendString(strdup(prehtmltext));	// lasciate entità numeriche
+
+&#[0-9]+;		prehtmlAppendString(strdup(prehtmltext));	// lasciate entità numeriche  //(..se ne rimangono..)
 
 
 &			norAppendString("&#38;");		// & che non delimita un'entità
