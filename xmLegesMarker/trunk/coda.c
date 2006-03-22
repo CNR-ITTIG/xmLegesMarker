@@ -17,7 +17,8 @@
 /******************************************************************** CODA ****/
 /******************************************************************************/
 
-int coda( int pnotes,xmlNodePtr ptipodoc, xmlNodePtr pCorpo,xmlNodePtr pmeta,xmlNodePtr pdescrittori,xmlNodePtr pformulafinale,xmlNodePtr pconclusione) {
+int coda( int pnotes,xmlNodePtr ptipodoc, xmlNodePtr pCorpo,xmlNodePtr pmeta,xmlNodePtr pdescrittori,
+			xmlNodePtr pformulafinale,xmlNodePtr pconclusione, int tdoc) {
 	
 	loggerInfo("INIZIO Coda");
 	
@@ -30,11 +31,13 @@ int coda( int pnotes,xmlNodePtr ptipodoc, xmlNodePtr pCorpo,xmlNodePtr pmeta,xml
 	parser.setRootNode(ptipodoc);
 
 	//Aggiunta
+	/*
 	int tdoc = 0; //variabile che tiene conto del tipo di documento
 	if(configGetDocTestoTipo() == disegnolegge)
 		tdoc=1;
 	if(configGetDocTestoTipo() == provCNR)
 		tdoc=2;
+	*/
 		
 	pnotes=parser.parseFooter(pCorpo, pmeta, pdescrittori, pformulafinale, pconclusione, tdoc, pnotes);
 	loggerInfo("FINE Coda");

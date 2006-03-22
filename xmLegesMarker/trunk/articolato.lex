@@ -195,6 +195,8 @@ LETTERA1	({FR}*{S}*(a){PS}?{LATINO}?[).])
 LETTERA		({FR}*{S}*{LET}{PS}?{LATINO}?[).])
 NUMERO1		({FR}*{S}*(1|0){PS}?{LATINO}?[).])
 NUMERO		({FR}*{S}*{NUM}{PS}?{LATINO}?[).])
+PUNTATASIM	(\-|\*|\x95|\x96|\x97|\xAD)
+PUNTATA		({FR}*{S}*{PUNTATASIM}{PS}?)
 
 ARTICOLORUB	({S}*{NUMARTICOLO}{S}*{DECORAZ}?)
 ARTICOLOAGO	({S}*{NUM}{PS}?{LATINO}?{PS}?{S}*{DECORAZ}?)
@@ -202,9 +204,9 @@ GINO	 	({S}*[.]?{S}*\(.*\)\.?({S}*-)?)
 RUBRICASEP	([ \-(])
 RUBRICA 	({S}*[^10].*{FR})
 
-PTACAPO		([.]{S}*{DECORAZ}*{FR})
+PTACAPO		(([.]{S}*{DECORAZ}*{FR})|({FR}{FR}))
 DUEPTACAPO	([:]{FR})
-PVACAPO		([;]{FR})
+PVACAPO		(([;]{FR})|({FR}{FR}))
 
 VIRGO		(["])
 /* 						virgolette sx: win e utf-8 */
@@ -233,6 +235,7 @@ ROMANO		([ivxl]+{S}*)
 %s InPreLetNum
 %s InLettera InLetteraAlinea
 %s InNumero
+%s InPuntata
 %s InNota
 %x InVirgolette InVirgoDoppie
 %x Disegno
@@ -242,10 +245,13 @@ ROMANO		([ivxl]+{S}*)
 %%
 
 <Disegno>^({S}*{DISEGNO}{S}*)$	{
-											numdis++;
-											if (numdis==numtes)	BEGIN(0);
-											artpos+=artleng;
-											}
+									numdis++;
+									if (numdis==numtes) {
+										BEGIN(0);
+										//configSetDdlTestate(0); //Altrimenti disturba eventuali allegati...
+									}
+									artpos+=artleng;
+								}
 
 <Disegno>[a-z]{0,1000}	artpos+=artleng;
 <Disegno>.|{NL}			artpos+=artleng;
@@ -499,8 +505,6 @@ ROMANO		([ivxl]+{S}*)
 
 
 
-
-
 <InComma>{DUEPTACAPO}	{
 	artpos += artleng;
 	//puts("InCommaAlinea");
@@ -508,6 +512,13 @@ ROMANO		([ivxl]+{S}*)
 }
 
 
+<InCommaAlinea>^{PUNTATASIM}	{
+	if(configGetDTDTipo() != flessibile)
+		REJECT;
+	save(puntata);
+	yy_pop_state();
+	BEGIN(InPuntata);
+}
 
 <InCommaAlinea>^{LETTERA1}	{
 	if (!checkLettera(lettera))
@@ -550,15 +561,22 @@ ROMANO		([ivxl]+{S}*)
 	BEGIN(InNumero);
 }
 
+<InPreLetNum>{PUNTATASIM}		{
+	//if (!checkCardinale(numero))
+		//REJECT;
+	save(puntata);
+	yy_pop_state();
+	BEGIN(InPuntata);
+}
 
-<InComma,InLettera,InNumero>{PTACAPO}	{
+<InComma,InLettera,InNumero,InPuntata>{PTACAPO}	{
 	artpos += artleng-1;
 	unput('\n');
 	//puts("PRE COMMA");
 	yy_push_state(InPreComma);
 }
 
-<InLettera,InNumero>{PVACAPO}|{NL}	{
+<InLettera,InNumero,InPuntata>{PVACAPO}|{NL}	{
 	artpos += artleng-1;
 	unput('\n');
 	//puts("IN PRELETNUM");
@@ -665,11 +683,12 @@ int artwrap() {
 int _ArticolatoLexStart(  char * buf)
 {
 	BEGIN(0);
-	if(configGetDocTestoTipo() == disegnolegge)
-		{
+	if(configGetDocTestoTipo() == disegnolegge)	{
 		numtes=configDdlTestate();
-		if (numtes)	BEGIN(Disegno);
-		else				BEGIN(0);
+		if (numtes)	
+			BEGIN(Disegno);
+		else
+			BEGIN(0);
 		}
 
 	numConv=0;

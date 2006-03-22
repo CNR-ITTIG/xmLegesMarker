@@ -19,6 +19,7 @@ char *tagTipoToNome(tagTipo t) {
 		case comma:			return "comma";
 		case lettera:		return "el";
 		case numero:		return "en";
+		case puntata:		return "ep";
 		case num:			return "num";
 		case corpo:			return "corpo";
 		case alinea:		return "alinea";

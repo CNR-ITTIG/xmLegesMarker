@@ -128,7 +128,7 @@ void AnnessiCicla(xmlNodePtr pNodoParent){
 
 					if (tmpbuff)
 					{
-						if (configGetDTDTipo() != base)
+						if (configGetDTDTipo() != base && configGetDTDTipo() != dl)
 						{
 							CurrStruttura=StrutturaAnalizza(tmpbuff, allegato); // *****tmp buff E' UTF-8!!!!!!
 							if (CurrStruttura!=NULL)
@@ -142,7 +142,7 @@ void AnnessiCicla(xmlNodePtr pNodoParent){
 						else						// base: non ammessi allegati
 						{
 							xmlNewChild(currAnnesso, NULL, BAD_CAST "rifesterno", NULL);
-							xmlAddPrevSibling(CurrErrorText, xmlNewText(BAD_CAST "===== DTD BASE: CORPO ALLEGATO NON AMMESSO =====\n\n")); 
+							xmlAddPrevSibling(CurrErrorText, xmlNewText(BAD_CAST "===== DTD BASE/DL: CORPO ALLEGATO NON AMMESSO =====\n\n")); 
 						}
 					}
 					free(tmpbuff);

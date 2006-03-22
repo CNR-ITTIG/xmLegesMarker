@@ -11,7 +11,8 @@
 int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 		  xmlNodePtr pdescrittori,
 		  xmlNodePtr pintestazione,
-		  xmlNodePtr pformulainiziale) {
+		  xmlNodePtr pformulainiziale,
+		  int tdoc) {
 
 	loggerInfo("INIZIO Testa");
 	
@@ -32,7 +33,7 @@ int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 			pTextNode = pTextNode->children;
 		
 		xmlChar  *xmltxt=NULL;
-		xmltxt=xmlNodeListGetString(NULL, pTextNode, 0); //0 lascia (per esempio) &agrave;
+		xmltxt=xmlNodeListGetString(NULL, pTextNode, 0);
 		tmptxt = (char *)xmltxt;
 		if(tmptxt == NULL)
 			tmptxt = "";
@@ -57,6 +58,7 @@ int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 		exit(-1);	
 	}
 
+	/*
 	//Aggiunta
 	int tdoc = 0; //variabile che tiene conto del tipo di documento
 	if(configGetDocTestoTipo() == disegnolegge)
@@ -64,7 +66,8 @@ int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 
 	if(configGetDocTestoTipo() == provCNR)
 		tdoc=2;
-
+	*/
+	
 	notes=parser.parseHeader(tmpstr, pmeta, pdescrittori, pintestazione, pformulainiziale, tdoc, notes);
 	
 	loggerInfo("FINE Testa");

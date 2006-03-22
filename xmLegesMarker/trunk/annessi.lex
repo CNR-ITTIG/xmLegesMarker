@@ -16,6 +16,7 @@ int firstAnnesso=0;
 int LastIDAnnesso=0;
 int disegno=0;
 int testate=0;
+int decretoDDL=0; //indica il caso decreto di legge allegato a un DDL
 
 void annIncPos(void){
 	ann_pos+=annleng;
@@ -42,7 +43,10 @@ void salva(void)
 	xxxTagOpen(preannesso,(ann_pos+annleng),0);
 	xxxTagOpen(h_p,(ann_pos+annleng),0);
 
-	xxxTagOpen(tagerrore,(ann_pos+annleng),0);
+	if(decretoDDL)
+		xxxTagOpen(tagerrore,ann_pos,0);
+	else
+		xxxTagOpen(tagerrore,(ann_pos+annleng),0);
 	loggerDebug("Allegato Trovato");
 }
 	
@@ -59,12 +63,14 @@ void MaybeEndOfAllegato(){
 
 S	([ ])
 NL	(\n)
+FR	({S}*{NL})
 TABELLA		(t{S}*a{S}*b{S}*e{S}*l{S}*l{S}*a)
 ANNESSO		(a{S}*n{S}*n{S}*e{S}*s{S}*s{S}*o)
 ALL		(a{S}*l{S}*l{S}*e{S}*g{S}*a{S}*t{S}*o)
 SUBALL		(s{S}*u{S}*b{S}*{ALL})
 ALLEGATO	({ALL}|{SUBALL}|{ANNESSO}|{TABELLA})
 DISEGNO		((disegno|progetto|proposta){S}+di{S}+legge)
+DECRETO		({NL}{S}*decreto[ \-]legge)
 
 NUM		([0-9]+)
 LAT09		(un|bis|duo|ter|quater|quinquies|sexies|septies|octies|novies)
@@ -89,12 +95,34 @@ TUTTINUMERI	({NUM}|{ROMANO}|{LATINO}|{ORD})
 						annIncPos();
 					}
 
+^({S}*{ALLEGATO}{S}*)$	{   //"ALLEGATO" (con new line)
+						
+						if(configGetDocTestoTipo() == disegnolegge && disegno < testate)
+							REJECT;
+						BEGIN(0);
+						MaybeAllegato();
+						salva();
+						annIncPos();
+					}
+
 ^({S}*{ALLEGATO}{S}*)	{   // NL c'è per forza alla fine???
 						
 						if(configGetDocTestoTipo() == disegnolegge && disegno < testate)
 							REJECT;
 						BEGIN(InTestaAllegato);
 						MaybeAllegato();
+						annIncPos();
+					}
+
+^({S}*{DECRETO}{S}*)	{   // DECRETO-LEGGE alla fine di un Disegno di Legge
+						if(configGetDocTestoTipo() != disegnolegge)
+							REJECT;
+						if(disegno < testate)
+							REJECT;
+						MaybeAllegato();
+						decretoDDL=1;
+						salva();
+						decretoDDL=0;
 						annIncPos();
 					}
 							

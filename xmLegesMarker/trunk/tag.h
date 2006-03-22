@@ -26,6 +26,7 @@ typedef enum ParserStruttura_tagTipo {
 	comma,
 	lettera,
 	numero,
+	puntata,
 	num,
 	corpo,
 	alinea,

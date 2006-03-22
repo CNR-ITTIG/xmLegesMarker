@@ -8,7 +8,8 @@
  int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 		  xmlNodePtr pdescrittori,
 		  xmlNodePtr pintestazione,
-		  xmlNodePtr pformulainiziale) ;
+		  xmlNodePtr pformulainiziale,
+		  int tdoc) ;
 
 
 #endif

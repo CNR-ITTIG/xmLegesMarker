@@ -309,6 +309,7 @@ void xxxSetIDtoNode(xmlNodePtr	pnodo, tagTipo ptag,int pnumConv,int platConv,cha
 void xxxSetID(tagTipo ptag,int numConv,int latConv)
 {
 	xmlNodePtr	nodo;
+	if(ptag == puntata) return;  //In caso di elemento 'ep' non deve essere settato l'attributo ID
 	nodo=mcurrTagState[(int)ptag];
 	
 	xxxSetIDtoNode(nodo,ptag,numConv,latConv,NULL);

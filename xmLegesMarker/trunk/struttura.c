@@ -81,7 +81,7 @@ void Corpo2Alinea(xmlNodePtr pParentNode){
 	
 	while (cur != NULL) {
 
-		if ( (IsNode(cur,lettera)) || (IsNode(cur,numero)) )	{
+		if ( (IsNode(cur,lettera)) || (IsNode(cur,numero)) || (IsNode(cur,puntata)) )	{
 			//Se il nodo corrente è una LETTERA/NUMERO
 			if (PrevNodoCorpo!=NULL) //Se il nodo precedente è un CORPO
 			{
@@ -136,8 +136,10 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 
 	//Aggiunta -- Si deve differenziare doc.generici, disegni di legge, prov.cnr, ecc...
 	int tdoc = 0; //variabile che tiene conto del tipo di documento
-	if(configGetDocTestoTipo() == disegnolegge)
+	if(configGetDocTestoTipo() == disegnolegge) // && ruolo == principale) //<- doc.non valido se DDL+DecretoLegge
 		tdoc=1;
+	if(configGetDocTestoTipo() == provCNR) // && ruolo == principale) //<- doc.non valido se DDL+DecretoLegge
+		tdoc=2;
 
 	// inserisco nodi di testa
 	nmeta = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "meta", NULL);
@@ -153,7 +155,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 	{
 		xmlAddChild(mNodoTipoDocumento,mNodoArticolato);	//<-- Aggancia il nodo dell'ARTICOLATO
 		// inserisco nodi di coda
-		//(se il doc. non è un disegno di lege...)
+		//(se il doc. non è un disegno di legge...)
 		if(tdoc!=1) {
 			nformulafinale = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "formulafinale", NULL);
 			nconclusione = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "conclusione", NULL);
@@ -164,7 +166,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		
 		mFirstErrorText=GetFirstTextNode(mFirstError);
 		
-		mnotes=testa(mFirstErrorText,mNodoTipoDocumento,nmeta,ndescrittori,nintestazione,nformulainiziale);
+		mnotes=testa(mFirstErrorText,mNodoTipoDocumento,nmeta,ndescrittori,nintestazione,nformulainiziale,tdoc);
 
 		//Sgancia il nodo TAGERRORE e lo libera
 		utilNodeDelete(mFirstError);
@@ -173,7 +175,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 
 		//Viene individuato il nodo TESTO (ultimo nodo) + a destra nell'albero
 		mFirstErrorText=GetLastRightTextNode(mNodoArticolato);
-		mnotes=coda(mnotes,mNodoTipoDocumento,mFirstErrorText,nmeta,ndescrittori,nformulafinale,nconclusione);
+		mnotes=coda(mnotes,mNodoTipoDocumento,mFirstErrorText,nmeta,ndescrittori,nformulafinale,nconclusione,tdoc);
 
 		nreda=GetFirstNodebyTagTipo(nmeta, BAD_CAST "redazionale");
 		if (nreda)
@@ -219,7 +221,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			sostStr(prima, "</h:p>","");
 			nnodo = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);	// prima in error
 			xmlAddChild(nnodo,xmlNewText(BAD_CAST prima));
-			mnotes=testa(nnodo,mNodoTipoDocumento,nmeta,ndescrittori,nintestazione,nformulainiziale);
+			mnotes=testa(nnodo,mNodoTipoDocumento,nmeta,ndescrittori,nintestazione,nformulainiziale,tdoc);
 			utilNodeDelete(nnodo);
 			// coda?
 		}	

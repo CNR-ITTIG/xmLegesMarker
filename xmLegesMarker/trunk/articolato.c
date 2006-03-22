@@ -24,7 +24,6 @@ xmlNodePtr ArticolatoAnalizza(  char *testo) {
 	if (flagAnn!=0)
 	{	
 		testoIso = utilConvTextToIso(testo);
-		
 		//Qui alla variabile globale xxxTextBuffer verrà assegnato il testo nel formato originario
 		xxxInit(articolato,mNodoArticolato,testoIso); 
 		ret=_ArticolatoLexStart(testoIso); //IL TESTO CHE VIENE PASSATO E' GIA' IN UTF-8!!!
