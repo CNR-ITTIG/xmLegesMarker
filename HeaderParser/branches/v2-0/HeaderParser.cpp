@@ -1,3 +1,12 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	HeaderParser
+* File:		HeaderParser.cpp
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Andrea Passerini
+* 			Lorenzo Bacci (lorenzobacci@gmail.com)
+******************************************************************************/
 #include "HeaderParser.h"
 #include <fstream>
 #include <assert.h>
@@ -263,6 +272,13 @@ int HeaderParser::parseHeader(std::string& header,
   bool found = false, pub_found = false;
   unsigned int last = 0, first = 0, offset = 0;
   int * states = NULL, * pub_states = NULL;
+
+	//printf("\nHeaderParser\ntdoc: %d\n", tdoc);
+	//printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
+	
+	//Replace "1°" (primo) with "1" (> and < ?)
+	delPrimo(header);
+	//printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
   
   // recover URN if present
   string urn = extractURN(header);
@@ -278,16 +294,11 @@ int HeaderParser::parseHeader(std::string& header,
     return notes;
   }
 
-//printf("\nHeaderParser\ntdoc: %d\n", tdoc);
-//for(int kk=0; kk < sequence.size(); kk++)
-	//printf("\n %d: sequence[]=%d", kk, sequence[kk]);
-//printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
-
 //Disegno di legge
 if(tdoc == 1) {
 	if(sequence.size() > 0) {
 		found = true;
-		//Aggiungi tag specifici
+		//Aggiungi tag specifici  <-- si dovrebbe controllare che non siano già presenti...
 		xmlNodePtr nApprovazione = xmlNewChild(descrittori, NULL, BAD_CAST "approvazione", NULL);
 		xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
 		xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
@@ -334,6 +345,7 @@ if(tdoc == 1) {
 if(tdoc == 2) {
 	int cnrfirst = 0;
 	int * cnr_states = 0;
+	bool cnrfound = false;
 	xmlNodePtr errorNode = intestazione; //per inserire il testo non rilevato nella giusta posizione
 
 	//Aggiungi tag 'proprietario' vuoti
@@ -385,9 +397,10 @@ if(tdoc == 2) {
 				//for(int kk=0; kk < cnr_sequence.size(); kk++) //
 					//printf("\n %d: cnr_sequence[]=%d   cnr_states[]=%d", kk, cnr_sequence[kk], cnr_states[kk]);
 			
-			if ((cnrfirst = getFirstMatchingState(cnr_states, cnr_sequence.size(), header_cnr_tags)) < sequence.size()){
+			if ((cnrfirst = getFirstMatchingState(cnr_states, cnr_sequence.size(), header_cnr_tags)) < cnr_sequence.size()){
+				cnrfound = true;
 		        last = saveTags(strbuffer, cnr_states, cnr_sequence.size(), offsets, offset, last, intestazione, header_cnr_tags, tdoc);
-				//printf("\n last:%d first:%d cnrlast:%d\n",last,first,cnrlast);
+				//printf("\n last:%d first:%d cnrfirst:%d\n",last,first,cnrfirst);
 				if(last < first-1) {
 					//si deve verificare se titoloDoc esiste già:
 					xmlNodePtr titolonode = findChild("titoloDoc", intestazione);
@@ -431,8 +444,9 @@ if(tdoc == 2) {
 	    delete[] states;
 	}
 	*/
-		
-	if(sequence.size() > 0 || found == false) { //Se non è stato rilevata l'intestazione viene messo tutto in error:
+
+	//Se non è stato rilevata l'intestazione viene messo tutto in error:
+	if(sequence.size() > 0 || found == false || cnrfound == false) { 
 		//printf("\n HeaderParser -- Testo non rilevato (error tag) -- offset:%d size:%d\n",offset,offsets.size());
 		// se rimane qualcosa mettilo in un tag errore
     	if (offset < offsets.size())
@@ -522,6 +536,9 @@ if(tdoc == 2) {
   //AGGIUNTA: addMissingMeta() qui? Esistono documenti senza footer...
   addMissingMeta(descrittori);
   
+  //Aggiunta: redazionale obbligatorio? (Problemi con le note se non è presente...)
+  addChildIfMissing("redazionale", NULL, meta);
+  
   // put remains in error tag
   //if (offset < offsets.size())
   //saveTag(sconosciuto, offsets[offset], strbuffer.length(), strbuffer, out); 
@@ -541,9 +558,13 @@ void  HeaderParser::defaultHeader(xmlNodePtr descrittori, xmlNodePtr intestazion
   xmlNewProp(pubblicazione, BAD_CAST "tipo", BAD_CAST "GU");
   xmlNewProp(pubblicazione, BAD_CAST "num", BAD_CAST "");
   xmlNewProp(pubblicazione, BAD_CAST "norm", BAD_CAST "");
+  xmlNodePtr entratavig = xmlNewChild(descrittori, NULL, BAD_CAST "entratainvigore", NULL);
+  xmlNewProp(entratavig, BAD_CAST "norm", BAD_CAST "");
+  xmlNodePtr redazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
+  xmlNewProp(redazione, BAD_CAST "nome", BAD_CAST "");
+  xmlNewProp(redazione, BAD_CAST "id", BAD_CAST "red1");
+  xmlNewProp(redazione, BAD_CAST "norm", BAD_CAST "");
   xmlNodePtr urn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", BAD_CAST "");
-  xmlNodePtr vigenza = xmlNewChild(descrittori, NULL, BAD_CAST "vigenza", NULL);
-  xmlNewProp(vigenza, BAD_CAST "id", BAD_CAST "v1");
   xmlNodePtr tipodoc = xmlNewChild(intestazione, NULL, BAD_CAST "tipoDoc", BAD_CAST "");
   xmlNodePtr datadoc = xmlNewChild(intestazione, NULL, BAD_CAST "dataDoc", BAD_CAST "");
   xmlNewProp(datadoc, BAD_CAST "norm", BAD_CAST "");  
@@ -642,7 +663,7 @@ unsigned int HeaderParser::saveTitle(const string& strbuffer,
   last = getLastMatchingState(states, statesnumber, tags);
   if( (statesnumber - last) > first ){ //significa che c'è testo prima e dopo la sequenza
   										//di pubblicazione e quello dopo è più lungo.
-  	//Soluzione temporanea per DL con testo redazionale più lungo del titolo:
+  	//Soluzione temporanea per DL con testo redazionale/pubblicazione più lungo del titolo:
 	  string longpub = strbuffer.substr(offsets[offset+last+1],offsets[offset+statesnumber]-offsets[offset+last+1]);
 	  int islongpub = longpub.find("e convertito in legge");
 	  if(islongpub == string::npos) {
@@ -763,8 +784,8 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
     states = new int[sequence.size()];
     footer_formulafinale_model.viterbiPath(sequence, states, sequence.size());
     
-   //for(int kk=0; kk < sequence.size(); kk++)
-	//	printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
+  //for(int kk=0; kk < sequence.size(); kk++)
+	//printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
     
     if (hasCorrectStates(states, sequence.size())){
       if (!found){
@@ -984,10 +1005,18 @@ void HeaderParser::addMissingMeta(xmlNodePtr descrittori) const
     xmlNewProp(pubblicazione, BAD_CAST "num", BAD_CAST "");
     xmlNewProp(pubblicazione, BAD_CAST "norm", BAD_CAST "");
   }
-  xmlNodePtr urn = addChildIfMissing("urn", &added, descrittori); 
-  xmlNodePtr vigenza = addChildIfMissing("vigenza", &added, descrittori, NULL); 
+  xmlNodePtr entratavig = addChildIfMissing("entratainvigore", &added, descrittori, NULL);   
   if(added)
-    xmlNewProp(vigenza, BAD_CAST "id", BAD_CAST "v1");
+	xmlNewProp(entratavig, BAD_CAST "norm", BAD_CAST "");
+  //xmlNodePtr vigenza = addChildIfMissing("vigenza", &added, descrittori, NULL); 
+  xmlNodePtr redazione = addChildIfMissing("redazione", &added, descrittori, NULL);   
+  if(added) {
+    //xmlNewProp(vigenza, BAD_CAST "id", BAD_CAST "v1");
+    xmlNewProp(redazione, BAD_CAST "nome", BAD_CAST "");
+    xmlNewProp(redazione, BAD_CAST "id", BAD_CAST "red1");
+    xmlNewProp(redazione, BAD_CAST "norm", BAD_CAST "");
+  }
+  xmlNodePtr urn = addChildIfMissing("urn", &added, descrittori); 
 }
 
 //TRUE se la sequenza non è completamente composta di stati -1 e 0
@@ -1181,6 +1210,15 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
 {
   if(errorTag(tagvalue)){
     xmlNodePtr errornode = xmlNewPI(BAD_CAST "error", BAD_CAST buffer.substr(start,end-start).c_str());
+
+	/*
+	//Il nodo PI vuole xmlChar come 'content' e non vuole figli, le entità non si "risolvono" nemmeno così:
+	xmlChar *errorText = xmlNodeListGetString(NULL, 
+					xmlStringGetNodeList(NULL, BAD_CAST buffer.substr(start,end-start).c_str()),0);
+	xmlNodePtr errornode = xmlNewPI(BAD_CAST "error", errorText);
+	xmlFree(errorText);
+	*/
+    
     if(prev_node != NULL)
 		xmlAddNextSibling(prev_node, errornode);
 	else if (subs_node != NULL)
@@ -1521,6 +1559,24 @@ void SqueezeWords(string& buf)
   }
 }
 
+//Replace "1°" (primo) with "1"
+void delPrimo(string& buf)
+{
+	int beg = 0;
+	while((beg = buf.find("1°",beg)) != string::npos)
+		buf.replace(beg,2,"1");
+	beg = 0;
+	while((beg = buf.find("1&#xB0;",beg)) != string::npos)
+		buf.replace(beg,7,"1");
+
+	beg = 0;
+	while((beg = buf.find("<",beg)) != string::npos)
+		buf.replace(beg,1,"&lt;");
+	beg = 0;
+	while((beg = buf.find(">",beg)) != string::npos)
+		buf.replace(beg,1,"&gt;");
+}
+
 bool HeaderParser::errorTag(int tagvalue) const
 {
   switch(HP_tagTipo(tagvalue)){
@@ -1665,14 +1721,17 @@ const char * HeaderParser::tagName(int tagvalue)
 }
 
 //Cerca di individuare il tipo di documento in base all'intestazione
-int HeaderParser::parseHeaderGetTipo(std::string& strbuffer, int notes)
+//int HeaderParser::parseHeaderGetTipo(std::string& strbuffer, int notes)
+void HeaderParser::parseHeaderGetTipo(std::string& strbuffer)
 {
 	SqueezeWords(strbuffer);
 	const char * buffer = strbuffer.c_str();
+	//printf("\nHeaderParserUNKNOWN\nbuffer: %s\n\n\n", buffer);
 	
 	vector<int> sequence, offsets;
 	if(!header_extractor.buildExample(sequence, offsets, buffer, strlen(buffer), 0))
-		return notes;
+		//return notes;
+		return;
 	
 	string tipodoc = "";
 	tipodoc = find_type(strbuffer, header_ddl_model, header_ddl_tags, sequence, offsets);
@@ -1683,17 +1742,17 @@ int HeaderParser::parseHeaderGetTipo(std::string& strbuffer, int notes)
 	}
 
 	//manda il tipo di doc. allo stdout  <-- No, deve essere scritto su un file...
-	//printf("%s\n",tipodoc.c_str()); 
 	FILE * fo = NULL;
 	
 	if (!(fo = fopen("temp/unknown_type.tmp", "w")))  // Nome file da concordare con xmLeges
 	{
 		fprintf(stderr, "Errore apertura file \"temp/unknown_type.tmp\" \n");
-		return notes;
+		//return notes;
+		return;
 	}
 	fprintf(fo, "%s", tipodoc.c_str());
 	fclose(fo); 
-	return notes;
+	//return notes;
 }
 
 //Analizza la sequenza con un modello particolare e restituisci il contenuto del tag 'tipoDoc'

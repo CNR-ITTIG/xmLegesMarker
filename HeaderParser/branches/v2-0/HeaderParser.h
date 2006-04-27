@@ -1,3 +1,12 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	HeaderParser
+* File:		HeaderParser.h
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Andrea Passerini
+* 			Lorenzo Bacci (lorenzobacci@gmail.com)
+******************************************************************************/
 #ifndef HEADERPARSER_H
 #define HEADERPARSER_H
 
@@ -90,6 +99,7 @@ void copyElements(const vector<int>& src,
 		  unsigned int start, 
 		  unsigned int end);
 void SqueezeWords(string& buf);
+void delPrimo(string& buf);
 std::string trimEnd(const std::string& buf, unsigned int * trimmed);
 std::string extractURN(std::string& strbuffer);
 
@@ -147,7 +157,7 @@ class HeaderParser
 		  xmlNodePtr conclusione,
 		  int tdoc,
 		  int notes); 
-  int parseHeaderGetTipo(std::string& header, int notes);
+  void parseHeaderGetTipo(std::string& header);
   std::string find_type(std::string strbuffer,
 		HMM &model,
 		hash_map<int,pair<int,int> > &tags,		
