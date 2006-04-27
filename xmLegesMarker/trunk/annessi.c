@@ -1,3 +1,11 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		annessi.c
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+******************************************************************************/
 #include <stdio.h>
 
 #include "annessi.h"
@@ -21,7 +29,7 @@ const void AnnessiAnalizza( char *testo, xmlNodePtr pParentNode, tagTipo pTipoPa
 
 		//Inserisce il nodo mNodoAnnessi nello stato "annessi", inoltre passa al buffer di testo 
 		//l'intero documento
-		xxxInit(annessi,mNodoAnnessi,testo);
+		domInit(annessi,mNodoAnnessi,testo);
 
 		// conta testate di disegni di legge
 		if(configGetDocTestoTipo() == disegnolegge)
@@ -32,7 +40,7 @@ const void AnnessiAnalizza( char *testo, xmlNodePtr pParentNode, tagTipo pTipoPa
 
 		utilPercNumBlockSet(NumeroAnnessi);
 
-		xxxClose();
+		domClose();
 		loggerInfo("FINE Annessi");
 	}
 	else

@@ -1,3 +1,11 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		sequenze.c
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+******************************************************************************/
 #include <math.h>
 #include <stdio.h>
 

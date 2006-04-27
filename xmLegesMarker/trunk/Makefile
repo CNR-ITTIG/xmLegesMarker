@@ -28,7 +28,7 @@ OBJS = parser.o util.o tag.o config.o sequenze.o \
 	articolato.o articolato.lex.yy.o \
 	struttura.o \
 	tabelle.o tabelle.lex.yy.o\
-	xxx.o\
+	dom.o\
 	disposto.o disposto.lex.yy.o\
 	disegni.lex.yy.o		
 	
@@ -51,8 +51,8 @@ annessi.lex.yy.o: annessi.lex
 annessi.o: annessi.c annessi.h
 	$(CXX) -c $(CFLAGS) annessi.c
 	
-xxx.o: xxx.c xxx.h
-	$(CC) -c $(CFLAGS) xxx.c
+dom.o: dom.c dom.h
+	$(CC) -c $(CFLAGS) dom.c
 
 pre.lex.yy.o: pre.c pre.lex
 	flex $(LEXFLAGS) -Ppre -opre.lex.yy.c pre.lex

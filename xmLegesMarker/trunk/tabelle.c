@@ -1,3 +1,11 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		tabelle.c
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+******************************************************************************/
 #include <stdio.h>
 #include "tabelle.h"
 
@@ -25,18 +33,18 @@ xmlNodePtr TabelleAnalizza(  char *buffer)
 		{
 			testoIso = utilConvTextToIso(buffer);
 
-			//Qui alla variabile globale xxxTextBuffer verrà assegnato il testo nel formato originario
-			xxxInit(contenitore, nodoContenitore, testoIso); // passo il testo convertito in iso
+			//Qui alla variabile globale domTextBuffer verrà assegnato il testo nel formato originario
+			domInit(contenitore, nodoContenitore, testoIso); // passo il testo convertito in iso
 			tablefound=_tabLexStart(testoIso); 
 
 		}
 		else
 		{
-			xxxInit(contenitore, nodoContenitore,buffer); // non c'è bisogno di convertire il testo 
+			domInit(contenitore, nodoContenitore,buffer); // non c'è bisogno di convertire il testo 
 			tablefound=_tabLexStart(buffer); // qui perchè è già in iso
 		}
 
-		xxxClose();
+		domClose();
 
 		if (!tablefound){
 			loggerDebug("Nessuna tabella individuata");

@@ -1,3 +1,12 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		articolato.lex
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+* 			Lorenzo Bacci (lorenzobacci@gmail.com)
+******************************************************************************/
 %{
 #include <string.h>
 #include <IttigUtil.h>
@@ -9,7 +18,7 @@
 #include "articolato.h"
 #include "tag.h"
 #include "util.h"
-#include "xxx.h"
+#include "dom.h"
 
 //tag *tagTmp = NULL;
 long artpos = 0;
@@ -73,21 +82,21 @@ void save(tagTipo tipo) {
 	
 	if (firstSave)
 	{
-		xxxTagOpen(tagerrore,0,0);
+		domTagOpen(tagerrore,0,0);
 		firstSave=0;
 	}
 
-		xxxTagOpen(tipo,artpos,0);
-		xxxSetID(tipo,numConv,latConv);
-		xxxTagOpen(num,artpos,artleng);
+		domTagOpen(tipo,artpos,0);
+		domSetID(tipo,numConv,latConv);
+		domTagOpen(num,artpos,artleng);
 
 	if (tipo <= articolo)
 	{
 		if (configGetRubriche()!=0)
-			xxxTagOpen(rubrica,artpos+artleng,0);
+			domTagOpen(rubrica,artpos+artleng,0);
 	}
 	else
-		xxxTagOpen(corpo,artpos+artleng,0);
+		domTagOpen(corpo,artpos+artleng,0);
 		
 	for (i=tipo+1; i<=numero; i++)
 		if (i != articolo)sequenzaInit(i);
@@ -124,10 +133,10 @@ void save(tagTipo tipo) {
 /*********************************************************** SAVE COMMA NN ****/
 void saveCommaNN() {
 	loggerDebug("INIZIO saveCommaNN");
-	xxxTagOpen(comma,artpos,0);
-	xxxSetID(comma,commiNN,-1);
-	xxxTagOpen(num,artpos,artleng);
-	xxxTagOpen(corpo,artpos+artleng,0);
+	domTagOpen(comma,artpos,0);
+	domSetID(comma,commiNN,-1);
+	domTagOpen(num,artpos,artleng);
+	domTagOpen(corpo,artpos+artleng,0);
 
 //	tagAppendi(tagInit(comma, artpos, -1, commiNN, -1, -1));
 //	tagAppendi(tagInit(num, artpos, artpos+artleng, -1, -1, artleng));
@@ -210,7 +219,7 @@ PVACAPO		(([;]{FR})|({FR}{FR}))
 
 VIRGO		(["])
 /* 						virgolette sx: win e utf-8 */
-VIRG2A		([«\x93]|\xe0\x80\x9c|<<\xab)	
+VIRG2A		([«\x93]|\xe0\x80\x9c|<<|\xab)	
 /* 						virgolette dx: win e utf-8 */
 VIRG2C		([»\x94]|\xe0\x80\x9d|>>|\xbb)	
 
@@ -246,10 +255,8 @@ ROMANO		([ivxl]+{S}*)
 
 <Disegno>^({S}*{DISEGNO}{S}*)$	{
 									numdis++;
-									if (numdis==numtes) {
+									if (numdis==numtes)
 										BEGIN(0);
-										//configSetDdlTestate(0); //Altrimenti disturba eventuali allegati...
-									}
 									artpos+=artleng;
 								}
 
@@ -593,9 +600,9 @@ ROMANO		([ivxl]+{S}*)
 <InPreComma,InNota>{NOTAVV}	{
 	sequenzaInc(nota);
 		
-	xxxTagOpen(nota,artpos,0);
-	xxxTagOpen(h_p,artpos,0);
-	xxxSetID2(nota,ATTRIB_ID,sequenzaGetNum(nota),0);
+	domTagOpen(nota,artpos,0);
+	domTagOpen(h_p,artpos,0);
+	domSetID2(nota,ATTRIB_ID,sequenzaGetNum(nota),0);
 	
 	
 	//printf("->	%s eon \n",yytext);
@@ -612,16 +619,16 @@ ROMANO		([ivxl]+{S}*)
 <InComma,InLettera,InNumero>{VIRGO}		{
 		artpos += artleng;
 		sequenzaInc(virgolette);	//Incrementa l'ID Vir
-		xxxTagOpen(virgolette,artpos,0);
-		xxxSetID(virgolette,sequenzaGetNum(virgolette),sequenzaGetLat(virgolette));
+		domTagOpen(virgolette,artpos,0);
+		domSetID(virgolette,sequenzaGetNum(virgolette),sequenzaGetLat(virgolette));
 		yy_push_state(YYSTATE);
 		BEGIN(InVirgolette);
 }
 
 <InVirgolette>{VIRGO}	{
 
-	xxxAppendTextToLastNode(artpos);
-	xxxTagCloseFrom(virgolette);
+	domAppendTextToLastNode(artpos);
+	domTagCloseFrom(virgolette);
 	artpos+=artleng;
 	yy_pop_state();
 
@@ -631,8 +638,8 @@ ROMANO		([ivxl]+{S}*)
 	nvir2ap = 1;
 	artpos += artleng;
 	sequenzaInc(virgolette);
-	xxxTagOpen(virgolette,artpos,0);
-	xxxSetID(virgolette,sequenzaGetNum(virgolette),sequenzaGetLat(virgolette));
+	domTagOpen(virgolette,artpos,0);
+	domSetID(virgolette,sequenzaGetNum(virgolette),sequenzaGetLat(virgolette));
 	yy_push_state(YYSTATE);
 	BEGIN(InVirgoDoppie);
 	
@@ -647,8 +654,8 @@ ROMANO		([ivxl]+{S}*)
 	nvir2ap--;
 	
 	if (nvir2ap==0) {
-		xxxAppendTextToLastNode(artpos);
-		xxxTagCloseFrom(virgolette);
+		domAppendTextToLastNode(artpos);
+		domTagCloseFrom(virgolette);
 		yy_pop_state();
 	}
 	artpos+=artleng;
@@ -656,9 +663,9 @@ ROMANO		([ivxl]+{S}*)
 
 
 <InVirgolette,InVirgoDoppie>{NL}		{
-	
-	if(configGetDocTestoTipo() != disegnolegge)    //La dtd dei DDL non permette 'h:br' all'interno di 'virgolette'
-		xxxTagInsertEmpty(virgolette,h_br,artpos);	
+	//La dtd dei DDL non permette 'h:br' all'interno di 'virgolette' (nemmeno la base)
+	if(configGetDocTestoTipo() != disegnolegge && configGetDTDTipo() != base)  
+		domTagInsertEmpty(virgolette,h_br,artpos);	
 	artpos+=artleng;
 }
 

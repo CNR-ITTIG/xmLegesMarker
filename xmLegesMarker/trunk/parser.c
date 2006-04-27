@@ -1,3 +1,12 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		parser.c
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+* 			Lorenzo Bacci (lorenzobacci@gmail.com)
+******************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -352,7 +361,7 @@ int main(int argc, char *argv[])
 	fclose(fp);
 	bufferSize = i;
 
-	bufferNor = normalizza(buffer);		/* ---------------------------------- tratta: \n, \r, &, paragrafo */
+	bufferNor = normalizza(buffer);		/* ---- tratta: \n, \r, &, paragrafo (Aggiunta: "<" ">") */
 	
 	if (configTipoInput() == html)		/* ---------------------------------- input html */
 	{
@@ -390,8 +399,8 @@ int main(int argc, char *argv[])
 
 	bufferEnd = bufferPre;
 
-	xmlDocPtr	doc = NULL;
-	xmlNodePtr	root = NULL;
+	xmlDocPtr doc = NULL;
+	xmlNodePtr root = NULL;
 	
 	doc = xmlNewDoc(BAD_CAST "1.0");
 
@@ -414,7 +423,7 @@ int main(int argc, char *argv[])
 	AnnessiAnalizza(bufferEnd, root, nir);
 
 	//PostProcessing (Inserimento Attributo ID, conversione TagErrore in PI)
-	xxxAttributeIDUpdate(root,NULL,NULL);
+	domAttributeIDUpdate(root,NULL,NULL);
 	utilErrore2ProcessingInstruction(root);
 
 	if(configGetNodeCount())	utilNodeCount(root);

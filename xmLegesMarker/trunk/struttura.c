@@ -1,3 +1,11 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		struttura.c
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+******************************************************************************/
 #include "struttura.h"
 #include "disposto.h"
 
@@ -27,11 +35,11 @@ xmlNodePtr CreateNdr(xmlChar *mid)
 	return mndr;
 }
 
-//RICORSIVA
+//RICORSIVA 
+//(Scandisce a partire da pParentNode: ricorsiva in profondità (->children), while interno in larghezza (->next) )
 // ------------------------------------------------- muove ndr in meta
 void MoveNotesInMeta(int IDStartFrom,xmlNodePtr pParentNode,xmlNodePtr predazionale)
 {
-
 	if (pParentNode==NULL)return;
 
 	xmlNodePtr cur=pParentNode->children;
@@ -43,30 +51,38 @@ void MoveNotesInMeta(int IDStartFrom,xmlNodePtr pParentNode,xmlNodePtr predazion
 		{
 			xmlChar *mid=xmlGetProp(cur,BAD_CAST (ATTRIB_ID));
 			curID=atoi((char *)mid);
-
+			//printf("\nMovesNotes: %s\n", (char *)mid);
+			
 			if (curID>=1000)
 			{
-				curID= curID - 1000 + IDStartFrom;
+				curID = curID - 1000 + IDStartFrom;
 				mid=BAD_CAST utilConcatena(2,tagTipoToNomeID(nota),utilItoa(curID));
-				xmlSetProp	(cur, BAD_CAST (ATTRIB_ID),mid);//il primo id,"n1" non viene assegnato qui
+				xmlSetProp(cur, BAD_CAST (ATTRIB_ID),mid); //il primo id,"n1" non viene assegnato qui
 			}
 			
 			mndr=CreateNdr(BAD_CAST mid);
 
-			tmpnodo=xmlReplaceNode(cur,mndr);//tmpnodo contiene la vecchia nota
-			
+			//sostituita:
+			//tmpnodo=xmlReplaceNode(cur,mndr);//tmpnodo contiene la vecchia nota
+			tmpnodo = replaceNodeWithChildren(cur,mndr,cur->prev);
 			
 			//aggancia la NOTA al REDAZIONALE
 			xmlAddChild(predazionale,tmpnodo);
+			
+			//Ma si dovrebbe tenere conto del fatto che la nota può essere in un annesso!?
+			//L'id di ndr dovrebbe essere qualcosa tipo "ann1-n1" e non soltanto "n1"
+			//Qui sia l'id di nota che quello di ndr sono del tipo "n1". Quando viene aggiunto "ann1-" ?
+			
 			cur=mndr;
 		}
+		/*
 		else {
 			//MoveNotesInMeta(cur);
 		}
+		*/
 		MoveNotesInMeta(IDStartFrom,cur,predazionale);
 		cur=cur->next;
 	}
-	
 }
 
 //RICORSIVA
@@ -108,7 +124,7 @@ void Corpo2Alinea(xmlNodePtr pParentNode){
 xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo) 
 {
 	char* disposto=NULL; char* prima=NULL; char* ntext=NULL;
-	int   mnotes=0;
+	int   mnotes=0, totnotes=0;
 	xmlNodePtr nmeta=NULL, ndescrittori=NULL, nreda=NULL, nintestazione=NULL, nformulainiziale=NULL, narticolato=NULL, narticolo=NULL,
 		   ncontenitore=NULL, nformulafinale=NULL, nconclusione=NULL;
 	xmlNodePtr mNodoTipoDocumento=NULL, mNodoArticolato=NULL, mFirstError=NULL, mFirstErrorText= NULL;
@@ -145,12 +161,14 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 	nmeta = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "meta", NULL);
 	ndescrittori = xmlNewChild(nmeta, NULL, BAD_CAST "descrittori", NULL);
 	nintestazione = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "intestazione", NULL);
-	if(tdoc!=1)
+	if(tdoc!=1) {
 		nformulainiziale = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "formulainiziale", NULL);
-//	nnodo = xmlNewChild(nformulainiziale, NULL, BAD_CAST tagTipoToNome(h_p), NULL);  	// base: vuole almeno un h:p
+		//nnodo = xmlNewChild(nformulainiziale, NULL, BAD_CAST tagTipoToNome(h_p), NULL);  	
+		xmlNewChild(nformulainiziale, NULL, BAD_CAST tagTipoToNome(h_p), NULL); // base: vuole almeno un h:p
+	}
 	
 	mNodoArticolato = ArticolatoAnalizza(buffer); 	//Analisi di un eventuale ARTICOLATO
-
+	
 	if (mNodoArticolato) /* ------------------------------------------------------------------------------------------------ trovato l'articolato*/
 	{
 		xmlAddChild(mNodoTipoDocumento,mNodoArticolato);	//<-- Aggancia il nodo dell'ARTICOLATO
@@ -177,18 +195,26 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		mFirstErrorText=GetLastRightTextNode(mNodoArticolato);
 		mnotes=coda(mnotes,mNodoTipoDocumento,mFirstErrorText,nmeta,ndescrittori,nformulafinale,nconclusione,tdoc);
 
+		//NOTE
 		nreda=GetFirstNodebyTagTipo(nmeta, BAD_CAST "redazionale");
-		if (nreda)
+		
+		if(ruolo!=principale) {
+			//Non funziona: droot non è il root del documento ma è mNodoArticolato (questo annesso).
+			//Non va bene neanche il root di parser.c perchè ancora non ha children.
+			xmlNodePtr droot = domGetFirstNode(mNodoTipoDocumento); 
+			mnotes = GetAllNodebyTagTipo(NULL, droot, BAD_CAST tagTipoToNome(nota));
+			nreda = GetFirstNodebyTagTipo(droot, BAD_CAST "redazionale");
+		}
+		if (nreda) {
 			MoveNotesInMeta(mnotes, mNodoArticolato, nreda);
-		else
-		{
-			//DA FARE
-			//se non esistono le meta che inventa???
-			//Le note rimangono dove sono e taggate come <nota id="art1-com1-1000">
+		} else {
+			printf("\nWarning! Nodo mancante: \"redazionale\"\n(eventuali tag \"nota\" rimarranno sotto \"comma\"...)\n");
 		}
 	}
 	else 			/* ---------------------------------------------------------------------------------------- NON trovato l'articolato */
 	{
+		
+		//printf("\n------ BUFFER1:%s\n",(char *)buffer);
 		if (ruolo == principale)
 			buffer = utilConvertiText(buffer);		// converto in UTF-8
 		int nnl = contaChar(buffer, '\n');
@@ -197,9 +223,10 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		*disposto=0;
 		prima = (char *) malloc(sizeof(char) * nnl);
 		*prima=0;
-		
-		dispostoAnalizza(ruolo, buffer, &disposto, &prima, nnl);	// cerco disposto e prima del disposto
-		
+
+		//Sostituisci eventuali caratteri > e < tramite sstring()				
+		dispostoAnalizza(ruolo, sstring(buffer), &disposto, &prima, nnl);	// cerco disposto e prima del disposto
+								
 		nnl = strlen(prima);
 		if (disposto && strlen(disposto) > nnl)	
 			nnl = strlen(disposto);
@@ -232,7 +259,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			sostStr(prima, "<h:p>","");	// tolgo tag paragrafi
 			sostStr(prima, "</h:p>","");
 			xmlAddChild(nnodo,xmlNewText(BAD_CAST prima));
-//			mnotes=testa(nnodo,mNodoTipoDocumento,nmeta,ndescrittori,nintestazione,nformulainiziale);
+			//mnotes=testa(nnodo,mNodoTipoDocumento,nmeta,ndescrittori,nintestazione,nformulainiziale);
 			// coda?
 		}
 		else	// prima in contenitore
@@ -275,8 +302,9 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 	free(ntext);
 	if (configGetDTDTipo() == base)				// elimino o metto nodi o attributi previsti
 	{
-		nnodo = GetFirstNodebyTagTipo(ndescrittori, BAD_CAST "vigenza");			// descrittori
-		xmlSetProp (nnodo, BAD_CAST "inizio", BAD_CAST "");
+		nnodo = GetFirstNodebyTagTipo(ndescrittori, BAD_CAST "vigenza");  // descrittori  //VIGENZA NON ESISTE PIU' !!
+		if(nnodo!=NULL)
+			xmlSetProp (nnodo, BAD_CAST "inizio", BAD_CAST "");
 		
 		if (configGetDocStruttura() == docarticolato)
 		{
@@ -292,6 +320,9 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			//Trattare il testo come una lista testo/entità:
 			//xmlChar* contNodo = xmlNodeGetContent(nformulainiziale);// formula iniziale
 			xmlChar* contNodo = xmlNodeListGetString(NULL, nformulainiziale, 0);
+			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
+			//(può dare problemi in fase di visualizzazione...)
+			
 			
 			if (contNodo)
 			{
@@ -305,6 +336,8 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			//Trattare il testo come una lista testo/entità:
 			//contNodo = xmlNodeGetContent(nformulafinale);	// formula finale
 			contNodo = xmlNodeListGetString(NULL, nformulafinale, 0);
+			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
+			//(può dare problemi in fase di visualizzazione...)			
 			
 			if (contNodo)
 			{
@@ -318,6 +351,8 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			//Trattare il testo come una lista testo/entità:
 			//contNodo = xmlNodeGetContent(nconclusione);	// conclusione
 			contNodo = xmlNodeListGetString(NULL, nconclusione, 0);
+			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
+			//(può dare problemi in fase di visualizzazione...)
 			
 			if (contNodo)
 			{
@@ -327,7 +362,6 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			}
 			utilNodeDelete(nconclusione);
 		}
-		
 	}
 
 //		xmlNodePtr nodoContenitore = TabelleAnalizza(buffer);

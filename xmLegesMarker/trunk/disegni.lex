@@ -1,3 +1,11 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		disegni.lex
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+******************************************************************************/
 %{
 // Scanner Case-Insensitive
 // compilare con flex -i -8 -Pddl nomefile

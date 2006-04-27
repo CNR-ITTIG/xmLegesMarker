@@ -1,7 +1,16 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		util.c
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+******************************************************************************/
 #include "util.h"
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+
 
 //char *numeriOrdinali[] = { "" /* 0 */,
 //	"prim", "second", "terz", "quart", "quint",
@@ -234,7 +243,7 @@ int GetFlagUTF8(void)
 }
 
 //----------------------------------------------------------
-
+//Se bufdest è NULL si limita a contare i nodi di tipo pnomeTag
 int GetAllNodebyTagTipo(xmlNodePtr *bufdest, xmlNodePtr pNodoParent , xmlChar *pnomeTag){
 	
 	int count=0;
@@ -244,7 +253,8 @@ int GetAllNodebyTagTipo(xmlNodePtr *bufdest, xmlNodePtr pNodoParent , xmlChar *p
 
 	while (cur != NULL) {
 		if (!xmlStrcmp(cur->name, pnomeTag)){
-			bufdest[count]=cur;
+			if(bufdest!=NULL)
+				bufdest[count]=cur;
 			count++;
 		}
 		cur = cur->next; //next fratello
@@ -330,7 +340,7 @@ xmlNodePtr GetFirstTextNode(xmlNodePtr pNodoParent)
 //Se il nodo è TAGERRORE e non è un PI, lo sostituisce con una nuova PI
 void utilErrore2ProcessingInstruction(xmlNodePtr pNodoParent )
 {
-	unsigned char * xmlCont=NULL; //è come xmlchar *
+	char * xmlCont=NULL; //è come xmlchar *
 	xmlNodePtr cur,txtnode,pinode;
 	cur = pNodoParent->xmlChildrenNode;	//FirstChild
 	//printf("%s\n",pNodoParent->name);
@@ -340,9 +350,11 @@ void utilErrore2ProcessingInstruction(xmlNodePtr pNodoParent )
 	
 			if (txtnode){
 				//Trattare il testo come una lista testo/entità:
-				//xmlCont= xmlNodeGetContent(txtnode);
-				xmlCont= xmlNodeListGetString(NULL, txtnode, 0);
-				
+				//xmlCont= xmlNodeGetContent(txtnode);				
+				xmlCont= xmlNodeListGetString(NULL, txtnode, 0); 
+				//Con la precedente riga si perdono le entità per avere un unico nodo di testo
+				//(può dare problemi in fase di visualizzazione...)
+								
 				/*puts("---------------------------------------------------------------INIZIO PI NODE-----------------------------------------------\n");
 				puts(xmlCont);
 				puts("---------------------------------------------------------------FINE PI NODE-----------------------------------------------\n");			*/
@@ -499,41 +511,38 @@ Parametri:	STRINGA = STRINGA SULLA QUALE AVVIENE IL CAMBIAMENTO
 				OLD     = SOTTOSTRINGA DA SOSTITUIRE                             
 				NEW     = SOTTOSTRINGA SOSTITUITA A <OLD>          P.L.S.   
  ********************************************************************/ 
+void sostStr(char *stringa, char *old, char *new) {
 
-void sostStr(stringa, old, new)
-	char  *stringa, *old, *new;
-{
-int   lold, lnew, ldif, k1, i;
-char  *pun;
+	int   lold, lnew, ldif, k1, i;
+	char  *pun;
+	
+	lold=strlen(old);
 
-lold=strlen(old);
-
-if (strlen(stringa)>0 && lold>0) 
-	{
-
-	lnew=strlen(new);
-	ldif=lnew-lold;
-
-	pun=strstr(stringa,old);   /* cerco old in stringa */
-	while (pun != NULL)        /* finche' trovo old */
-		{
-		if (ldif>0)             /* si inseriscono car. */
+	if (strlen(stringa)>0 && lold>0) {
+	
+		lnew=strlen(new);
+		ldif=lnew-lold;
+	
+		pun=strstr(stringa,old);   /* cerco old in stringa */
+		while (pun != NULL)        /* finche' trovo old */
 			{
-			k1=pun-stringa;      /* ind. ultimo car. da spostare */
-
-			for(i=strlen(stringa)+ldif; i>k1; i--)    /* creo */ 
-				stringa[i]=stringa[i-ldif];            /* posto */
-			}
-
-		else if (ldif<0)        /* accorcio */ 
-			strcpy(pun+lold+ldif,pun+lold);
-
-		strncpy(pun,new,lnew);     /* sostituisco */
-
-		pun=strstr(pun+lnew,old);  /* cerco prossimo old */
-
+			if (ldif>0)             /* si inseriscono car. */
+				{
+				k1=pun-stringa;      /* ind. ultimo car. da spostare */
+	
+				for(i=strlen(stringa)+ldif; i>k1; i--)    /* creo */ 
+					stringa[i]=stringa[i-ldif];            /* posto */
+				}
+	
+			else if (ldif<0)        /* accorcio */ 
+				strcpy(pun+lold+ldif,pun+lold);
+	
+			strncpy(pun,new,lnew);     /* sostituisco */
+	
+			pun=strstr(pun+lnew,old);  /* cerco prossimo old */
+	
 		} /* fine while */
-
+	
 	} /* fine if */
 
 } /* fine sostStr */

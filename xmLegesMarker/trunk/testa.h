@@ -1,3 +1,12 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		testa.h
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+* 			Lorenzo Bacci (lorenzobacci@gmail.com)
+******************************************************************************/
 #ifndef TESTA_H
 #define TESTA_H
 
@@ -11,6 +20,7 @@
 		  xmlNodePtr pformulainiziale,
 		  int tdoc) ;
 
+ char *sstring(char *tmp);
 
 #endif
 

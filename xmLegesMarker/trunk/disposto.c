@@ -1,8 +1,16 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		disposto.c
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+******************************************************************************/
 #include "disposto.h"
 #include "util.h"
 #include <IttigLogger.h>
 
-static char *	buffer;
+static char *buffer;
 static int pos, size;
 static int inizio;
 
@@ -11,13 +19,16 @@ static int inizio;
 /***************************************************************** DIS INIT ***/
 /******************************************************************************/
 void disInit(dim) {
-	buffer=(char *) malloc(sizeof(char) * dim);
+	//buffer=(char *)malloc(sizeof(char)*dim);
+	buffer = malloc(dim * sizeof(char));
+	if(buffer==NULL)
+		printf("\n>>ERROR<< disInit() - malloc() could not allocate memory!\n");
+	
 	*buffer=0;
 	size=dim;
-	pos = 0;
+	pos=0;
 	inizio=0;
 }
-
 
 
 /******************************************************************************/
@@ -27,7 +38,6 @@ void disInit(dim) {
 // - in buffer: il disposto (se trovato)
 // - in testo : la parte precedente il disposto
 // in entrambi: converto in paragrafi
-
 void dispostoAnalizza(ruoloDoc ruolo, char *testo, char** disposto, char** prima, int dim) {
 
 	disInit(dim);
@@ -61,6 +71,7 @@ void dispostoAnalizza(ruoloDoc ruolo, char *testo, char** disposto, char** prima
 	loggerInfo("FINE Disposto");
 }
 
+
 /******************************************************************************/
 /***************************************************************** DIS SAVE ***/
 /******************************************************************************/
@@ -68,7 +79,6 @@ void disSaveIni(void)
 {
 	inizio = pos;
 }
-
 
 
 /******************************************************************************/
@@ -81,7 +91,6 @@ void disAppendString(char *s) {
 		pos += len;
 	}
 }
-
 
 
 /******************************************************************************/

@@ -1,3 +1,11 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		articolato.h
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+******************************************************************************/
 #ifndef ARTICOLATO_H
 #define ARTICOLATO_H
 
@@ -8,7 +16,7 @@
 
 #include "tag.h"
 #include "util.h"
-#include "xxx.h"
+#include "dom.h"
 //#include "annessi.h"
 
 

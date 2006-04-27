@@ -1,3 +1,11 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		struttura.h
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+******************************************************************************/
 #ifndef STRUTTURA_H
 #define STRUTTURA_H
 
@@ -10,7 +18,7 @@
 #include "testa.h"
 #include "coda.h"
 #include "util.h"
-#include "xxx.h"
+#include "dom.h"
 #include "config.h"
 #include "tabelle.h"
 

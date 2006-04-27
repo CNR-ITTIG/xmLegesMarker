@@ -1,3 +1,11 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		annessi.lex
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+******************************************************************************/
 %{
 // Scanner Case-Insensitive
 // compilare con flex -i -8 -Pall nomefile
@@ -5,7 +13,7 @@
 #include <string.h>
 #include "tag.h"
 #include <IttigLogger.h>
-#include "xxx.h"
+#include "dom.h"
 #include "config.h"
 #define __DEBUG__  0
 
@@ -28,25 +36,25 @@ void salva(void)
 
 	if (firstAnnesso)
 	{
-		xxxTagOpen(tagerrore,0,0);
-		//xxxTagOpen(annessi,StartOfLastAllegato,0);
+		domTagOpen(tagerrore,0,0);
+		//domTagOpen(annessi,StartOfLastAllegato,0);
 		firstAnnesso=0;
 	}
 
-	xxxTagOpen(annesso,StartOfLastAllegato,0);
-	xxxSetID(annesso,LastIDAnnesso,-1);
-	xxxTagOpen(testata,StartOfLastAllegato,0);
-	xxxTagOpen(denannesso,StartOfLastAllegato,0);
-	xxxTagOpen(h_p,StartOfLastAllegato,0);
-	xxxTagOpen(titannesso,(ann_pos+annleng),0);
-	xxxTagOpen(h_p,(ann_pos+annleng),0);
-	xxxTagOpen(preannesso,(ann_pos+annleng),0);
-	xxxTagOpen(h_p,(ann_pos+annleng),0);
+	domTagOpen(annesso,StartOfLastAllegato,0);
+	domSetID(annesso,LastIDAnnesso,-1);
+	domTagOpen(testata,StartOfLastAllegato,0);
+	domTagOpen(denannesso,StartOfLastAllegato,0);
+	domTagOpen(h_p,StartOfLastAllegato,0);
+	domTagOpen(titannesso,(ann_pos+annleng),0);
+	domTagOpen(h_p,(ann_pos+annleng),0);
+	domTagOpen(preannesso,(ann_pos+annleng),0);
+	domTagOpen(h_p,(ann_pos+annleng),0);
 
 	if(decretoDDL)
-		xxxTagOpen(tagerrore,ann_pos,0);
+		domTagOpen(tagerrore,ann_pos,0);
 	else
-		xxxTagOpen(tagerrore,(ann_pos+annleng),0);
+		domTagOpen(tagerrore,(ann_pos+annleng),0);
 	loggerDebug("Allegato Trovato");
 }
 	
@@ -91,6 +99,7 @@ TUTTINUMERI	({NUM}|{ROMANO}|{LATINO}|{ORD})
 ^({S}*{DISEGNO}{S}*)$	{   // disegno di legge
 						if(configGetDocTestoTipo() != disegnolegge)
 							REJECT;
+						//printf("\nDisegno:%d\n",disegno);
 						disegno++;
 						annIncPos();
 					}
@@ -167,6 +176,7 @@ int annwrap()
 int  _annessiLexStart(char *testo)
 {
 	testate=configDdlTestate();
+	//printf("\nTestate:%d\n", testate);
 	BEGIN(0);
 	yy_init = 1;
 	ann_pos=0;

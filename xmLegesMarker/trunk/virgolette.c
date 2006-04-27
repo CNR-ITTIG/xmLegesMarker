@@ -1,4 +1,12 @@
-
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		virgolette.c
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+* 			Lorenzo Bacci (lorenzobacci@gmail.com)
+******************************************************************************/
 #include "virgolette.h"
 /******************************************************************************/
 /******************************************************* VIRGOLETTE IN MOD ****/
@@ -27,9 +35,7 @@ void replaceNode(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p) {
 // => utilizzo l'argomento 'p' (è il vero nodo precedente a virgolette, NULL se primo della lista)
 
 	//xmlNodePtr prev=NULL;
-	xmlNodePtr next=NULL;
-	xmlNodePtr parent=NULL;
-	xmlNodePtr children=NULL;
+	xmlNodePtr next=NULL, parent=NULL, children=NULL;
 	
 	if(a==NULL || b==NULL) return;
 	//if(a->prev!=NULL)
@@ -48,6 +54,38 @@ void replaceNode(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p) {
 		p->next=b;
 	else
 		parent->children=b;
+	
+	//(si deve anche considerare l'a->next->prev che adesso punta ancora a 'b' non ad 'a'!!)
+	if(next!=NULL && next->prev!=NULL)
+		next->prev=b;
+}
+
+//Sostituisce b ad a, ritorna a con tutti i suoi figli (non vanno sotto b)
+xmlNodePtr replaceNodeWithChildren(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p) {
+	xmlNodePtr next=NULL, parent=NULL;
+	
+	if(a==NULL || b==NULL) return;
+	if(a->next!=NULL)
+		next=a->next;
+	if(a->parent!=NULL)
+		parent=a->parent;
+		
+	b->parent=parent;
+	b->next=next;
+	if(p!=NULL)
+		p->next=b;
+	else
+		parent->children=b;
+
+	//(si deve anche considerare l'a->next->prev che adesso punta ancora a 'b' non ad 'a'!!)
+	if(next!=NULL && next->prev!=NULL)
+		next->prev=b;
+
+	//Ritorna a
+	a->next=NULL;
+	a->prev=NULL;
+	a->parent=NULL;
+	return a;	
 }
 
 /*
@@ -114,7 +152,7 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 	{
 		IDMOD++;
 		xmlNodePtr newNodoMod=xmlNewNode(NULL, BAD_CAST tagTipoToNome(mod));
-		xxxSetIDtoNode(newNodoMod, mod,IDMOD,0,NULL);
+		domSetIDtoNode(newNodoMod, mod,IDMOD,0,NULL);
 		//Sposta tutti i figli del CORPO nel nuovo nodo MOD
 		MoveAllChildren(pNodoCorpo,newNodoMod);
 				
@@ -140,6 +178,8 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 			//xmlNodePtr newNodoErrAfter=xmlNewNode(NULL, BAD_CAST tagTipoToNome(tagerrore));
 			
 			xmlChar *allText=xmlNodeListGetRawString(NULL,cur->children,1);
+			//La riga precedente potrebbe aver trasformato entità in caratteri non validi (> <), esegui sstring():
+			//xmlNodePtr newNodoTxt=xmlNewText(sstring((char *)allText));
 			xmlNodePtr newNodoTxt=xmlNewText(allText);
 			
 			//xmlReplaceNode(cur,newNodoTxt);

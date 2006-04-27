@@ -1,3 +1,11 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		tabelle.lex
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+******************************************************************************/
 %{
 // Scanner Case-Insensitive
 // compilare con flex -i -8 -Pall nomefile
@@ -20,24 +28,24 @@ void tsave(tagTipo t,int p) //p è la posizione all'interno della tabella
 {
 	if(firstSave)
 	{
-		xxxTagOpen(tagerrore,0,0);
+		domTagOpen(tagerrore,0,0);
 		firstSave=0;
 	}
 	
 	if (IsInTable==0){
 	
 		//Tutto il testo non riconosciuto viene Acodato "all'ultimo" tag Aperto
-		xxxAppendTextToLastNode(p);
-		xxxTagCloseFrom(tagerrore);	//Il tag ERRORE viene chiuso
+		domAppendTextToLastNode(p);
+		domTagCloseFrom(tagerrore);	//Il tag ERRORE viene chiuso
 					
-		xxxTagOpen(h_table,p,0);
-		xxxTagOpen(h_tr,p,0);
+		domTagOpen(h_table,p,0);
+		domTagOpen(h_tr,p,0);
 	
 		loggerDebug("Individuata Tabella");	
 		IsInTable=1;
 	}
 	
-	xxxTagOpen(t,p,0);
+	domTagOpen(t,p,0);
 }
 
 %}
@@ -53,7 +61,7 @@ SEPCOL		([|])
 						if(IsInTable)
 						if ((currentRowCount-lastRowCount)>1) 
 						{
-							xxxTagOpen(tagerrore,lastRowStart,0);
+							domTagOpen(tagerrore,lastRowStart,0);
 							IsInTable=0;
 						}
 						TabIncPos();

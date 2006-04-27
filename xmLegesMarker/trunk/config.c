@@ -1,3 +1,11 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		config.c
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+******************************************************************************/
 #include <stdio.h>
 #include <string.h>
 #include "config.h"
@@ -24,10 +32,10 @@ int		_configNodeCount=0;			//DISATTIVATO
 tipoDTD		_configDTDTipo=completo;	//INIT
 
 char _configDTDBaseStringa[MAXSTRINGA+1] = "nirbase.dtd";
-//char _configDTDBaseMeta[MAXSTRINGA+1] = "<meta><descrittori><pubblicazione norm=\"\"/><urn>URN</urn><vigenza id=\"ID\"/></descrittori></meta>";
+//char _configDTDBaseMeta[MAXSTRINGA+1] = "<meta><descrittori><pubblicazione norm=\"\"/><redazione nome=\"\" id=\"red1\" norm=\"\"/><urn>URN</urn></descrittori></meta>";
 // meta --> lavoripreparatori? , redazionale? , proprietario* , disposizioni?
 
-char _configDTDCompletoStringa[MAXSTRINGA+1] = "nircompleto.dtd";
+char _configDTDCompletoStringa[MAXSTRINGA+1] = "nircompleto.dtd"; 
 //char _configDTDCompletoMeta[MAXSTRINGA+1] = "<meta>META</meta>";
 //char *_configDTDCompletoMeta = _configDTDBaseMeta;
 
@@ -43,9 +51,9 @@ char _configHeaderParserModels[MAXSTRINGA+1] = "/usr/local/lib/HeaderParser/Mode
 
 //da file Testa2.xml
 // struttura testa documento articolato
-char _configTesta1[MAXSTRINGA+1]=	"<atto xmlns:h=\"html\">\n<meta>\n<descrittori>\n<pubblicazione tipo=\"GU\" num=\"\" norm=\"\"/>\n<urn></urn>\n<vigenza inizio=\"\"  id=\"v1\"/>\n</descrittori>\n</meta>\n<intestazione/>\n<formulainiziale>\n<h:p/>\n</formulainiziale>\n</atto>";
+char _configTesta1[MAXSTRINGA+1]=	"<atto xmlns:h=\"html\">\n<meta>\n<descrittori>\n<pubblicazione tipo=\"GU\" num=\"\" norm=\"\"/>\n<entratainvigore norm=\"\"/>\n<redazione nome=\"\" id=\"red1\" norm=\"\"/>\n<urn></urn>\n</descrittori>\n</meta>\n<intestazione/>\n<formulainiziale>\n<h:p/>\n</formulainiziale>\n</atto>";
 // struttura testa documento semiarticolato
-char _configTesta2[MAXSTRINGA+1]=	"<atto xmlns:h=\"html\">\n<meta>\n<descrittori>\n<pubblicazione  tipo=\"GU\" num=\"\" norm=\"\"/>\n<urn></urn>\n<vigenza inizio=\"\"  id=\"v1\"/>\n</descrittori>\n</meta>\n<intestazione/>\n<formulainiziale>\n<h:p/>\n</formulainiziale>\n</atto>";
+char _configTesta2[MAXSTRINGA+1]=	"<atto xmlns:h=\"html\">\n<meta>\n<descrittori>\n<pubblicazione tipo=\"GU\" num=\"\" norm=\"\"/>\n<entratainvigore norm=\"\"/>\n<redazione nome=\"\" id=\"red1\" norm=\"\"/>\n<urn></urn>\n</descrittori>\n</meta>\n<intestazione/>\n<formulainiziale>\n<h:p/>\n</formulainiziale>\n</atto>";
 
 // struttura coda documento articolato
 char _configCoda1[MAXSTRINGA+1]=	"<atto xmlns:h=\"html\">\n<formulafinale>\n<h:p/>\n</formulafinale>\n<conclusione/>\n</atto>";
@@ -62,7 +70,7 @@ char _configCodaVuotaFlessibile[MAXSTRINGA+1] = "<CODA_VUOTA_FLESSIBILE></CODA_V
 char _configArticolatoVuoto[MAXSTRINGA+1] = "<articolato>\n<articolo id=\"art1\">\n<num>Art. 1.</num>\n<rubrica/>\n<comma id=\"com1\">\n<num>1.</num>\n<corpo/>\n</comma>\n</articolo>\n</articolato>";
 
 // struttura descrittori
-char _configDescrittoriVuoto[MAXSTRINGA+1]=	"<descrittori>\n<pubblicazione tipo=\"GU\" num=\"\" norm=\"\"/>\n<urn></urn>\n<vigenza id=\"v1\" inizio=\"\"/>\n</descrittori>";
+char _configDescrittoriVuoto[MAXSTRINGA+1]=	"<descrittori>\n<pubblicazione tipo=\"GU\" num=\"\" norm=\"\"/>\n<entratainvigore norm=\"\"/>\n<redazione nome=\"\" id=\"red1\" norm=\"\"/>\n<urn></urn>\n</descrittori>";
 
 char _configEncoding[MAXSTRINGA+1] = "iso-8859-15"; //di default il file in input viene preso come iso-8859-15
 

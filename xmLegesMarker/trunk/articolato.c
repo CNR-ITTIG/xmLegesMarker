@@ -1,3 +1,11 @@
+/******************************************************************************
+* Project:	xmLeges
+* Module:	Marker
+* File:		articolato.c
+* Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
+* Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
+* Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+******************************************************************************/
 #include "articolato.h"
 //extern int flagAnnessi;
 
@@ -25,12 +33,12 @@ xmlNodePtr ArticolatoAnalizza(  char *testo) {
 	{	
 		testoIso = utilConvTextToIso(testo);
 		//Qui alla variabile globale xxxTextBuffer verrà assegnato il testo nel formato originario
-		xxxInit(articolato,mNodoArticolato,testoIso); 
+		domInit(articolato,mNodoArticolato,testoIso); 
 		ret=_ArticolatoLexStart(testoIso); //IL TESTO CHE VIENE PASSATO E' GIA' IN UTF-8!!!
 	}
 	else 
 	{
-		xxxInit(articolato,mNodoArticolato,testo);
+		domInit(articolato,mNodoArticolato,testo);
 		ret=_ArticolatoLexStart(testo); //IL TESTO CHE VIENE PASSATO NON E' UTF-8
 	}
 
@@ -51,7 +59,7 @@ xmlNodePtr ArticolatoAnalizza(  char *testo) {
 	/*puts("-------------------------In ISO-----------------------------");
 	puts(testoIso);*/
 
-	xxxClose();
+	domClose();
 
 	if (ret)		// ------------------------------------ caso di Documento Articolato
 	{	
@@ -92,7 +100,7 @@ void adjustArticolo(xmlNodePtr pNodoArticolo)
 	{
 		newComma=xmlNewNode(NULL, BAD_CAST tagTipoToNome(comma));
 		xmlAddChild(pNodoArticolo,newComma);
-		xxxSetIDtoNode(newComma,comma,1,0,NULL);
+		domSetIDtoNode(newComma,comma,1,0,NULL);
 
 		xmlAddChild(newComma,xmlNewNode(NULL, BAD_CAST tagTipoToNome(num)));
 		xmlAddChild(newComma,xmlNewNode(NULL, BAD_CAST tagTipoToNome(corpo)));
