@@ -7,6 +7,12 @@
 * Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
 * 			Lorenzo Bacci (lorenzobacci@gmail.com)
 ******************************************************************************/
+
+/*
+PTACAPO		(([.]{S}*{DECORAZ}*{FR})|({FR}{FR}))  // <-- vecchio PTACAPO
+*/
+
+
 %{
 #include <string.h>
 #include <IttigUtil.h>
@@ -32,6 +38,7 @@ int co,cr;
 int tipoRubriche = 1;
 int numdis=0;
 int numtes=0;
+int art_dec=0;
 
 /******************************************************************* CHECK ****/
 int check(tagTipo tipo) {
@@ -130,6 +137,12 @@ void save(tagTipo tipo) {
 
 }*/
 
+/*** Salva l'elemento DECORAZIONE */
+void saveDec() {
+	domTagOpen(decorazione,artpos,artleng);
+	artpos += artleng;
+}
+
 /*********************************************************** SAVE COMMA NN ****/
 void saveCommaNN() {
 	loggerDebug("INIZIO saveCommaNN");
@@ -195,6 +208,8 @@ TITOLO		({S}*{NUMTITOLO})
 CAPO		({S}*{NUMCAPO})
 SEZIONE		({S}*{NUMSEZIONE})
 
+COMMADEC	([.]?{S}*{DECORAZ}{S}*[.]?{FR})
+ARTBASE		({S}*{NUMARTICOLO}{S}*)
 ARTICOLO	({S}*{NUMARTICOLO}{S}*{DECORAZ}?{FR})
 COMMA1		({S}*(1|0){PS}?{LATINO}?{S}*[).])
 COMMA		({FR}*{S}*{NUM}{PS}?{LATINO}?{S}*[).])
@@ -213,7 +228,10 @@ GINO	 	({S}*[.]?{S}*\(.*\)\.?({S}*-)?)
 RUBRICASEP	([ \-(])
 RUBRICA 	({S}*[^10].*{FR})
 
-PTACAPO		(([.]{S}*{DECORAZ}*{FR})|({FR}{FR}))
+
+PTACAPO		(([.]{FR})|({FR}{FR}))
+/* Evitare il "Dangerous trailing context" warning del flex (dovuto agli {S}*):  */
+PTACAPODEC	(([.]{FR})|({NL}{FR}))
 DUEPTACAPO	([:]{FR})
 PVACAPO		(([;]{FR})|({FR}{FR}))
 
@@ -240,7 +258,7 @@ ROMANO		([ivxl]+{S}*)
 
 
 %s InCapo InArticolo InArticoloRubrica
-%s InPreComma InComma InCommaAlinea
+%s InPreComma InComma InCommaAlinea InCommaDec
 %s InPreLetNum
 %s InLettera InLetteraAlinea
 %s InNumero
@@ -255,8 +273,10 @@ ROMANO		([ivxl]+{S}*)
 
 <Disegno>^({S}*{DISEGNO}{S}*)$	{
 									numdis++;
-									if (numdis==numtes)
+									if (numdis==numtes) {
 										BEGIN(0);
+										//configSetDdlTestate(0); //Altrimenti disturba eventuali allegati...
+									}
 									artpos+=artleng;
 								}
 
@@ -432,7 +452,7 @@ ROMANO		([ivxl]+{S}*)
 	BEGIN(InArticolo);
 }
 
-^{ARTICOLO}	{
+^{ARTBASE}	{
 	//printf("Articolo -%s-\n",yytext);
 	if (!checkCardinale(articolo))
 		REJECT;
@@ -440,9 +460,17 @@ ROMANO		([ivxl]+{S}*)
 	save(articolo);
 	numConv = 1;
 	commiNN = 1;
+	art_dec = 0;
 	BEGIN(InArticolo);
 }
 
+<InArticolo>{DECORAZ}	{
+	if(art_dec==1)
+		REJECT;
+	//printf("\nHERE ART DEC pos:%d len:%d txt:%s\n",artpos,artleng,yytext);
+	art_dec=1;
+	saveDec();
+}
 
 <InArticolo>^{COMMA1}	{
 	if (configTipoCommi() != commiNumerati)
@@ -475,8 +503,6 @@ ROMANO		([ivxl]+{S}*)
 	BEGIN(InComma);
 }
 
-
-
 <InPreComma>{FR}*{COMMA}	{
 	if (configTipoCommi() != commiNumerati)
 		REJECT;
@@ -487,8 +513,6 @@ ROMANO		([ivxl]+{S}*)
 	BEGIN(InComma);
 }
 
-
-
 <InPreComma>{COMMANN1}/[a-z]	{
 	if (configTipoCommi() != commiNNLineeVuote)
 		REJECT;
@@ -497,7 +521,6 @@ ROMANO		([ivxl]+{S}*)
 	yy_pop_state();
 	BEGIN(InComma);
 }
-
 
 <InPreComma>{COMMANN2}/[a-z]	{
 	if (configGetRubriche() != 0)
@@ -510,7 +533,10 @@ ROMANO		([ivxl]+{S}*)
 	BEGIN(InComma);
 }
 
-
+<InComma>{DECORAZ}/{PTACAPODEC}	{
+	//printf("DECORAZ: artpos=%d, artleng=%d, yytext='%s'\n", artpos, artleng, yytext);
+	saveDec();
+}
 
 <InComma>{DUEPTACAPO}	{
 	artpos += artleng;
@@ -534,6 +560,18 @@ ROMANO		([ivxl]+{S}*)
 	save(lettera);
 	yy_pop_state();
 	BEGIN(InLettera);
+}
+
+<InCommaAlinea>^{NUMERO1}	{
+	//Nella flessibile le liste possono essere subito numeriche
+	if(configGetDTDTipo() != flessibile)
+		REJECT;
+	if (!checkCardinale(numero))
+		REJECT;
+	//puts("NUMERO 1");
+	save(numero);
+	yy_pop_state();
+	BEGIN(InNumero);
 }
 
 <InPreLetNum>^{LETTERA}		{

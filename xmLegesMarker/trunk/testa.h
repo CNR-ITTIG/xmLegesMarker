@@ -21,6 +21,6 @@
 		  int tdoc) ;
 
  char *sstring(char *tmp);
-
+ 
 #endif
 

@@ -76,10 +76,11 @@ typedef enum ParserStruttura_tagTipo {
 	h_tr,
 	h_td,
 	h_br,
-	
+	decorazione,
+	tiporango
 } tagTipo;
 
-#define TAGTIPODIM 55 //I tagTipo sono in tutto 55
+#define TAGTIPODIM 55 //I tagTipo sono in tutto 55 //NO SONO 58 ma se cambio non becca più l'HEADER !!?? VERIFICARE
 
 typedef struct {
 	int num;

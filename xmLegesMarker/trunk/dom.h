@@ -47,6 +47,7 @@ extern "C" {
 
 	void		domAttributeIDUpdate(xmlNodePtr node,char *pParentID, char * pAnnessoParentID);
 	xmlNodePtr	domGetLastTag(tagTipo ptag);
+	void 		domAddRango(xmlNodePtr node, char *t);
 	xmlNodePtr	domGetFirstNode(xmlNodePtr node);
 
 #ifdef __cplusplus

@@ -247,29 +247,41 @@ xmlNodePtr domTagOpen(tagTipo ptag,int pindex,int plen)
 		domTagClose(n);
 	}
 	
+	//if(ptag==decorazione)
+		//printf("\n name:%s\n",(char *)mparent->name);
+		
 	//creazione del nodo di tipo PTAG
 	currnode = xmlNewNode(NULL, BAD_CAST tagTipoToNome(ptag));
 
-	if(ptag == virgolette)
-		addSibling(mparent,currnode);
-	else
-		xmlAddChild(mparent, currnode);  //<-- problema: se c'è una lista nodo/entità
-										//le virgolette non sono messe alla fine della lista
-										//ma subito dopo il primo nodo di testo
-	
-	
 	//xmlNewChild(mparent, NULL, BAD_CAST tagTipoToNome(ptag), NULL);
 	//currnode = xmlGetLastChild(mparent);
-	
+
+	if(ptag == virgolette)
+		addSibling(mparent,currnode);
+	else {
+		//Decorazione non deve andare sotto rubrica (e nemmeno sotto corpo)!
+		if(ptag == decorazione) { // && strcmp(mparent->name,"rubrica") == 0 )  {
+			xmlNodePtr pparent = mparent->parent;
+			//printf("\n name:%s rubrica:%s parent:%s\n",(char *)mparent->name,
+				//	tagTipoToNome(rubrica),	(char *)pparent->name);
+			xmlAddChild(pparent, currnode);
+		} else
+			xmlAddChild(mparent, currnode); //<-- problema: se c'è una lista nodo/entità
+											//le virgolette non sono messe alla fine della lista
+											//ma subito dopo il primo nodo di testo
+	}
+		
 	domTextBufferIndex=pindex;
 
 	if(plen>0) {
 		strbuff=utilGetPartialText(domTextBuffer,pindex,plen);
 		
 		char *t=utilConvertiText(strbuff);
-		//mtext=xmlNewText(BAD_CAST t);
-		//xmlAddChild(currnode,mtext);
-		
+
+		//'decorazione' deve avere 'rango' (L/R/LR):
+		if(ptag == decorazione)
+			domAddRango(currnode, t);
+
 		//Attacca una lista testo/entità piuttosto che un nodo di testo:
 		xmlAddChild(currnode, xmlStringGetNodeList(NULL, BAD_CAST t));
 
@@ -382,6 +394,34 @@ void domAttributeIDUpdate(xmlNodePtr node,char * pParentID, char * pAnnessoParen
 	}
 }
 
+//Aggiunge il nodo 'tiporango' come figlio di 'decorazione' e imposta uno
+//dei tre possibili valori che può contenere (L/R/LR)
+void domAddRango(xmlNodePtr node, char *t) {
+	char *str = NULL;
+	char *l = strchr(t, 'L');
+	char *r = strchr(t, 'R');
+
+	if(l==NULL)
+		l = strchr(t, 'l');
+	if(r==NULL)
+		r = strchr(t, 'r');
+
+	//printf("\nAdding Rango l:%s r:%s\n",l,r);
+	if(l!=NULL)
+		if(r!=NULL)
+			str="LR";
+		else
+			str="L";
+	else
+		if(r!=NULL)
+			str="R";
+	
+	if(str!=NULL) 
+		xmlNewChild(node,NULL,BAD_CAST tagTipoToNome(tiporango),BAD_CAST str);
+	else //Aggiungi un tiporango con valore arbitrario oppure non aggiungere tiporango??
+		xmlNewChild(node,NULL,BAD_CAST tagTipoToNome(tiporango),BAD_CAST "L");
+}
+
 //Risale fino ad un nodo che ha ->prev=NULL e ->parent=NULL
 //(non è detto che sia il root del documento...)
 xmlNodePtr domGetFirstNode(xmlNodePtr node) {
@@ -399,4 +439,4 @@ xmlNodePtr domGetFirstNode(xmlNodePtr node) {
 	}
 	return root;
 }
-
+			

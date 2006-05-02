@@ -61,6 +61,8 @@ char *tagTipoToNome(tagTipo t) {
 		case h_td:			return "h:td";
 		case h_br:			return "h:br";
 		case _TipoDocumento:	return "DocumentoNonIdentificato";
+		case decorazione:	return "decorazione";
+		case tiporango:		return "tiporango";
 	}
 	return "TipoNonValido";
 }

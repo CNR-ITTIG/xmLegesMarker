@@ -64,7 +64,7 @@ void replaceNode(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p) {
 xmlNodePtr replaceNodeWithChildren(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p) {
 	xmlNodePtr next=NULL, parent=NULL;
 	
-	if(a==NULL || b==NULL) return;
+	if(a==NULL || b==NULL) return NULL;
 	if(a->next!=NULL)
 		next=a->next;
 	if(a->parent!=NULL)

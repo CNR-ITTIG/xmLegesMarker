@@ -98,6 +98,19 @@ char *sstring(char *tmp){
 	return bufchar;
 }
 
+/*
+char *getDecoration(char *tmp) {
+	std::string buf = tmp;
+	static string decorations[] = {"(L)","(l)","(R)","(r)","(LR)","(lr)","(L-R)","(l-r)"};
+	
+	unsigned int lastchar = buf.find_last_not_of(" \n\t\r");
+	unsigned int dec = buf.find_last_of(")");
+	
+	//Se non termina con ')' esci
+	if(lastchar!=dec) return NULL;
+	
+}
+*/
 
 /*
 const char *testaOLD(char *testo, int * p_notes) {

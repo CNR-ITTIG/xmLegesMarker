@@ -164,7 +164,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 	if(tdoc!=1) {
 		nformulainiziale = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "formulainiziale", NULL);
 		//nnodo = xmlNewChild(nformulainiziale, NULL, BAD_CAST tagTipoToNome(h_p), NULL);  	
-		xmlNewChild(nformulainiziale, NULL, BAD_CAST tagTipoToNome(h_p), NULL); // base: vuole almeno un h:p
+		//xmlNewChild(nformulainiziale, NULL, BAD_CAST tagTipoToNome(h_p), NULL); // base: vuole almeno un h:p //vedi sotto
 	}
 	
 	mNodoArticolato = ArticolatoAnalizza(buffer); 	//Analisi di un eventuale ARTICOLATO
@@ -306,6 +306,10 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		if(nnodo!=NULL)
 			xmlSetProp (nnodo, BAD_CAST "inizio", BAD_CAST "");
 		
+		//dtd base: formulainiziale deve avere almeno un blocco tra i figli
+		if(nformulainiziale!=NULL && nformulainiziale->children==NULL)
+			xmlNewChild(nformulainiziale, NULL, BAD_CAST tagTipoToNome(h_p), NULL);	
+		
 		if (configGetDocStruttura() == docarticolato)
 		{
 			nnodo = xmlNewChild(nformulafinale, NULL, BAD_CAST tagTipoToNome(h_p), NULL);	// formula finale
@@ -324,12 +328,10 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			//(può dare problemi in fase di visualizzazione...)
 			
 			
-			if (contNodo)
-			{
+			if (contNodo) {
 				nnodo = xmlNewChild(nintestazione, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);
 				xmlAddChild(nnodo, xmlNewText(BAD_CAST "===== DTD BASE: FORMULA INIZIALE NON AMMESSA =====\n\n"));
 				xmlAddChild(nnodo, xmlNewText(contNodo));
-
 			}
 			utilNodeDelete(nformulainiziale);
 			
@@ -339,12 +341,10 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)			
 			
-			if (contNodo)
-			{
+			if (contNodo) {
 				nnodo = xmlNewChild(narticolato, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);
 				xmlAddChild(nnodo, xmlNewText(BAD_CAST "===== DTD BASE: CORPO ALLEGATO NON AMMESSO =====\n\n"));
 				xmlAddChild(nnodo, xmlNewText(contNodo));
-
 			}
 			utilNodeDelete(nformulafinale);
 			
@@ -354,8 +354,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)
 			
-			if (contNodo)
-			{
+			if (contNodo) {
 				nnodo = xmlNewChild(narticolato, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);
 				xmlAddChild(nnodo, xmlNewText(BAD_CAST "===== DTD BASE: CONCLUSIONE NON AMMESSA =====\n\n")); 
 				xmlAddChild(nnodo,xmlNewText(BAD_CAST contNodo));
