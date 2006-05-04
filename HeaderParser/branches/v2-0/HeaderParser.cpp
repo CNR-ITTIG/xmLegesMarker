@@ -302,6 +302,7 @@ if(tdoc == 1) {
 		xmlNodePtr nApprovazione = xmlNewChild(descrittori, NULL, BAD_CAST "approvazione", NULL);
 		xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
 		xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
+		xmlNewProp(nUrn, BAD_CAST "value", BAD_CAST "");
 		xmlNewProp(nApprovazione, BAD_CAST "internal_id", BAD_CAST "");
 		xmlNewProp(nApprovazione, BAD_CAST "leg", BAD_CAST "");
 		xmlNewProp(nApprovazione, BAD_CAST "norm", BAD_CAST "");	
@@ -378,7 +379,9 @@ if(tdoc == 2) {
 	xmlNewProp(nRedazione, BAD_CAST "norm", BAD_CAST "");
 	
 	xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
-	xmlAddChild(nUrn, xmlNewText(BAD_CAST "urn:nir:consiglio.nazionale.ricerche:provvedimento:"));
+	//dtd2.1 Il valore non è più figlio, ma va nell'attributo value:
+	//xmlAddChild(nUrn, xmlNewText(BAD_CAST "urn:nir:consiglio.nazionale.ricerche:provvedimento:"));
+	xmlNewProp(nUrn, BAD_CAST "value", BAD_CAST "urn:nir:consiglio.nazionale.ricerche:provvedimento:");
 
 	xmlNodePtr emanode = xmlNewChild(intestazione, NULL, BAD_CAST "emanante", BAD_CAST "");
 	xmlAddChild(emanode, xmlNewText(BAD_CAST "Consiglio Nazionale delle Ricerche"));
@@ -530,8 +533,10 @@ if(tdoc == 2) {
   }
 
   // save URN
-  if(urn != "")
-    xmlNewChild(descrittori, NULL, BAD_CAST "urn", BAD_CAST urn.c_str());
+  if(urn != "") {
+    xmlNodePtr nodeUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
+    xmlNewProp(nodeUrn, BAD_CAST "value", BAD_CAST urn.c_str());
+  }
   
   //AGGIUNTA: addMissingMeta() qui? Esistono documenti senza footer...
   addMissingMeta(descrittori);
@@ -564,7 +569,8 @@ void  HeaderParser::defaultHeader(xmlNodePtr descrittori, xmlNodePtr intestazion
   xmlNewProp(redazione, BAD_CAST "nome", BAD_CAST "");
   xmlNewProp(redazione, BAD_CAST "id", BAD_CAST "red1");
   xmlNewProp(redazione, BAD_CAST "norm", BAD_CAST "");
-  xmlNodePtr urn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", BAD_CAST "");
+  xmlNodePtr urn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
+  xmlNewProp(urn, BAD_CAST "value", BAD_CAST "");
   xmlNodePtr tipodoc = xmlNewChild(intestazione, NULL, BAD_CAST "tipoDoc", BAD_CAST "");
   xmlNodePtr datadoc = xmlNewChild(intestazione, NULL, BAD_CAST "dataDoc", BAD_CAST "");
   xmlNewProp(datadoc, BAD_CAST "norm", BAD_CAST "");  
@@ -885,8 +891,10 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
   }
   
   // save URN
-  if(urn != "")
-    addChildIfMissing("urn", NULL, descrittori, urn.c_str());
+  if(urn != "") {
+    xmlNodePtr nodUrn = addChildIfMissing("urn", NULL, descrittori, NULL);
+	xmlNewProp(nodUrn, BAD_CAST "value", BAD_CAST urn.c_str()); 
+  }
 
   // add compulsory meta
 
@@ -1016,7 +1024,9 @@ void HeaderParser::addMissingMeta(xmlNodePtr descrittori) const
     xmlNewProp(redazione, BAD_CAST "id", BAD_CAST "red1");
     xmlNewProp(redazione, BAD_CAST "norm", BAD_CAST "");
   }
-  xmlNodePtr urn = addChildIfMissing("urn", &added, descrittori); 
+  xmlNodePtr urn = addChildIfMissing("urn", &added, descrittori);
+  if(added)
+	xmlNewProp(urn,BAD_CAST "value", BAD_CAST "");
 }
 
 //TRUE se la sequenza non è completamente composta di stati -1 e 0
