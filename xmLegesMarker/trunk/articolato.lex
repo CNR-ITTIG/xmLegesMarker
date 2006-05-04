@@ -30,6 +30,7 @@ PTACAPO		(([.]{S}*{DECORAZ}*{FR})|({FR}{FR}))  // <-- vecchio PTACAPO
 long artpos = 0;
 static int numConv;
 static int latConv;
+char *current_lettera = NULL;
 int nvir2ap = 1;
 int commiNN = 1;
 int firstSave;
@@ -74,7 +75,9 @@ int checkCardinale(tagTipo tipo) {
 
 /*********************************************************** CHECK LETTERA ****/
 int checkLettera(tagTipo tipo) {
-	numConv = convLetteraToInt((char*)utilCercaCarattere(yytext));
+	//numConv = convLetteraToInt((char*)utilCercaCarattere(yytext));
+	current_lettera = getLettera((char*)utilCercaCarattere(yytext));
+	numConv = convNTLetteraToInt(current_lettera);
 	latConv = latinToArabic(yytext);
 	return check(tipo);
 }
@@ -94,7 +97,11 @@ void save(tagTipo tipo) {
 	}
 
 		domTagOpen(tipo,artpos,0);
-		domSetID(tipo,numConv,latConv);
+		if(tipo==lettera) {
+			//printf("\nLETTERA num:%d lat:%d current_lettera:%s\n",numConv,latConv,current_lettera);
+			domSetIDLettera(current_lettera,latConv);
+		} else
+			domSetID(tipo,numConv,latConv);
 		domTagOpen(num,artpos,artleng);
 
 	if (tipo <= articolo)
@@ -231,7 +238,8 @@ RUBRICA 	({S}*[^10].*{FR})
 
 PTACAPO		(([.]{FR})|({FR}{FR}))
 /* Evitare il "Dangerous trailing context" warning del flex (dovuto agli {S}*):  */
-PTACAPODEC	(([.]{FR})|({NL}{FR}))
+/* PTACAPODEC	(([.]{FR})|({NL}{FR})) */
+PTACAPODEC	(([.]{FR})|{NL})
 DUEPTACAPO	([:]{FR})
 PVACAPO		(([;]{FR})|({FR}{FR}))
 
@@ -320,7 +328,6 @@ ROMANO		([ivxl]+{S}*)
 		REJECT;
 }
 
-
 ^{PARTE2}/{NL}	{
 		if (!checkOrd(parte))
 			REJECT;
@@ -338,7 +345,6 @@ ROMANO		([ivxl]+{S}*)
 	}else 
 		REJECT;
 }
-
 
 ^{TITOLO}/{NL}	{
 		co=checkOrd(titolo);
@@ -360,7 +366,6 @@ ROMANO		([ivxl]+{S}*)
 		REJECT;
 }
 
-
 ^{CAPO}/{NL}	{
 	if (!checkRomano(capo))
 		REJECT;
@@ -379,7 +384,6 @@ ROMANO		([ivxl]+{S}*)
 		REJECT;
 }
 
-
 <InCapo,InComma,InLettera,InNumero>^{SEZIONE}/{NL}	{
 	if (!checkRomano(sezione))
 		REJECT;
@@ -395,8 +399,6 @@ ROMANO		([ivxl]+{S}*)
 	}
 	else REJECT;
 }
-
-
 
 ^{ARTICOLORUB}/{RUBRICASEP}		{
 	if (configGetRubricaTipo() != adiacente)
@@ -491,7 +493,6 @@ ROMANO		([ivxl]+{S}*)
 	BEGIN(InComma);
 }
 
-
 <InArticolo>{COMMANN2}/[a-z]	{
 	if (configGetRubriche() != 0)
 		REJECT;
@@ -536,6 +537,8 @@ ROMANO		([ivxl]+{S}*)
 <InComma>{DECORAZ}/{PTACAPODEC}	{
 	//printf("DECORAZ: artpos=%d, artleng=%d, yytext='%s'\n", artpos, artleng, yytext);
 	saveDec();
+	//<InCommaDec> serve per gestire il caso "1. fine. (L) \n 2. Inizio..."
+	yy_push_state(InCommaDec);
 }
 
 <InComma>{DUEPTACAPO}	{
@@ -543,7 +546,6 @@ ROMANO		([ivxl]+{S}*)
 	//puts("InCommaAlinea");
 	yy_push_state(InCommaAlinea);
 }
-
 
 <InCommaAlinea>^{PUNTATASIM}	{
 	if(configGetDTDTipo() != flessibile)
@@ -587,7 +589,6 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InLetteraAlinea);
 }
 
-
 <InLetteraAlinea>{NUMERO1}	{
 	if (!checkCardinale(numero))
 		REJECT;
@@ -621,6 +622,13 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InPreComma);
 }
 
+<InCommaDec>{NL}	{
+	artpos += artleng-1;
+	unput('\n');
+	//puts("PRE COMMA");
+	yy_push_state(InPreComma);
+}
+
 <InLettera,InNumero,InPuntata>{PVACAPO}|{NL}	{
 	artpos += artleng-1;
 	unput('\n');
@@ -634,15 +642,13 @@ ROMANO		([ivxl]+{S}*)
 	yy_pop_state();
 }
 
-
 <InPreComma,InNota>{NOTAVV}	{
 	sequenzaInc(nota);
 		
 	domTagOpen(nota,artpos,0);
 	domTagOpen(h_p,artpos,0);
 	domSetID2(nota,ATTRIB_ID,sequenzaGetNum(nota),0);
-	
-	
+		
 	//printf("->	%s eon \n",yytext);
 	//tagAppendi(tagInit(nota, artpos, -1, -1, -1, -1));
 	artpos += artleng;
@@ -652,7 +658,6 @@ ROMANO		([ivxl]+{S}*)
 	// nota a pie' articolo, si esce dallo stato su un nuovo articolo
 	BEGIN(InNota);
 }
-
 
 <InComma,InLettera,InNumero>{VIRGO}		{
 		artpos += artleng;
@@ -664,12 +669,10 @@ ROMANO		([ivxl]+{S}*)
 }
 
 <InVirgolette>{VIRGO}	{
-
 	domAppendTextToLastNode(artpos);
 	domTagCloseFrom(virgolette);
 	artpos+=artleng;
 	yy_pop_state();
-
 }
 
 <InComma,InLettera,InNumero>{VIRG2A}		{
@@ -680,7 +683,6 @@ ROMANO		([ivxl]+{S}*)
 	domSetID(virgolette,sequenzaGetNum(virgolette),sequenzaGetLat(virgolette));
 	yy_push_state(YYSTATE);
 	BEGIN(InVirgoDoppie);
-	
 }
 
 <InVirgoDoppie>{VIRG2A}		{
@@ -699,14 +701,12 @@ ROMANO		([ivxl]+{S}*)
 	artpos+=artleng;
 }
 
-
 <InVirgolette,InVirgoDoppie>{NL}		{
 	//La dtd dei DDL non permette 'h:br' all'interno di 'virgolette' (nemmeno la base)
 	if(configGetDocTestoTipo() != disegnolegge && configGetDTDTipo() != base)  
 		domTagInsertEmpty(virgolette,h_br,artpos);	
 	artpos+=artleng;
 }
-
 
 <InVirgolette,InVirgoDoppie>.			{
 	artpos+=artleng;

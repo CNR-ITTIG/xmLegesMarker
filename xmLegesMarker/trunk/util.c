@@ -5,6 +5,7 @@
 * Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
 * Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
 * Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
+* 			Lorenzo Bacci (lorenzobacci@gmail.com)
 ******************************************************************************/
 #include "util.h"
 #include <errno.h>
@@ -470,7 +471,6 @@ int latinToArabic(char *s) {
 }
 
 
-
 /******************************************************************************/
 /********************************************************* ARABIC TO LATIN ****/
 /******************************************************************************/
@@ -494,6 +494,7 @@ char * arabicToLatin(int n) {
 /******************************************************************************/
 /************************************************************ CONV LETTERA ****/
 /******************************************************************************/
+/*
 int convLetteraToInt(char *s) {
 	int r;
 	if (isalpha(*s))  //// Con 3 cifre!
@@ -501,6 +502,33 @@ int convLetteraToInt(char *s) {
 	if (isalpha(*(s+1)))
 		r += 26;
 	return r;
+}
+*/
+//Sostituita (lunghezza > 2, deve gestire anche il caso "z aa ab ac...")
+//(non gestisce "aac aab...")
+//Converti a partire da una stringa (Null Terminated array di char).
+int convNTLetteraToInt(char *s) {
+	int num = 1;
+	
+	if(strlen(s) == 1 || s[0]==s[1])
+		num = 26*(strlen(s)-1) + (s[0] - 'a' + 1);
+	else
+		num = 26 + (s[1] - 'a' + 1);
+
+	return num;
+}
+
+//Tira fuori la stringa che rappresenta la lettera
+//(lettera_ptr è un puntatore al primo carattere...)
+char *getLettera(char *lettera_ptr) {
+	char *current_lettera = NULL;
+	int len=0, i=0;
+	while(isalpha(lettera_ptr[len])) len++;
+	current_lettera = (char *)malloc((len+1)*sizeof(char));
+	for(i=0;i<len;i++)
+		current_lettera[i] = lettera_ptr[i];
+	current_lettera[len] = '\0';
+	return current_lettera;
 }
 
 /******************************************************************* 
@@ -546,3 +574,29 @@ void sostStr(char *stringa, char *old, char *new) {
 	} /* fine if */
 
 } /* fine sostStr */
+
+/*
+//Converti il numero nella lettera corrispondente
+//(aggiunto poichè id delle lettere per convenzione non sono più del tipo
+//art1-com1-let1 ma art1-com1-leta).
+//Sequenza: a b c ... z aa bb cc ... zz aaa bbb ...)
+char *convIntToLettera(int num) {
+	if(num<1) {
+		printf("\nWARNING -convIntToLettera- num value is not valid!\n");
+		return NULL;
+	}
+	
+	int div = num/27 + 1; //è la lunghezza della stringa da ritornare
+	int resto = num%26;
+	if(resto==0) resto=26; //num non parte da 0 !
+	int intlet = 'a' + resto - 1;
+	char *ret= (char *)malloc((div+1)*sizeof(char));
+	int i;
+	
+	for(i=0;i<div;i++)
+		ret[i]=(char)intlet;
+	ret[div]='\0';
+	//printf("\n ID LETTERA - ret:%s div:%d resto:%d intlet:%d\n",ret,div,resto,intlet);
+	return ret;
+}
+*/

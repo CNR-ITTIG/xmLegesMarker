@@ -60,7 +60,10 @@ int			GetAllNodebyTagTipo(xmlNodePtr *bufdest, xmlNodePtr pNodoParent , xmlChar 
 void		utilErrore2ProcessingInstruction(xmlNodePtr pNodoParent);
 void		InsertXmlFile(char *memdoc,xmlNodePtr pParentNode);
 //---
-int convLetteraToInt(char *s);
+//int convLetteraToInt(char *s);
+int convNTLetteraToInt(char *s);
+//char *convIntToLettera(int num);
+char *getLettera(char *lettera_ptr);
 
 char * cercaSpazio(char *s);
 

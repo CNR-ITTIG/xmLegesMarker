@@ -321,15 +321,16 @@ void domSetIDtoNode(xmlNodePtr pnodo, tagTipo ptag,int pnumConv,int platConv,cha
 
 	if (pnodo!=NULL)
 	{
-		xmlAttrPtr	newattr;
-		newattr = xmlNewProp (pnodo, pnomeattr, BAD_CAST utilConcatena(2,tagTipoToNomeID(ptag),domNum2String(pnumConv,platConv)));
+		xmlAttrPtr newattr;
+		newattr = xmlNewProp (pnodo, pnomeattr, BAD_CAST utilConcatena(2,tagTipoToNomeID(ptag),
+				domNum2String(pnumConv,platConv)));
 	}
 }
 
 //Solo ID=PREFISSO+NUMERO
 void domSetID(tagTipo ptag,int numConv,int latConv)
 {
-	xmlNodePtr	nodo;
+	xmlNodePtr nodo;
 	if(ptag == puntata) return;  //In caso di elemento 'ep' non deve essere settato l'attributo ID
 	nodo=mcurrTagState[(int)ptag];
 	
@@ -339,7 +340,7 @@ void domSetID(tagTipo ptag,int numConv,int latConv)
 //Solo ID=NUMERO
 void domSetID2(tagTipo ptag,char *pnomeattr,int pnumConv,int platConv)
 {
-	xmlNodePtr	nodo;
+	xmlNodePtr nodo;
 	nodo=mcurrTagState[(int)ptag];
 	
 	if (nodo!=NULL)
@@ -347,6 +348,16 @@ void domSetID2(tagTipo ptag,char *pnomeattr,int pnumConv,int platConv)
 			xmlAttrPtr	newattr;
 			newattr = xmlNewProp (nodo, pnomeattr, BAD_CAST domNum2String(pnumConv,platConv));
 		}
+}
+//Lettera 
+void domSetIDLettera(char *current_lettera,int latConv)
+{
+	xmlNodePtr nodo;
+	nodo=mcurrTagState[(int)lettera];
+			
+	if(nodo!=NULL)
+		xmlNewProp(nodo, ATTRIB_ID, BAD_CAST utilConcatena(2,tagTipoToNomeID(lettera),
+			utilConcatena(2, current_lettera, arabicToLatin(latConv))));
 }
 
 void domAttributeIDUpdate(xmlNodePtr node,char * pParentID, char * pAnnessoParentID)
@@ -416,10 +427,13 @@ void domAddRango(xmlNodePtr node, char *t) {
 		if(r!=NULL)
 			str="R";
 	
+	xmlNodePtr rango = xmlNewChild(node,NULL,BAD_CAST tagTipoToNome(tiporango),NULL);
 	if(str!=NULL) 
-		xmlNewChild(node,NULL,BAD_CAST tagTipoToNome(tiporango),BAD_CAST str);
+		//xmlNewChild(node,NULL,BAD_CAST tagTipoToNome(tiporango),BAD_CAST str);
+		xmlNewProp(rango, BAD_CAST "tipo", BAD_CAST str);
 	else //Aggiungi un tiporango con valore arbitrario oppure non aggiungere tiporango??
-		xmlNewChild(node,NULL,BAD_CAST tagTipoToNome(tiporango),BAD_CAST "L");
+		//xmlNewChild(node,NULL,BAD_CAST tagTipoToNome(tiporango),BAD_CAST "L");
+		xmlNewProp(rango, BAD_CAST "tipo", BAD_CAST "L");
 }
 
 //Risale fino ad un nodo che ha ->prev=NULL e ->parent=NULL

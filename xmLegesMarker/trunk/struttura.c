@@ -113,7 +113,6 @@ void Corpo2Alinea(xmlNodePtr pParentNode){
 		Corpo2Alinea(cur);
 		cur = cur->next; //next fratello
 	}
-	
 }
 
 // ==========================================================================
@@ -129,7 +128,6 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		   ncontenitore=NULL, nformulafinale=NULL, nconclusione=NULL;
 	xmlNodePtr mNodoTipoDocumento=NULL, mNodoArticolato=NULL, mFirstError=NULL, mFirstErrorText= NULL;
 	xmlNodePtr nnodo= NULL;
-	//xmlNodePtr nApprovazione=NULL, nRedazione=NULL, nUrn=NULL; //Aggiunti per Disegni di Legge
 	
 	loggerInfo("INIZIO Struttura");
 
