@@ -92,6 +92,7 @@ class Month{
 };
 
 void addDivDecorations(xmlNodePtr parent);
+void addSiblingString(xmlNodePtr node, string str);
 std::string normalizeDate(const std::string& buffer);
 std::string lowercase(const std::string& word);
 void copyElements(const vector<int>& src, 
@@ -205,6 +206,7 @@ class HeaderParser
   void addFormatTagsDivPeriod(string buf, xmlNodePtr startnode) const;
   void init(std::istream& in);
   void defaultFooter(std::string footer, xmlNodePtr lastcomma) const;
+  int  HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastcomma) const;
   void defaultHeader(xmlNodePtr descrittori, xmlNodePtr intestazione) const;				  
   xmlNodePtr saveTag(int tagvalue,
 		     int start,

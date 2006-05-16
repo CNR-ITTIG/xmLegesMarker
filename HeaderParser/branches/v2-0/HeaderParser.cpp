@@ -298,7 +298,7 @@ int HeaderParser::parseHeader(std::string& header,
 if(tdoc == 1) {
 	if(sequence.size() > 0) {
 		found = true;
-		//Aggiungi tag specifici  <-- si dovrebbe controllare che non siano già presenti...
+		//Aggiungi tag specifici  <-- si dovrebbe controllare che non siano già presenti?!...
 		xmlNodePtr nApprovazione = xmlNewChild(descrittori, NULL, BAD_CAST "approvazione", NULL);
 		xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
 		xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
@@ -334,11 +334,6 @@ if(tdoc == 1) {
       	//Devono essere aggiunti dei tag di default vuoti per i disegni di legge
       	addMissingHeader(meta, descrittori, intestazione, formulainiziale, tdoc);
 	}
-	
-	//xmlNodePtr tit = findChild("titoloDoc", intestazione);
-	//xmlChar* titcontent = xmlNodeGetContent(tit);
-	//printf("\nHP - titoloDoc:\n%s\n",titcontent);
-	
 	return notes; 	
 }
 
@@ -410,11 +405,6 @@ if(tdoc == 2) {
 					if(titolonode == NULL)
 						saveTag(hp_titolodoc, offsets[last+1], offsets[first], strbuffer, intestazione, tdoc);
 					else { //era presente 'Oggetto:'. Aggiornare il valore di titoloDoc:
-						//string strtitolo = (char *)xmlNodeGetContent(titolonode);
-						//xmlNodeSetContent(titolonode, BAD_CAST strtitolo.c_str());
-						//Attacca una lista testo/entità piuttosto che un nodo di testo:
-						//strtitolo+=strbuffer.substr(offsets[last+1],offsets[first]-offsets[last+1]);
-						//xmlNodeSetContent(titolonode, BAD_CAST "");
 						string strtitolo=strbuffer.substr(offsets[last+1],offsets[first]-offsets[last+1]);
 						xmlAddChild(titolonode, xmlStringGetNodeList(NULL, BAD_CAST strtitolo.c_str()));
 					}
@@ -428,25 +418,6 @@ if(tdoc == 2) {
 		offset+=last+1;
 	}
     delete[] states;
-
-	/*
-	//in questo caso prova con il normale modello intestazione ??
-	//il rischio è avere un doc.non valido più difficile da gestire.
-	if(found == false) { 
-		// parse intestazione
-		printf("\nNo cnr header found, using generic header...\n");
-		last = 0;
-		states = new int[sequence.size()];
-		header_intestazione_model.viterbiPath(sequence, states, sequence.size());
-		if ((first = getFirstMatchingState(states, sequence.size(), header_intestazione_tags)) < sequence.size()){
-			found = true;
-			last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_intestazione_tags, tdoc);            
-			removeProcessedElements(sequence, last);
-			offset+=last+1;
-		}
-	    delete[] states;
-	}
-	*/
 
 	//Se non è stato rilevata l'intestazione viene messo tutto in error:
 	if(sequence.size() > 0 || found == false || cnrfound == false) { 
@@ -605,13 +576,6 @@ void HeaderParser::addMissingHeader(xmlNodePtr meta,xmlNodePtr descrittori,xmlNo
 	}
 
 	if(tdoc==2) { //Provvedimenti CNR
-
-		/*
-		  xmlNodePtr child = findChild(nodename, startnode);
-			  if(child == NULL){
-			    child = xmlNewChild(startnode, NULL, BAD_CAST nodename, BAD_CAST content);
-		*/
-
 		//tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "emanante", BAD_CAST "");
 		//xmlAddChild(tmpnode, xmlNewText(BAD_CAST "Consiglio Nazionale delle Ricerche"));
 		tmpnode = xmlNewChild(intestazione, NULL, BAD_CAST "numDoc", BAD_CAST "");
@@ -744,7 +708,7 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
 			      int notes) 
 {
 	//Considerando il testo all'interno dei vari tag come una lista di nodi testo/entità
-	//non si può tirare fuori il contenuto del tag -errore- con la semplice xmlNodeGetContent(),
+	//non si può tirare fuori il contenuto del tag -errore- con xmlNodeGetContent(),
 	//in particolare quando si utilizzano testi in html (ricchi di entità).
 	//xmlChar* content = xmlNodeGetContent(lastcomma);
 	xmlChar* content = xmlNodeListGetString(NULL, lastcomma, 0);
@@ -763,10 +727,14 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
   
   //printf("\nParseFooter\nbuffer: %s\n\n", strbuffer.c_str());
   
-  //Last Comma Init: (inutile non cambia niente rimane il <mod> )
-  //xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.c_str());
-  //defaultFooter(strbuffer, lastcomma);
-
+  //Qui si deve mettere nel lastcomma il testo fino a .\n opp. \n\n opp. .DECORAZIONE\n
+  strbuffer = strbuffer.substr(saveCommaDefault(strbuffer,lastcomma));
+  
+  if(strbuffer.find_first_not_of(" \n\t\r") == string::npos) return notes; //buffer vuoto, esci
+  
+  //printf("\nParseFooter\nbuffer: %s\n\n", strbuffer.c_str());
+  //printf("\nLASTCOMMA0:%s", (char *)xmlNodeGetContent(lastcomma));
+  
   // recover URN if present
   string urn = extractURN(strbuffer);
 
@@ -789,10 +757,6 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
   if(sequence.size() > 0){
     states = new int[sequence.size()];
     footer_formulafinale_model.viterbiPath(sequence, states, sequence.size());
-    
-  //for(int kk=0; kk < sequence.size(); kk++)
-	//printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
-    
     if (hasCorrectStates(states, sequence.size())){
       if (!found){
       	//printf("\nformulafinale\n");
@@ -836,8 +800,7 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
     states = new int[sequence.size()];
     footer_sottoscrizioni_model.viterbiPath(sequence, states, sequence.size());
     if (hasCorrectStates(states, sequence.size())){
-      	//printf("\nsottoscrizioni\n");    	
-    	
+		//printf("\nsottoscrizioni\n");
       last = 0;
       if (!found)
 		last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_sottoscrizioni_tags,
@@ -904,11 +867,6 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
 
   addMissingFooter(meta, descrittori, formulafinale, conclusione, tdoc);
   
-  //Last Comma Init:
-  //xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.c_str());
-    
-  //printf("\nFineFooter\n");
-    
   return notes;
 }
 
@@ -916,60 +874,51 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
 //sinistra del carattere (il resto va in error, nel footer). <<-- deve cercare '.' e A CAPO!
 void  HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) const
 {
-  unsigned int dot = footer.find('.');
-
-  while(dot != string::npos) {
-	  unsigned int ret1 = footer.find('\n',dot);
-	  unsigned int ret2 = footer.find('\r',dot);
-	  unsigned int ret = 0; //primo carattere \n opp. \r dopo il '.'
-
-	  if(ret1 != string::npos)
-	  	if(ret2 != string::npos)
-	  		if(ret1 < ret2)
-	  			ret = ret1;
-	  		else
-	  			ret = ret2;
-	  	else
-	  		ret = ret1;
-	  	
-	  string middlestr = footer.substr(dot+1,ret-dot-1);
-	  
-	  if(middlestr.find_first_not_of(" \n\t\r") != string::npos)
-	  	dot = footer.find('.',dot+1); //non è un punto e a capo, guarda il punto successivo
-	  else
-	  	break;
-  }
-
-  	//xmlNodeSetContent(lastcomma, BAD_CAST footer.substr(0, dot+1).c_str());
-    //Attacca una lista testo/entità piuttosto che un nodo di testo:
-  	xmlNodeSetContent(lastcomma, BAD_CAST "");
-	xmlAddChild(lastcomma, xmlStringGetNodeList(NULL, BAD_CAST footer.substr(0, dot+1).c_str()));
-  	
-    footer = footer.substr(dot+1);
+  footer = footer.substr(saveCommaDefault(footer,lastcomma));
     
   if (footer.find_first_not_of(" \n\t\r") != string::npos)
     saveTag(hp_sconosciuto, 0, footer.length(), footer, root_node, 0, NULL, NULL, false, NULL);
 }
 
-/*
-//Cerca il carattere '.' e mette in lastcomma tutto ciò che è alla 
-//sinistra del carattere (il resto va in error, nel footer). <<-- deve cercare '.' e A CAPO!
-void  HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) const
+//Mette nell'ultimo comma il testo fino a un ". \n"
+//Restituisce l'indice del carattere successivo il "\n" 
+//Se non trova il "punto e a capo" ritorna la lunghezza della stringa (cioè considera
+//tutto come corpo dell'ultimo comma...)
+int  HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastcomma) const
 {
-  unsigned int dot = footer.find('.');
-  
-  if(dot != string::npos){
-  	//xmlNodeSetContent(lastcomma, BAD_CAST footer.substr(0, dot+1).c_str());
-    //Attacca una lista testo/entità piuttosto che un nodo di testo:
-  	xmlNodeSetContent(lastcomma, BAD_CAST "");
-	xmlAddChild(lastcomma, xmlStringGetNodeList(NULL, BAD_CAST footer.substr(0, dot+1).c_str()));
-  	
-    footer = footer.substr(dot+1);
+  unsigned int dot, ret1, ret2, ret;
+  bool found = false;
+  dot = footer.find('.');
+
+  while(dot != string::npos) {
+	ret1 = footer.find('\n',dot);
+	ret2 = footer.find('\r',dot);
+	ret = 0; //primo carattere \n opp. \r dopo il '.'
+
+	if(ret1 != string::npos)
+		ret = ret1;
+	if(ret2 != string::npos)
+			if( (ret1 == string::npos) || ret2 < ret1)
+	  			ret = ret2;
+	if(ret1 == string::npos && ret2 == string::npos)
+		return 0;
+		  	
+	string middlestr = footer.substr(dot+1,ret-dot-1);
+	
+	if(middlestr.find_first_not_of(" \n\t\r") != string::npos)
+		dot = footer.find('.',dot+1); //non è un punto e a capo, guarda il punto successivo
+	else {
+		found = true;
+		break;
+	}
   }
-  if (footer.find_first_not_of(" \n\t\r") != string::npos)
-    saveTag(hp_sconosciuto, 0, footer.length(), footer, root_node, 0, NULL, NULL, false, NULL);
+  if(!found)
+	return footer.length();
+  	
+  xmlNodeSetContent(lastcomma, BAD_CAST "");
+  addSiblingString(lastcomma, footer.substr(0, ret+1));  	
+  return ret+1;
 }
-*/
 
 xmlNodePtr HeaderParser::addChildIfMissing(const char * nodename, 
 					   bool * added,
@@ -1108,15 +1057,21 @@ unsigned int HeaderParser::saveLastComma(const string& strbuffer,
 {
   int state = getFirstMatchingState(states, statesnumber, tags);
   if(state==0) {
-  	//Aggiunto:
-  	//in questo caso viene rilevata una sequenza nel footer in uno dei modelli ma tale
-  	//sequenza inizia con l'inizio del buffer. In questo caso o si duplica il contenuto
+  	//In questo caso viene rilevata una sequenza nel footer in uno dei modelli ma tale
+  	//sequenza inizia con l'inizio del buffer: o si duplica il contenuto
   	//del buffer (va sia nell'ultimo comma con tag <mod> (?) che nel footer) oppure
   	//si lascia l'ultimo comma vuoto (l'errore è commesso dal modello del footer...):
-  	xmlNodeSetContent(lastcomma, BAD_CAST "");
+  	//Quindi o si corregge il modello (solitamente sottoscrizioni è quello che "becca tutto",
+  	//oppure si potrebbe aggiungere subito in lastcomma tutto ciò che precede un punto e un
+  	//ritorno a capo.  	
   	//Invece nel caso non venga rilevato niente, cioè nessuna sequenza con nessun modello
   	//del footer, e dunque non viene mai richiamata la saveLastComma(), allora si
   	//richiama defaultFooter() alla fine di parseFooter().
+  	//printf("\nsavelascomma 0\n");
+
+  	//AGGIORNAMENTO:
+  	//Dal momento che il testo fino al primo "punto e a capo" viene messo nel corpo dell'ultimo
+  	//comma e non viene passato ai modelli del footer, se si arriva qui è ok e non si deve fare niente.
     return state; 
   }
     				
@@ -1129,17 +1084,19 @@ unsigned int HeaderParser::saveLastComma(const string& strbuffer,
   header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
   int first = getFirstMatchingState(pub_states, pub_sequence.size(), header_pubblicazione_tags);
   if (first == pub_sequence.size()) {
+  	//pubblicazione non trovata
     //xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.substr(offsets[offset], offsets[offset+state]-offsets[offset]).c_str());
-    //Attacca una lista testo/entità piuttosto che un nodo di testo:
-    xmlNodeSetContent(lastcomma, BAD_CAST "");
     string nlstr = strbuffer.substr(offsets[offset], offsets[offset+state]-offsets[offset]);
-	xmlAddChild(lastcomma, xmlStringGetNodeList(NULL, BAD_CAST nlstr.c_str()));
+    //xmlAddChild(lastcomma, xmlStringGetNodeList(NULL, BAD_CAST nlstr.c_str()));
+    addSiblingString(lastcomma, nlstr);
+  	//printf("\nsavelascomma 1:%s\n", nlstr.c_str());
   } else {
+  	//pubblicazione trovata!?
     //xmlNodeSetContent(lastcomma, BAD_CAST strbuffer.substr(offsets[offset], offsets[offset+first]-offsets[offset]).c_str());
-    //Attacca una lista testo/entità piuttosto che un nodo di testo:
-    xmlNodeSetContent(lastcomma, BAD_CAST "");
     string nlstr = strbuffer.substr(offsets[offset], offsets[offset+first]-offsets[offset]);
-	xmlAddChild(lastcomma, xmlStringGetNodeList(NULL, BAD_CAST nlstr.c_str()));
+	//xmlAddChild(lastcomma, xmlStringGetNodeList(NULL, BAD_CAST nlstr.c_str()));
+	addSiblingString(lastcomma, nlstr);
+  	//printf("\nsavelascomma 2\n");
 
     savePubblicazione(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, findChild("descrittori", meta), header_pubblicazione_tags);
     int last = saveTags(strbuffer, pub_states, pub_sequence.size(), header_offsets, offset, first, meta, header_pubblicazione_tags, 0, notes, lastcomma, NULL);     
@@ -1220,7 +1177,6 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
 {
   if(errorTag(tagvalue)){
     xmlNodePtr errornode = xmlNewPI(BAD_CAST "error", BAD_CAST buffer.substr(start,end-start).c_str());
-
 	/*
 	//Il nodo PI vuole xmlChar come 'content' e non vuole figli, le entità non si "risolvono" nemmeno così:
 	xmlChar *errorText = xmlNodeListGetString(NULL, 
@@ -1228,7 +1184,6 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
 	xmlNodePtr errornode = xmlNewPI(BAD_CAST "error", errorText);
 	xmlFree(errorText);
 	*/
-    
     if(prev_node != NULL)
 		xmlAddNextSibling(prev_node, errornode);
 	else if (subs_node != NULL)
@@ -1292,9 +1247,6 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
     }
   }
   else
-    //xmlNodePtr nodetxt = xmlStringGetNodeList(NULL, BAD_CAST buffer.substr(start,end-start).c_str());
-    //xmlAddChild(currnode, xmlNewText(BAD_CAST buffer.substr(start,end-start).c_str()));
-    //xmlNewChild(startnode, NULL, currnode->name, BAD_CAST buffer.substr(start,end-start).c_str());
     //Attacca il testo come una lista testo/entità!
     xmlAddChild(currnode, xmlStringGetNodeList(NULL, BAD_CAST buffer.substr(start,end-start).c_str()));
   return currnode;
@@ -1477,6 +1429,26 @@ void addDivDecorations(xmlNodePtr parent) {
 		}
 		ptr1=ptr1->next;
 	}
+}
+
+//Aggiungi alla fine della lista 'children' 
+//(attacca una lista testo/entità piuttosto che un nodo di testo)
+void addSiblingString(xmlNodePtr node, string str) {
+	xmlNodePtr child = node->children;
+	xmlNodePtr tmp = NULL;
+	xmlNodePtr ncontent = xmlStringGetNodeList(NULL, BAD_CAST str.c_str());
+
+	if(child==NULL) {
+		xmlAddChild(node, ncontent);
+		return;
+	}
+
+	tmp = child->next;
+	while(tmp!=NULL) {
+		child = tmp;
+		tmp = tmp->next;
+	}
+	child->next = ncontent;
 }
 
 string normalizeDate(const string& buffer)
