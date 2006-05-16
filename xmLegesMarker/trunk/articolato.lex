@@ -47,8 +47,11 @@ int check(tagTipo tipo) {
 	char *tipoStr = strdup(tagTipoToNome(tipo));
 	loggerDebug(utilConcatena(9, "CHECK: ", tipoStr, " testo=\"", yytext, "\", num=", utilItoa(numConv), "lat=", utilItoa(latConv)));
 	seq = sequenzaCheck(tipo, numConv, latConv);
-	if (!seq)
+	if (!seq) {
 		loggerWarn(utilConcatena(5, "CHECK:", tipoStr, " non in sequenza \"", yytext, "\""));
+		//Aggiungi un nodo/messaggio di warning?
+		domAddSequenceWarning(tipo);
+	}
 	return seq;
 }
 
@@ -236,12 +239,16 @@ RUBRICASEP	([ \-(])
 RUBRICA 	({S}*[^10].*{FR})
 
 
-PTACAPO		(([.]{FR})|({FR}{FR}))
+/* Alla fine di una lettera/numero può esserci una decorazione (dopo il ; o il .) : */
+/* PTACAPO		(([.]{FR})|({FR}{FR})) */
+/* PVACAPO		(([;]{FR})|({FR}{FR})) */
+PTACAPO		(([.]{FR})|({FR}{FR})|([.]{S}*{DECORAZ}{FR}))
+PVACAPO		(([;]{FR})|({FR}{FR})|([;]{S}*{DECORAZ}{FR}))
+
 /* Evitare il "Dangerous trailing context" warning del flex (dovuto agli {S}*):  */
 /* PTACAPODEC	(([.]{FR})|({NL}{FR})) */
 PTACAPODEC	(([.]{FR})|{NL})
 DUEPTACAPO	([:]{FR})
-PVACAPO		(([;]{FR})|({FR}{FR}))
 
 VIRGO		(["])
 /* 						virgolette sx: win e utf-8 */

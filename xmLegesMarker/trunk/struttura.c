@@ -263,6 +263,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		else	// prima in contenitore
 		{
 			ncontenitore = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "contenitore", NULL);
+			xmlNewProp(ncontenitore, BAD_CAST "nome", BAD_CAST ""); //DTD 2.1
 			strcpy(ntext,"<atto xmlns:h=\"html\">");
 			strcat(ntext,prima);
 			strcat(ntext,"</atto>");
@@ -284,6 +285,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			else
 			{
 				ncontenitore = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "contenitore", NULL);
+				xmlNewProp(ncontenitore, BAD_CAST "nome", BAD_CAST ""); //DTD 2.1
 				strcpy(ntext,"<atto xmlns:h=\"html\">");
 				strcat(ntext,disposto);
 				strcat(ntext,"</atto>");

@@ -453,4 +453,56 @@ xmlNodePtr domGetFirstNode(xmlNodePtr node) {
 	}
 	return root;
 }
+
+//Aggiunge un messaggio di warning in un nodo error se una sequenza non è rispettata
+void domAddSequenceWarning(tagTipo ptag) {
+	xmlNodePtr nodo=mcurrTagState[(int)ptag];
+	if(nodo==NULL) {
+		printf("\ndomAddSequenceWarning() -- nodo is null\n");
+		return;
+	}
+	xmlNodePtr pi=xmlNewPI(BAD_CAST tagTipoToNome(tagerrore), 
+			BAD_CAST "Sequenza non rispettata (oppure lista numerica senza dtd flessibile) -- Verificare");
+			
+	//Controlla che non sia già stato messo un nodo error
+	if(domPIAdded(nodo)) return;
+	//printf("\n ----------SEQUENZA NON RISPETTATA ? -----------\n");
+	
+	//Aggiungi come sibling del corpo
+	xmlAddChild(nodo,pi);
+	
+	//Aggiungi come figlio del corpo.
+	//Il problema è che il testo viene messo dopo! (quando c'è il tagclose)
+	/*
+	xmlNodePtr child=NULL;
+	child = nodo->children;
+	while(child!=NULL) {
+		if((!xmlStrcmp(child->name, (const xmlChar *)"corpo")))
+			break;
+		child=child->next;
+	}
+	
+	if(child==NULL) {
+		printf("\n Sequenza non rispettata -- CHILD NULL !!!\n");
+		return;
+	}
+	
+	addSibling(child,pi);
+	*/
+}
+		
+//Ritorna 1 se nella lista children c'è un nodo error
+int domPIAdded(xmlNodePtr node) {
+	xmlNodePtr child=NULL;
+	child = node->children;
+	//printf("\ndomPIAdded()");
+	while(child!=NULL) {
+		//printf("\n name:%s\n", (char *)child->name);
+		if(!xmlStrcmp(child->name, (const xmlChar *)"error"))
+			return 1;
+		child=child->next;
+	}
+	return 0;
+}
+		
 			

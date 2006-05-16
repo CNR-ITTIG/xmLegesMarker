@@ -32,6 +32,7 @@ extern "C" {
 	void		domSetID(tagTipo ptag,int numConv,int latConv);
 	void		domSetID2(tagTipo ptag,char *pnomeattr,int pnumConv,int platConv);
 	void		domSetIDtoNode(xmlNodePtr	pnodo, tagTipo ptag,int pnumConv,int platConv,char *pnomeattr);
+	void		domSetIDLettera(char *current_lettera,int latConv);
 	
 	char		*domExtractStringBeforeIndex(int pindex);
 	void		domAppendTextToLastNode(int pIndex);
@@ -49,6 +50,8 @@ extern "C" {
 	xmlNodePtr	domGetLastTag(tagTipo ptag);
 	void 		domAddRango(xmlNodePtr node, char *t);
 	xmlNodePtr	domGetFirstNode(xmlNodePtr node);
+	void domAddSequenceWarning(tagTipo ptag);
+	int domPIAdded(xmlNodePtr node);
 
 #ifdef __cplusplus
 }

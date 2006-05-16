@@ -25,6 +25,7 @@ xmlNodePtr TabelleAnalizza(  char *buffer)
 		loggerInfo("INIZIO Tabelle");
 
 		nodoContenitore=xmlNewNode(NULL, BAD_CAST tagTipoToNome(contenitore));
+		xmlNewProp(nodoContenitore, BAD_CAST "nome", BAD_CAST ""); //DTD 2.1
 
 		flagAnn = GetFlagAnnessi();
 
