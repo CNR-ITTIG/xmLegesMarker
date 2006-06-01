@@ -347,25 +347,25 @@ if(tdoc == 2) {
 	//Aggiungi tag 'proprietario' vuoti
 	xmlNodePtr proprietario = xmlNewChild(meta, NULL, BAD_CAST "proprietario", BAD_CAST "");
 	xmlNewProp(proprietario, BAD_CAST "xlink:type", BAD_CAST "simple");
-	xmlNewProp(proprietario, BAD_CAST "xmlns:cnr", BAD_CAST "http://www.cnr.it/provvedimenti/1.0");
+	//xmlNewProp(proprietario, BAD_CAST "xmlns:cnr", BAD_CAST "http://www.cnr.it/provvedimenti/1.0");
+	//Nuova versione cnr-DTD:
+	xmlNewProp(proprietario, BAD_CAST "xmlns:cnr", BAD_CAST "http://www.cnr.it/provvedimenti/2.0");
 	
 	xmlNodePtr cnrmeta = xmlNewChild(proprietario, NULL, BAD_CAST "cnr:meta", BAD_CAST "");
-	xmlNodePtr proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:strutturaEmanante", BAD_CAST "");
-	xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
-	proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:autoritaEmanante", BAD_CAST "");
-	xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
-	proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:tipoDestinatario", BAD_CAST "");
-	xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
-	proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:disciplina", BAD_CAST "");
-	xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
+	xmlNodePtr thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:strutturaEmanante", BAD_CAST "");
+	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
+	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:autoritaEmanante", BAD_CAST "");
+	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
+	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:tipoDestinatario", BAD_CAST "");
+	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
+	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:disciplina", BAD_CAST "");
+	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
 	//disciplina e areaScientifica sono in OR nella DTD.
-	//proptmp = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:areaScientifica", BAD_CAST "");
-	//xmlAddChild(proptmp, xmlNewText(BAD_CAST ""));
 	
 	//Aggiungi tag specifici
 	xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
 	xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST "");
-	xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");		
+	xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");
 	xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "BUCNR");
 			
 	xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
@@ -725,7 +725,7 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
   string strbuffer = (char *) content;
   xmlFree(content);
   
-  //printf("\nParseFooter\nbuffer: %s\n\n", strbuffer.c_str());
+  printf("\nParseFooter\nbuffer: %s\n\n", strbuffer.c_str());
   
   //Qui si deve mettere nel lastcomma il testo fino a .\n opp. \n\n opp. .DECORAZIONE\n
   strbuffer = strbuffer.substr(saveCommaDefault(strbuffer,lastcomma));
