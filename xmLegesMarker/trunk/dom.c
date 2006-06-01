@@ -366,20 +366,20 @@ void domAttributeIDUpdate(xmlNodePtr node,char * pParentID, char * pAnnessoParen
 	cur = node->xmlChildrenNode;
 	
 	if (cur==NULL)return;
-	char *idval=NULL, *newid=NULL; //, *numval=NULL;
+	char *idval=NULL, *newid=NULL, *numval=NULL;
 	
 	while (cur != NULL) {
 		idval=xmlGetProp(cur,ATTRIB_ID);
 
-		/*
-		if (!xmlStrcmp(cur->name, tagTipoToNome(ndr)))
+		//Update degli NDR (utile negli annessi)
+		if (!xmlStrcmp(cur->name, tagTipoToNome(ndr))) {
 			numval=xmlGetProp(cur, BAD_CAST "num"); //'NDR' usa 'num', non 'id'
-			
-		//cur è un 'NDR', se siamo in un annesso il valore di 'num' deve essere aggiornato
-		if(numval && pAnnessoParentID)
-			xmlSetProp(cur, BAD_CAST "num", 
-				BAD_CAST (char *)utilConcatena(3,pAnnessoParentID,ATTRIB_ID_SEP,numval));
-		*/
+			//cur è un 'NDR', se siamo in un annesso il valore di 'num' deve essere aggiornato
+			if(pAnnessoParentID)
+				xmlSetProp(cur, BAD_CAST "num", 
+					BAD_CAST (char *)utilConcatena(3,pAnnessoParentID,ATTRIB_ID_SEP,numval));
+		}
+
 	
 		if (idval) { // Se il nodo ha impostato l'attributo ID
 			//Se si tratta di un ANNESSO
@@ -391,7 +391,7 @@ void domAttributeIDUpdate(xmlNodePtr node,char * pParentID, char * pAnnessoParen
 				pParentID=pAnnessoParentID;
 			}
 
-			if (pParentID)
+			if(pParentID)
 				newid=(char *)utilConcatena(3,pParentID,ATTRIB_ID_SEP,idval);
 			else
 				newid=idval;
@@ -458,11 +458,12 @@ xmlNodePtr domGetFirstNode(xmlNodePtr node) {
 void domAddSequenceWarning(tagTipo ptag) {
 	xmlNodePtr nodo=mcurrTagState[(int)ptag];
 	if(nodo==NULL) {
-		printf("\ndomAddSequenceWarning() -- nodo is null\n");
+		//Verificare che quando si arriva qui il msg di warning viene messo comunque e poi togliere questo printf()
+		printf("\ndomAddSequenceWarning() -- nodo is null\n"); 
 		return;
 	}
 	xmlNodePtr pi=xmlNewPI(BAD_CAST tagTipoToNome(tagerrore), 
-			BAD_CAST "Sequenza non rispettata (oppure lista numerica senza dtd flessibile) -- Verificare");
+			BAD_CAST ">>Sequenza non rispettata, verificare (caratteri \";\" e \".\", lista numerica senza dtd flessibile, ecc...)<<");
 			
 	//Controlla che non sia già stato messo un nodo error
 	if(domPIAdded(nodo)) return;

@@ -9,6 +9,9 @@
 ******************************************************************************/
 
 /*
+<InLettera,InNumero,InPuntata>{PVACAPO}|{NL}	{ //<--può non esserci il ; alla fine di una lettera!?
+//Il problema è che così viene rilevato questo anche in caso di PTACAPO e salta la sequenza (VERIFICARE!)
+
 PTACAPO		(([.]{S}*{DECORAZ}*{FR})|({FR}{FR}))  // <-- vecchio PTACAPO
 */
 
@@ -48,6 +51,7 @@ int check(tagTipo tipo) {
 	loggerDebug(utilConcatena(9, "CHECK: ", tipoStr, " testo=\"", yytext, "\", num=", utilItoa(numConv), "lat=", utilItoa(latConv)));
 	seq = sequenzaCheck(tipo, numConv, latConv);
 	if (!seq) {
+		//printf("\nCHECK:\"%s\" non in sequenza \"%s\"\n", tipoStr, yytext);
 		loggerWarn(utilConcatena(5, "CHECK:", tipoStr, " non in sequenza \"", yytext, "\""));
 		//Aggiungi un nodo/messaggio di warning?
 		domAddSequenceWarning(tipo);
@@ -548,7 +552,7 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InCommaDec);
 }
 
-<InComma>{DUEPTACAPO}	{
+<InComma>{DUEPTACAPO} 	{
 	artpos += artleng;
 	//puts("InCommaAlinea");
 	yy_push_state(InCommaAlinea);
@@ -636,7 +640,7 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InPreComma);
 }
 
-<InLettera,InNumero,InPuntata>{PVACAPO}|{NL}	{
+<InLettera,InNumero,InPuntata>{PVACAPO}	{
 	artpos += artleng-1;
 	unput('\n');
 	//puts("IN PRELETNUM");

@@ -40,7 +40,7 @@ xmlNodePtr CreateNdr(xmlChar *mid)
 // ------------------------------------------------- muove ndr in meta
 void MoveNotesInMeta(int IDStartFrom,xmlNodePtr pParentNode,xmlNodePtr predazionale)
 {
-	if (pParentNode==NULL)return;
+	if(pParentNode==NULL) return;
 
 	xmlNodePtr cur=pParentNode->children;
 	xmlNodePtr tmpnodo=NULL;
@@ -71,8 +71,9 @@ void MoveNotesInMeta(int IDStartFrom,xmlNodePtr pParentNode,xmlNodePtr predazion
 			
 			//Ma si dovrebbe tenere conto del fatto che la nota può essere in un annesso!?
 			//L'id di ndr dovrebbe essere qualcosa tipo "ann1-n1" e non soltanto "n1"
-			//Qui sia l'id di nota che quello di ndr sono del tipo "n1". Quando viene aggiunto "ann1-" ?
-			
+			//Qui sia l'id di nota che quello di ndr sono del tipo "n1". 
+			//Quando viene aggiunto "ann1-" ? <-- vedi domAttributeIDUpdate() che viene richiamata
+			//alla fine da parser.c
 			cur=mndr;
 		}
 		/*
@@ -144,8 +145,10 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 						&& configGetDTDTipo() != base)
 				xmlNewProp(mNodoTipoDocumento, BAD_CAST "nome", BAD_CAST configGetDocNome()); 
 		}
-		else				// allegati
+		else {			// allegati
 			xmlNodeSetName(mNodoTipoDocumento, BAD_CAST "DocumentoNIR");
+			xmlNewProp(mNodoTipoDocumento, BAD_CAST "nome", BAD_CAST configGetDocNome()); //DTD 2.1
+		}
 	}
 
 	//Aggiunta -- Si deve differenziare doc.generici, disegni di legge, prov.cnr, ecc...
@@ -195,14 +198,10 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 
 		//NOTE
 		nreda=GetFirstNodebyTagTipo(nmeta, BAD_CAST "redazionale");
-		
-		if(ruolo!=principale) {
-			//Non funziona: droot non è il root del documento ma è mNodoArticolato (questo annesso).
-			//Non va bene neanche il root di parser.c perchè ancora non ha children.
-			xmlNodePtr droot = domGetFirstNode(mNodoTipoDocumento); 
-			mnotes = GetAllNodebyTagTipo(NULL, droot, BAD_CAST tagTipoToNome(nota));
-			nreda = GetFirstNodebyTagTipo(droot, BAD_CAST "redazionale");
-		}
+
+		//Possibile problema: documento con allegato, note alla fine del doc. e non c'è <redazionale> (nell'allegato).
+		//nreda in quel caso è null, non viene fatto MovesNotesInMeta() e quindi rimangono dei <nota>,
+		//xmLeges crasha (riferimento a nodo inesistente)
 		if (nreda) {
 			MoveNotesInMeta(mnotes, mNodoArticolato, nreda);
 		} else {
@@ -264,6 +263,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		{
 			ncontenitore = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "contenitore", NULL);
 			xmlNewProp(ncontenitore, BAD_CAST "nome", BAD_CAST ""); //DTD 2.1
+			xmlNewProp(ncontenitore, BAD_CAST "id", BAD_CAST ""); //DTD 2.1
 			strcpy(ntext,"<atto xmlns:h=\"html\">");
 			strcat(ntext,prima);
 			strcat(ntext,"</atto>");
@@ -286,6 +286,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			{
 				ncontenitore = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "contenitore", NULL);
 				xmlNewProp(ncontenitore, BAD_CAST "nome", BAD_CAST ""); //DTD 2.1
+				xmlNewProp(ncontenitore, BAD_CAST "id", BAD_CAST ""); //DTD 2.1
 				strcpy(ntext,"<atto xmlns:h=\"html\">");
 				strcat(ntext,disposto);
 				strcat(ntext,"</atto>");

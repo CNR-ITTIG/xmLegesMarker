@@ -70,8 +70,8 @@ int ii;
 	loggerDebug(utilConcatena(8, "sequenzaCheck(tipo,num,lat):arg=", utilItoa(num), ",", utilItoa(lat), ",seq=", utilItoa(seq[tipo].num), ",", utilItoa(seq[tipo].lat)));
 		// ??? RIVEDERE CON CONDIZIONI PER LATINI
 
-	/*printf("sequenza numero %d\n",seq[tipo].num);
-	printf("num %d\n",num);*/
+	//printf("sequenza numero %d\n",seq[tipo].num);
+	//printf("num %d\n",num);
 
 	ii = (num/27);
 
