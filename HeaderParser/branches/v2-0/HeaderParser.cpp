@@ -268,7 +268,6 @@ int HeaderParser::parseHeader(std::string& header,
 			      int tdoc,
 			      int notes)
 {
-
   bool found = false, pub_found = false;
   unsigned int last = 0, first = 0, offset = 0;
   int * states = NULL, * pub_states = NULL;
@@ -444,8 +443,10 @@ if(tdoc == 2) {
 		copyElements(sequence, pub_sequence, 0, first-1);
 		header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
 		pub_found = savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
+		//pub_found = savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, intestazione, header_pubblicazione_tags);
 		if(pub_found)
-	 	 last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, meta ,header_pubblicazione_tags, tdoc, &notes, NULL, intestazione);     
+	 	 //last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, meta, header_pubblicazione_tags, tdoc, &notes, NULL, intestazione);
+	 	 last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, intestazione, header_pubblicazione_tags, tdoc, &notes, NULL, intestazione);
 		if(last < first-1)
 		  saveTag(hp_sconosciuto, offsets[last], offsets[first], strbuffer, root_node, tdoc, NULL, intestazione); 	
 		last = first;
@@ -472,6 +473,7 @@ if(tdoc == 2) {
 		header_pubblicazione_model.viterbiPath(pub_sequence, pub_states, pub_sequence.size());
 		if(!pub_found)
 		  pub_found = savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, descrittori, header_pubblicazione_tags);
+		  //pub_found = savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, intestazione, header_pubblicazione_tags);
 		last = saveTitle(strbuffer, pub_states, pub_sequence.size(), offsets, offset, last, descrittori, intestazione, meta, found, header_pubblicazione_tags, &notes);
 		last++;
 		delete[] pub_states;
@@ -513,7 +515,8 @@ if(tdoc == 2) {
   addMissingMeta(descrittori);
   
   //Aggiunta: redazionale obbligatorio? (Problemi con le note se non è presente...)
-  addChildIfMissing("redazionale", NULL, meta);
+  //addChildIfMissing("redazionale", NULL, meta); 	//Ma se non ci sono note nel documento,
+	  //sono problemi lo stesso! Aggiungerlo se e quando serve oppure toglierlo evenetualmente dopo?
   
   // put remains in error tag
   //if (offset < offsets.size())
@@ -638,16 +641,19 @@ unsigned int HeaderParser::saveTitle(const string& strbuffer,
 	  int islongpub = longpub.find("e convertito in legge");
 	  if(islongpub == string::npos) {
 		xmlNodePtr titlenode = saveTag(hp_titolodoc,offsets[offset+last+1], offsets[offset+statesnumber], strbuffer, intestazione, 0);     
-		saveTags(strbuffer, states, statesnumber, offsets, offset, state, meta, tags, 0, id, NULL, titlenode);    
+		//saveTags(strbuffer, states, statesnumber, offsets, offset, state, meta, tags, 0, id, NULL, titlenode);
+		saveTags(strbuffer, states, statesnumber, offsets, offset, state, intestazione, tags, 0, id, NULL, titlenode);
 		return statesnumber-1;
 	  }
   }
   //else {
     xmlNodePtr titlenode = saveTag(hp_titolodoc,offsets[offset], offsets[offset+first], strbuffer, intestazione, 0); 
-    return saveTags(strbuffer, states, statesnumber, offsets, offset, first, meta, tags, 0, id, titlenode, NULL);    
+    //return saveTags(strbuffer, states, statesnumber, offsets, offset, first, meta, tags, 0, id, titlenode, NULL);
+    return saveTags(strbuffer, states, statesnumber, offsets, offset, first, intestazione, tags, 0, id, titlenode, NULL);
   //}
 }
 
+//Salva i valori degli attributi di "pubblicazione"
 bool HeaderParser::savePubblicazione(const string& strbuffer, 
 				     int * states, 
 				     unsigned int statesnumber,
@@ -725,7 +731,7 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
   string strbuffer = (char *) content;
   xmlFree(content);
   
-  printf("\nParseFooter\nbuffer: %s\n\n", strbuffer.c_str());
+  //printf("\nParseFooter\nbuffer: %s\n\n", strbuffer.c_str());
   
   //Qui si deve mettere nel lastcomma il testo fino a .\n opp. \n\n opp. .DECORAZIONE\n
   strbuffer = strbuffer.substr(saveCommaDefault(strbuffer,lastcomma));
@@ -821,7 +827,7 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
     delete[] states;
   }
   
-  // parse annessi
+  // parse annessi   // <--- MA SERVE IL MODELLO ANNESSI ?? 
   if(sequence.size() > 0){
     states = new int[sequence.size()];
     footer_annessi_model.viterbiPath(sequence, states, sequence.size());
@@ -872,12 +878,19 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
 
 //Cerca il carattere '.' e mette in lastcomma tutto ciò che è alla 
 //sinistra del carattere (il resto va in error, nel footer). <<-- deve cercare '.' e A CAPO!
+/*
 void  HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) const
 {
   footer = footer.substr(saveCommaDefault(footer,lastcomma));
     
   if (footer.find_first_not_of(" \n\t\r") != string::npos)
     saveTag(hp_sconosciuto, 0, footer.length(), footer, root_node, 0, NULL, NULL, false, NULL);
+}
+*/
+//defaultFooter() deve soltanto mettere tutto ciò che resta in un nodo error
+void  HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) const
+{
+	saveTag(hp_sconosciuto, 0, footer.length(), footer, root_node, 0, NULL, NULL, false, NULL);
 }
 
 //Mette nell'ultimo comma il testo fino a un ". \n"
@@ -1030,7 +1043,7 @@ void HeaderParser::findPubblicazione(const string& strbuffer,
 {
   if (first == 0)
     return;
-
+	//printf("\nFindPubblicazione()");
   int last = 0;
   int * pub_states = new int[first];
   vector<int> pub_sequence;
@@ -1072,6 +1085,7 @@ unsigned int HeaderParser::saveLastComma(const string& strbuffer,
   	//AGGIORNAMENTO:
   	//Dal momento che il testo fino al primo "punto e a capo" viene messo nel corpo dell'ultimo
   	//comma e non viene passato ai modelli del footer, se si arriva qui è ok e non si deve fare niente.
+  	//In questo caso defaultFooter() deve soltanto mettere tutto ciò che resta in un nodo error.
     return state; 
   }
     				
@@ -1204,6 +1218,13 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
     if(tdoc == 1 && tagvalue == hp_div) {
   	addFormatTagsDiv(buffer.substr(start,end-start), startnode);
   	return NULL;	
+  }
+  
+  //Pubblicazione
+  if(pubTag(tagvalue)) {
+  	//printf("\npubTag:%s\n",buffer.substr(start,end-start).c_str());
+  	xmlAddChild(startnode, xmlNewText(BAD_CAST buffer.substr(start,end-start).c_str()));
+    return NULL;
   }
   
   xmlNodePtr currnode = (withtags) ? openTag(tagvalue, startnode, buffer.substr(start,end-start), id) : startnode;
@@ -1592,16 +1613,13 @@ bool HeaderParser::trimmedTagDDL(int tagvalue) const
   }
 }
 
-bool HeaderParser::noteTag(int tagvalue) const
+bool HeaderParser::pubTag(int tagvalue) const
 {
   switch(HP_tagTipo(tagvalue)){
   case hp_pubblicazione: 
   case hp_datapubbl:
   case hp_numpubbl:
-  case hp_sopubbl:
-  case hp_nota:
-  case hp_registrazione:
-  case hp_lavoripreparatori: return true;
+  case hp_sopubbl: return true;
   default: return false;
   }
 }
@@ -1726,7 +1744,7 @@ void HeaderParser::parseHeaderGetTipo(std::string& strbuffer)
 	//manda il tipo di doc. allo stdout  <-- No, deve essere scritto su un file...
 	FILE * fo = NULL;
 	
-	if (!(fo = fopen("temp/unknown_type.tmp", "w")))  // Nome file da concordare con xmLeges
+	if (!(fo = fopen("temp/unknown_type.tmp", "w"))) //Nome file da concordare con xmLegesEditor
 	{
 		fprintf(stderr, "Errore apertura file \"temp/unknown_type.tmp\" \n");
 		//return notes;
