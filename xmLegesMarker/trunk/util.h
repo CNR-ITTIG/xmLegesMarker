@@ -55,8 +55,11 @@ char		*utilGetPartialText(char *ptesto,int pindexstart, int plen);
 int			IsNode(xmlNodePtr pNodo,tagTipo ptipo);
 void		MoveAllChildren(xmlNodePtr pFrom,xmlNodePtr pTo);
 xmlNodePtr	GetFirstTextNode(xmlNodePtr pNodoParent);
-xmlNodePtr	GetFirstNodebyTagTipo(xmlNodePtr pNodoParent , xmlChar *pnomeTag);
-int			GetAllNodebyTagTipo(xmlNodePtr *bufdest, xmlNodePtr pNodoParent , xmlChar *pnomeTag);
+xmlNodePtr	GetFirstNodebyTagTipo(xmlNodePtr pNodoParent, xmlChar *pnomeTag);
+xmlNodePtr	totalGetFirstNodebyTagTipo(xmlNodePtr pNodoParent, xmlChar *pnomeTag, xmlNodePtr *savebuf, int savesize);
+void		addNodeInBuffer(xmlNodePtr *buffer, xmlNodePtr node, int *size);
+void		adjustBuffer(xmlNodePtr *buffer, int *size);
+int			GetAllNodebyTagTipo(xmlNodePtr *bufdest, int size, xmlNodePtr pNodoParent , xmlChar *pnomeTag);
 void		utilErrore2ProcessingInstruction(xmlNodePtr pNodoParent);
 void		InsertXmlFile(char *memdoc,xmlNodePtr pParentNode);
 //---

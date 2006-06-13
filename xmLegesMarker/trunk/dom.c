@@ -50,7 +50,7 @@ void addSibling(xmlNodePtr pnode, xmlNodePtr cnode) {
 									//     lista ma dopo il primo nodo (di testo?)  -- (Approfondire...)
 }
 
-xmlNodePtr	domGetLastTag(tagTipo ptag)
+xmlNodePtr domGetLastTag(tagTipo ptag)
 {
 	return mcurrTagState[(int)ptag];
 }
@@ -71,7 +71,7 @@ void domSetCurrentTagState(tagTipo ptag,xmlNodePtr pnode)
 
 //Inserisce il nodo pRoot nello stato tRoot, inoltre setta la variabile globale 
 //domTextBuffer a ptext
-void domInit(tagTipo tRoot,xmlNodePtr	pRoot,  char *ptext)
+void domInit(tagTipo tRoot,xmlNodePtr pRoot, char *ptext)
 {
 	mRoot=pRoot;
 	domTextBuffer=ptext;
@@ -89,13 +89,13 @@ void domInit(tagTipo tRoot,xmlNodePtr	pRoot,  char *ptext)
 }
 
 xmlNodePtr domGetLastNodeParent(tagTipo ptag)
-{
-	
+{	
 	xmlNodePtr tmp=NULL;
 	int n;
 	//inizia a controllare dal tag con enumerazione minore
 	for(n=((int)ptag)-1;(n>=0) && (mcurrTagState[n]==NULL); n--);
-	if (n>=0)tmp=mcurrTagState[n];
+		if (n>=0)
+			tmp=mcurrTagState[n];
 	return tmp;
 }
 
@@ -105,7 +105,7 @@ void domTagCloseFrom(tagTipo t)
 	domClearStateFrom(t);
 }
 
-//Rimuve il tag specificato dal Buffer "Stato"
+//Rimuove il tag specificato dal Buffer "Stato"
 void domTagClose(tagTipo t)
 {
 	if (mcurrTagState[(int)t]!=NULL)
@@ -154,14 +154,12 @@ xmlNodePtr domGetLastChild(void)
 {
 	int n;
 	xmlNodePtr tmp=NULL;
-	//ricerca il TAG (nello stato) con enumerazione + alta //Che significa nello stato???
-	for (n=TAGTIPODIM-1; (n>=0)&&(mcurrTagState[n]==NULL) ;n--)	;
-	
-	if (n>=0)tmp=mcurrTagState[n];
-
+	//ricerca il TAG (nello stato) con enumerazione + alta //Che significa nello stato??? <- nell'array tagstate!?
+	for (n=TAGTIPODIM-1; (n>=0)&&(mcurrTagState[n]==NULL); n--);
+		if (n>=0)
+			tmp=mcurrTagState[n];
 	return tmp;
 }
-
 
 // Se vi è del testo non assegnato, viene aggiunto all'ultimo TAG (quello con enumerazione + alta)
 void domClose(void)
@@ -261,9 +259,12 @@ xmlNodePtr domTagOpen(tagTipo ptag,int pindex,int plen)
 	else {
 		//Decorazione non deve andare sotto rubrica (e nemmeno sotto corpo)!
 		if(ptag == decorazione) { // && strcmp(mparent->name,"rubrica") == 0 )  {
+			if(mparent == NULL)
+				printf("\ndomAddSequenceWarning() -- nodo is null\n");
 			xmlNodePtr pparent = mparent->parent;
+			//printf("\n>BUF:%s",strbuff);
 			//printf("\n name:%s rubrica:%s parent:%s\n",(char *)mparent->name,
-				//	tagTipoToNome(rubrica),	(char *)pparent->name);
+			//		tagTipoToNome(rubrica),	(char *)pparent->name);
 			xmlAddChild(pparent, currnode);
 		} else
 			xmlAddChild(mparent, currnode); //<-- problema: se c'è una lista nodo/entità
@@ -429,10 +430,8 @@ void domAddRango(xmlNodePtr node, char *t) {
 	
 	xmlNodePtr rango = xmlNewChild(node,NULL,BAD_CAST tagTipoToNome(tiporango),NULL);
 	if(str!=NULL) 
-		//xmlNewChild(node,NULL,BAD_CAST tagTipoToNome(tiporango),BAD_CAST str);
 		xmlNewProp(rango, BAD_CAST "tipo", BAD_CAST str);
-	else //Aggiungi un tiporango con valore arbitrario oppure non aggiungere tiporango??
-		//xmlNewChild(node,NULL,BAD_CAST tagTipoToNome(tiporango),BAD_CAST "L");
+	else //Aggiungi un tipo con valore arbitrario oppure non aggiungere tipo??
 		xmlNewProp(rango, BAD_CAST "tipo", BAD_CAST "L");
 }
 
@@ -455,16 +454,19 @@ xmlNodePtr domGetFirstNode(xmlNodePtr node) {
 }
 
 //Aggiunge un messaggio di warning in un nodo error se una sequenza non è rispettata
-void domAddSequenceWarning(tagTipo ptag) {
+void domAddSequenceWarning(tagTipo ptag, int num, int lat) {
 	xmlNodePtr nodo=mcurrTagState[(int)ptag];
 	if(nodo==NULL) {
-		//Verificare che quando si arriva qui il msg di warning viene messo comunque e poi togliere questo printf()
-		printf("\ndomAddSequenceWarning() -- nodo is null\n"); 
+		//DA FARE:Verificare che quando si arriva qui il msg di warning viene messo comunque e poi togliere questo printf()
+		printf("\ndomAddSequenceWarning() -- nodo is null (tipo:%s num:%d lat:%d)\n", 
+				(char *)tagTipoToNome(ptag), num, lat);
 		return;
 	}
-	xmlNodePtr pi=xmlNewPI(BAD_CAST tagTipoToNome(tagerrore), 
-			BAD_CAST ">>Sequenza non rispettata, verificare (caratteri \";\" e \".\", lista numerica senza dtd flessibile, ecc...)<<");
-			
+	//Se il messaggio è troppo lungo sballa la formattazione (barra di scorrimento orizzontale)
+	xmlNodePtr pi=xmlNewPI(BAD_CAST tagTipoToNome(tagerrore), BAD_CAST 
+	"--VERIFICARE SEQUENZA--");
+	//"--VERIFICARE SEQUENZA (caratteri \";\" e \".\", lista numerica senza dtd flessibile... - ignorare partizioni modificative?)"); //-- [Tipo:%s]",tagTipoToNome(ptag));
+	
 	//Controlla che non sia già stato messo un nodo error
 	if(domPIAdded(nodo)) return;
 	//printf("\n ----------SEQUENZA NON RISPETTATA ? -----------\n");
@@ -506,4 +508,12 @@ int domPIAdded(xmlNodePtr node) {
 	return 0;
 }
 		
+//Init mcurrTagState[]
+void domInitStates()
+{
+	int n;
+	for(n=0;n<TAGTIPODIM;n++)
+		mcurrTagState[n]=NULL;
+}
+
 			

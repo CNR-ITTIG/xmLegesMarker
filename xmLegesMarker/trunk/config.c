@@ -51,9 +51,9 @@ char _configHeaderParserModels[MAXSTRINGA+1] = "/usr/local/lib/HeaderParser/Mode
 
 //da file Testa2.xml
 // struttura testa documento articolato
-char _configTesta1[MAXSTRINGA+1]=	"<atto xmlns:h=\"html\">\n<meta>\n<descrittori>\n<pubblicazione tipo=\"GU\" num=\"\" norm=\"\"/>\n<entratainvigore norm=\"\"/>\n<redazione nome=\"\" id=\"red1\" norm=\"\"/>\n<urn></urn>\n</descrittori>\n</meta>\n<intestazione/>\n<formulainiziale>\n<h:p/>\n</formulainiziale>\n</atto>";
+char _configTesta1[MAXSTRINGA+1]=	"<atto xmlns:h=\"html\">\n<meta>\n<descrittori>\n<pubblicazione tipo=\"GU\" num=\"\" norm=\"\"/>\n<entratainvigore norm=\"\"/>\n<redazione nome=\"\" id=\"red1\" norm=\"\"/>\n<urn value=\"\"/>\n</descrittori>\n</meta>\n<intestazione/>\n<formulainiziale>\n<h:p/>\n</formulainiziale>\n</atto>";
 // struttura testa documento semiarticolato
-char _configTesta2[MAXSTRINGA+1]=	"<atto xmlns:h=\"html\">\n<meta>\n<descrittori>\n<pubblicazione tipo=\"GU\" num=\"\" norm=\"\"/>\n<entratainvigore norm=\"\"/>\n<redazione nome=\"\" id=\"red1\" norm=\"\"/>\n<urn></urn>\n</descrittori>\n</meta>\n<intestazione/>\n<formulainiziale>\n<h:p/>\n</formulainiziale>\n</atto>";
+char _configTesta2[MAXSTRINGA+1]=	"<atto xmlns:h=\"html\">\n<meta>\n<descrittori>\n<pubblicazione tipo=\"GU\" num=\"\" norm=\"\"/>\n<entratainvigore norm=\"\"/>\n<redazione nome=\"\" id=\"red1\" norm=\"\"/>\n<urn value=\"\"/>\n</descrittori>\n</meta>\n<intestazione/>\n<formulainiziale>\n<h:p/>\n</formulainiziale>\n</atto>";
 
 // struttura coda documento articolato
 char _configCoda1[MAXSTRINGA+1]=	"<atto xmlns:h=\"html\">\n<formulafinale>\n<h:p/>\n</formulafinale>\n<conclusione/>\n</atto>";
@@ -70,7 +70,7 @@ char _configCodaVuotaFlessibile[MAXSTRINGA+1] = "<CODA_VUOTA_FLESSIBILE></CODA_V
 char _configArticolatoVuoto[MAXSTRINGA+1] = "<articolato>\n<articolo id=\"art1\">\n<num>Art. 1.</num>\n<rubrica/>\n<comma id=\"com1\">\n<num>1.</num>\n<corpo/>\n</comma>\n</articolo>\n</articolato>";
 
 // struttura descrittori
-char _configDescrittoriVuoto[MAXSTRINGA+1]=	"<descrittori>\n<pubblicazione tipo=\"GU\" num=\"\" norm=\"\"/>\n<entratainvigore norm=\"\"/>\n<redazione nome=\"\" id=\"red1\" norm=\"\"/>\n<urn></urn>\n</descrittori>";
+char _configDescrittoriVuoto[MAXSTRINGA+1]=	"<descrittori>\n<pubblicazione tipo=\"GU\" num=\"\" norm=\"\"/>\n<entratainvigore norm=\"\"/>\n<redazione nome=\"\" id=\"red1\" norm=\"\"/>\n<urn value=\"\"/>\n</descrittori>";
 
 char _configEncoding[MAXSTRINGA+1] = "iso-8859-15"; //di default il file in input viene preso come iso-8859-15
 

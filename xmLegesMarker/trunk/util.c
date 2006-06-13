@@ -245,8 +245,8 @@ int GetFlagUTF8(void)
 
 //----------------------------------------------------------
 //Se bufdest è NULL si limita a contare i nodi di tipo pnomeTag
-int GetAllNodebyTagTipo(xmlNodePtr *bufdest, xmlNodePtr pNodoParent , xmlChar *pnomeTag){
-	
+//Aggiunto parametro "size" (dimensione del buffer)
+int GetAllNodebyTagTipo(xmlNodePtr *bufdest, int size, xmlNodePtr pNodoParent , xmlChar *pnomeTag) {
 	int count=0;
 
 	xmlNodePtr cur;
@@ -254,8 +254,13 @@ int GetAllNodebyTagTipo(xmlNodePtr *bufdest, xmlNodePtr pNodoParent , xmlChar *p
 
 	while (cur != NULL) {
 		if (!xmlStrcmp(cur->name, pnomeTag)){
-			if(bufdest!=NULL)
+			if(bufdest!=NULL) {
+				if(count>size-1) {
+					printf("\n>>WARNING<< - GetAllNodebyTagTipo() - buffer is full(%d) !!",size);
+					return count;
+				}
 				bufdest[count]=cur;
+			}
 			count++;
 		}
 		cur = cur->next; //next fratello
@@ -376,18 +381,89 @@ void utilErrore2ProcessingInstruction(xmlNodePtr pNodoParent )
 
 //Di un nodo "pNodoParent" restituisce il primo nodo figlio che possiede il nome "pnomeTag"
 //NON RICORSIVA
-xmlNodePtr GetFirstNodebyTagTipo(xmlNodePtr pNodoParent , xmlChar *pnomeTag){
+xmlNodePtr GetFirstNodebyTagTipo(xmlNodePtr pNodoParent , xmlChar *pnomeTag) {
 	
 	xmlNodePtr cur;
 	cur = pNodoParent->xmlChildrenNode;	//FirstChild
 
 	while (cur != NULL) {
-		if (!xmlStrcmp(cur->name, pnomeTag))	{
+		if (!xmlStrcmp(cur->name, pnomeTag)) {
 			return cur;
 		}
 		cur = cur->next; //NextChild
 	}
 	return NULL;
+}
+
+//Controlla *tutto* il sotto-albero (ricerca in larghezza, usa buffer FIFO)
+//Possibile implementazione migliore: usare una lista e aggiornare solo il puntatore
+//all'elemento di testa invece di riorganizzare tutto il buffer (vedi adjustBuffer())
+//Se savebuf!=NULL non termina il processo quando viene ritrovato un nodo di tipo nomeTag
+//e inserisce il puntatore a quel nodo in savebuf (savesize è la dimensione di savebuf).
+xmlNodePtr totalGetFirstNodebyTagTipo(xmlNodePtr root, xmlChar *nomeTag, xmlNodePtr *savebuf, int savesize) {
+	int size = 0; //attuale numero di elementi nel buffer
+	const int max = 8192; //Max elementi nel buffer durante la ricerca? 
+	//(vedi dlgs n.259 01-07-2003 (oltre 1900!))
+	//D.Lgs. 30 aprile 1992, n. 285 <--- 3761 !!!!!!
+	int max_filling = 0; //Massimo valore di riempimento raggiunto (debug)
+	xmlNodePtr buffer[max]; 
+	xmlNodePtr current, child;
+	int count = 0;
+	
+	addNodeInBuffer(buffer, root, &size);
+	while(size > 0) {
+		if(size>(max-3)) { // (può sbagliare, ma non crashare!)
+			printf(">>>WARNING<<< -- totalGetFirstNodebyTagTipo() -- size is %d !! Stopping...\n", size);
+			return NULL;
+		}
+		if(size>max_filling)
+			max_filling = size;
+
+		current = buffer[0];
+		adjustBuffer(buffer, &size);
+		//printf("\n - %s - %d [%d]", (char *)current->name, size, max_filling);
+		if (!xmlStrcmp(current->name, nomeTag)) {
+			if(savebuf!=NULL) {
+				if(count>savesize-1) {
+					printf("\n>>WARNING<< - totalGetFirstNodebyTagTipo() - savebuf is full! (%d)!!",savesize);
+					//printf("\n - %s - %d [%d]", (char *)current->name, size, max_filling);
+					return *savebuf;
+				} 
+				savebuf[count]=current;
+				count++;
+			} else {
+				//printf("\n - %s - %d [%d]", (char *)current->name, size, max_filling);
+				return current; //Trovato! Esci...
+			}
+		} else {
+			child = current->children;
+			while(child!=NULL) { //Aggiungi tutti figli del nodo nel buffer
+				addNodeInBuffer(buffer, child, &size);
+				child = child->next;
+			}
+		}
+	}
+	//printf("\n - %d [%d]", size, max_filling);
+	return NULL; //Tag non trovato
+}
+
+//Aggiungi il nodo nella prima posizione libera del buffer
+void addNodeInBuffer(xmlNodePtr *buffer, xmlNodePtr node, int *size) {
+	buffer[*size] = node;
+	(*size)++;
+}
+
+//Shifta tutti gli elementi del buffer di una posizione - Se troppo pesante implementare
+//una ricerca con lista: dovrebbe bastare aggiornare il puntatore al nodo di testa.
+void adjustBuffer(xmlNodePtr *buffer, int *size) {
+	int i = 0;
+	(*size)--;
+	/*
+	while(i<*size)
+		buffer[i]=buffer[++i]; //warning: operation on `i' may be undefined
+	*/
+	for(i=0;i<*size;i++)
+		buffer[i]=buffer[i+1];
 }
 
 void InsertXmlFile(char *memdoc,xmlNodePtr pParentNode) {
@@ -509,7 +585,8 @@ int convLetteraToInt(char *s) {
 //Converti a partire da una stringa (Null Terminated array di char).
 int convNTLetteraToInt(char *s) {
 	int num = 1;
-	
+	utilStringToLower(s);
+
 	if(strlen(s) == 1 || s[0]==s[1])
 		num = 26*(strlen(s)-1) + (s[0] - 'a' + 1);
 	else

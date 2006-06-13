@@ -24,7 +24,7 @@
 #include "annessi.h"	
 #include "tag.h"
 
-const char *versione = "1.2";
+const char *versione = "1.3";
 int visErrore = 0;
 char *bufferEnd;
 char *namebin = "";

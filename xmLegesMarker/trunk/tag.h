@@ -80,7 +80,7 @@ typedef enum ParserStruttura_tagTipo {
 	tiporango
 } tagTipo;
 
-#define TAGTIPODIM 55 //I tagTipo sono in tutto 55 //NO SONO 58 ma se cambio non becca più l'HEADER !!?? VERIFICARE
+#define TAGTIPODIM 58 //Numero totale tag
 
 typedef struct {
 	int num;

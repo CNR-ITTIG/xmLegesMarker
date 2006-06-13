@@ -54,7 +54,7 @@ int check(tagTipo tipo) {
 		//printf("\nCHECK:\"%s\" non in sequenza \"%s\"\n", tipoStr, yytext);
 		loggerWarn(utilConcatena(5, "CHECK:", tipoStr, " non in sequenza \"", yytext, "\""));
 		//Aggiungi un nodo/messaggio di warning?
-		domAddSequenceWarning(tipo);
+		domAddSequenceWarning(tipo, numConv, latConv);
 	}
 	return seq;
 }
@@ -655,7 +655,7 @@ ROMANO		([ivxl]+{S}*)
 
 <InPreComma,InNota>{NOTAVV}	{
 	sequenzaInc(nota);
-		
+	//printf("\nNOTA: artpos=%d, artleng=%d, yytext='%s'", artpos, artleng, yytext);
 	domTagOpen(nota,artpos,0);
 	domTagOpen(h_p,artpos,0);
 	domSetID2(nota,ATTRIB_ID,sequenzaGetNum(nota),0);
@@ -754,6 +754,7 @@ int _ArticolatoLexStart(  char * buf)
 	firstSave=1;
 	isArticolato=0;
 	artpos=0;
+	//domInitStates();
 	
 	yy_init = 1;
 	

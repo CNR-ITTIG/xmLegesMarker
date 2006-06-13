@@ -102,21 +102,21 @@ void AnnessiCicla(xmlNodePtr pNodoParent){
 	int n,m;
 	xmlNodePtr currAnnesso;
 	char *tmpbuff;
-	xmlNodePtr	ErrorChildren[100]; //XXX da fare DINAMICO in funzione del numero di figli del nodo
+	xmlNodePtr	ErrorChildren[1024]; //XXX da fare DINAMICO in funzione del numero di figli del nodo
 	xmlNodePtr	CurrError,CurrErrorText,CurrStruttura;
 	xmlNodePtr	vectAnnessi[MAXANNESSI];
 	int			tmpNumErrorChild;
 
 	loggerInfo("INIZIO Ciclo Annessi");
 	//Vettore di tutti i nodi con TAG ANNESSO del nodo
-	int numAnnessi=GetAllNodebyTagTipo(&vectAnnessi[0],pNodoParent,BAD_CAST tagTipoToNome(annesso));
+	int numAnnessi=GetAllNodebyTagTipo(&vectAnnessi[0],MAXANNESSI,pNodoParent,BAD_CAST tagTipoToNome(annesso));
 	
 	//Ciclo su tutti i nodi "Annessi"
 	for (n=0;n<numAnnessi;n++)
 	{
 		currAnnesso=vectAnnessi[n];
 		//Vettore di tutti i nodi con TAG ERRORE del nodo
-		tmpNumErrorChild=GetAllNodebyTagTipo(&ErrorChildren[0],currAnnesso,BAD_CAST tagTipoToNome(tagerrore));
+		tmpNumErrorChild=GetAllNodebyTagTipo(&ErrorChildren[0],1024,currAnnesso,BAD_CAST tagTipoToNome(tagerrore));
 		//Ciclo sui nodi Errore '?errore?'
 		for (m=0;m<tmpNumErrorChild;m++)
 		{
@@ -202,14 +202,14 @@ xmlNodePtr GerStrutturaPreAnnessi(xmlNodePtr pParentNode)
 void EliminaErrori(xmlNodePtr pParentNode, tagTipo pTipoParentNode)
 {
 	int m;
-	xmlNodePtr	ErrorChildren[100]; //XXX da fare DINAMICO in funzione del numero di figli del nodo
+	xmlNodePtr	ErrorChildren[1024]; //XXX da fare DINAMICO in funzione del numero di figli del nodo
 	xmlNodePtr	CurrError;
 	int			tmpNumErrorChild;
 
 	loggerInfo("INIZIO EliminaErrori");
 	
 	//Vettore di tutti i nodi con TAG ERRORE del nodo 'pParentNode'
-	tmpNumErrorChild=GetAllNodebyTagTipo(&ErrorChildren[0],pParentNode,BAD_CAST tagTipoToNome(tagerrore));
+	tmpNumErrorChild=GetAllNodebyTagTipo(&ErrorChildren[0],1024,pParentNode,BAD_CAST tagTipoToNome(tagerrore));
 	//Ciclo sui nodi Errore '?errore?'
 	for (m=0;m<tmpNumErrorChild;m++)
 	{

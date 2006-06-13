@@ -50,8 +50,9 @@ extern "C" {
 	xmlNodePtr	domGetLastTag(tagTipo ptag);
 	void 		domAddRango(xmlNodePtr node, char *t);
 	xmlNodePtr	domGetFirstNode(xmlNodePtr node);
-	void domAddSequenceWarning(tagTipo ptag);
+	void domAddSequenceWarning(tagTipo ptag, int num, int lat);
 	int domPIAdded(xmlNodePtr node);
+	void domInitStates();
 
 #ifdef __cplusplus
 }

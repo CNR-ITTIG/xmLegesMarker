@@ -30,8 +30,14 @@ typedef enum _ruoloDoc {
 	allegato
 } ruoloDoc;
 
+xmlNodePtr GetLastRightTextNode(xmlNodePtr pParentNode);
+xmlNodePtr getPartitionTextNode(xmlNodePtr node);
+void checkEmptyRubrica(xmlNodePtr node);
+int isEmptyRubrica(xmlNodePtr node);
+int isEmptyText(char *str);
+xmlNodePtr CreateNdr(xmlChar *mid);
 void MoveNotesInMeta (xmlNodePtr pParentNode, xmlNodePtr predazionale);
-
+void Corpo2Alinea(xmlNodePtr pParentNode);
 xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo);
 
 #endif

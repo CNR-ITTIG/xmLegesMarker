@@ -11,6 +11,7 @@
 
 //RICORSIVA
 // ------------------------------------------------- Scorre l'albero restituendo il nodo + a destra che è testo
+/*
 xmlNodePtr GetLastRightTextNode(xmlNodePtr pParentNode)
 {
 	if (pParentNode==NULL)return NULL;
@@ -22,6 +23,91 @@ xmlNodePtr GetLastRightTextNode(xmlNodePtr pParentNode)
 	else {
 		return GetLastRightTextNode(cur);
 	}
+}
+*/
+
+//Find last right partition (usually a "corpo" of a "comma"), 
+//returns his text (avoid "nota" and "ndr" problems)
+xmlNodePtr GetLastRightTextNode(xmlNodePtr pParentNode)
+{
+	if (pParentNode==NULL) return NULL;
+	xmlNodePtr cur = pParentNode, child = NULL;
+	
+	while(cur!=NULL) {
+		child = cur->children; //child not null ?! yes, if there is an error tag at the end...
+		if(child==NULL) {
+			printf("\n>>WARNING<< - GetLastRightTextNode() - child is null (tag:%s)\n", (char *)cur->name);
+			return NULL;
+		}
+		if(child->children == NULL) //child is the last right partition
+			return getPartitionTextNode(child);
+		cur = xmlGetLastChild(cur);
+	}
+	return NULL;
+}
+
+//Scan node "next" list, returns a text node if present
+//(improvements: manage multiple text node as child, and node list (text+entity...)
+xmlNodePtr getPartitionTextNode(xmlNodePtr node) {
+	if(node==NULL) return NULL;
+		
+	while(node!=NULL) {
+		if(xmlNodeIsText(node))
+			return node;
+		node=node->next;
+	}
+	return NULL;
+}
+
+//Scan and delete eventual empty "rubrica"
+void checkEmptyRubrica(xmlNodePtr node) {
+	int rubsize = 1024; //troppo? troppo poco?
+	xmlNodePtr rubriche[rubsize];
+	int i;
+	
+	//init rubriche
+	for(i=0;i<rubsize;i++)
+		rubriche[i]=NULL;
+	
+	//fill rubriche
+	totalGetFirstNodebyTagTipo(node, BAD_CAST tagTipoToNome(rubrica), rubriche, rubsize);
+
+	//check rubriche
+	for(i=0;(i<rubsize && rubriche[i]!=NULL);i++)
+		if(isEmptyRubrica(rubriche[i])) {
+			//printf("\nElimino rubrica vuota...\n");
+			utilNodeDelete(rubriche[i]);
+			rubriche[i]=NULL;
+		}
+}
+
+//Returns 1 if node is an empty "rubrica"
+int isEmptyRubrica(xmlNodePtr node) {
+	xmlNodePtr child;
+	if(node==NULL || xmlStrcmp(node->name, BAD_CAST tagTipoToNome(rubrica)) ) return 0;
+	if(node->children==NULL) return 1; 
+	child=node->children;
+	while(child!=NULL) {
+		if(!xmlNodeIsText(child)) return 0;
+		//Controlla il contenuto, se c'è almeno un carattere che non sia " \n\r\t" ritorna 0
+		if(!isEmptyText((char *)xmlNodeGetContent(child)))
+			return 0;
+		child=child->next;
+	}
+	return 1;
+}
+
+//Returns 1 if str (trimmed) is an empty string ( something like: str.trim().length() > 0)
+//>>>>MIGLIORARE QUESTA FUNZIONE<<< (?)
+int isEmptyText(char *str) {
+	int i;
+	int len = strlen(str);
+	//printf("\n isEmptyText() - len:%d str:%s",len,str);
+	for(i=0; i<len; i++) {
+		if(str[i] > 33 && str[i]<127)
+			return 0; 	
+	}
+	return 1;
 }
 
 // ------------------------------------------------- crea nodo ndr
@@ -88,13 +174,13 @@ void MoveNotesInMeta(int IDStartFrom,xmlNodePtr pParentNode,xmlNodePtr predazion
 
 //RICORSIVA
 // ----------------------------- se il fratello di un CORPO è una LETTERA/NUMERO->rinomina il CORPO in ALINEA
-void Corpo2Alinea(xmlNodePtr pParentNode){
+void Corpo2Alinea(xmlNodePtr pParentNode) {
 
 	//Passo base
 	if (pParentNode==NULL)return;
 
 	xmlNodePtr cur=pParentNode->children; //FirstChild
-	xmlNodePtr PrevNodoCorpo;
+	xmlNodePtr PrevNodoCorpo=NULL;
 	
 	while (cur != NULL) {
 
@@ -110,7 +196,9 @@ void Corpo2Alinea(xmlNodePtr pParentNode){
 			//Se il nodo corrente è un CORPO
 			PrevNodoCorpo=cur;
 
-		}else PrevNodoCorpo=NULL;
+		} else if(!IsNode(cur,tagerrore)) //ignora eventuali nodi errore
+			PrevNodoCorpo=NULL;
+			
 		Corpo2Alinea(cur);
 		cur = cur->next; //next fratello
 	}
@@ -124,7 +212,7 @@ void Corpo2Alinea(xmlNodePtr pParentNode){
 xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo) 
 {
 	char* disposto=NULL; char* prima=NULL; char* ntext=NULL;
-	int   mnotes=0, totnotes=0;
+	int mnotes=0;
 	xmlNodePtr nmeta=NULL, ndescrittori=NULL, nreda=NULL, nintestazione=NULL, nformulainiziale=NULL, narticolato=NULL, narticolo=NULL,
 		   ncontenitore=NULL, nformulafinale=NULL, nconclusione=NULL;
 	xmlNodePtr mNodoTipoDocumento=NULL, mNodoArticolato=NULL, mFirstError=NULL, mFirstErrorText= NULL;
@@ -192,21 +280,35 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		mFirstErrorText=NULL;
 		mFirstError=NULL;
 
-		//Viene individuato il nodo TESTO (ultimo nodo) + a destra nell'albero
-		mFirstErrorText=GetLastRightTextNode(mNodoArticolato);
-		mnotes=coda(mnotes,mNodoTipoDocumento,mFirstErrorText,nmeta,ndescrittori,nformulafinale,nconclusione,tdoc);
+		//Rimuovi eventuali rubriche vuote
+		checkEmptyRubrica(mNodoArticolato);
 
 		//NOTE
 		nreda=GetFirstNodebyTagTipo(nmeta, BAD_CAST "redazionale");
 
 		//Possibile problema: documento con allegato, note alla fine del doc. e non c'è <redazionale> (nell'allegato).
 		//nreda in quel caso è null, non viene fatto MovesNotesInMeta() e quindi rimangono dei <nota>,
-		//xmLeges crasha (riferimento a nodo inesistente)
+		//xmLeges crasha (riferimento a nodo inesistente) -- Adesso è OK (ricerca di note in tutto il sotto-albero)
 		if (nreda) {
 			MoveNotesInMeta(mnotes, mNodoArticolato, nreda);
 		} else {
-			printf("\nWarning! Nodo mancante: \"redazionale\"\n(eventuali tag \"nota\" rimarranno sotto \"comma\"...)\n");
+			printf("\nMissing node: \"redazionale\": checking if there are notes...");
+			//Aggiungi il nodo redazionale solo se sono presenti delle note
+			nnodo=totalGetFirstNodebyTagTipo(mNodoArticolato, BAD_CAST "nota", NULL, 0); // <--controlla il sotto-albero
+			if(nnodo!=NULL) {
+				printf(" found! Adding \"redazionale\"...\n");
+				nreda = xmlNewChild(nmeta, NULL, BAD_CAST "redazionale", NULL);
+				MoveNotesInMeta(mnotes, mNodoArticolato, nreda);
+			} else
+				printf(" not found!\n");
 		}
+		
+		//Viene individuato il nodo TESTO (ultimo nodo) + a destra nell'albero
+		//PROBLEMA: Se sono presenti delle note alla fine del testo, mFirstErrorText non è ciò che ci si aspetta.
+		//--> correggere la funzione GetLastRightTextNode()
+		mFirstErrorText=GetLastRightTextNode(mNodoArticolato);
+		mnotes=coda(mnotes,mNodoTipoDocumento,mFirstErrorText,nmeta,ndescrittori,nformulafinale,nconclusione,tdoc);
+				
 	}
 	else 			/* ---------------------------------------------------------------------------------------- NON trovato l'articolato */
 	{
@@ -214,7 +316,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		//printf("\n------ BUFFER1:%s\n",(char *)buffer);
 		if (ruolo == principale)
 			buffer = utilConvertiText(buffer);		// converto in UTF-8
-		int nnl = contaChar(buffer, '\n');
+		unsigned int nnl = contaChar(buffer, '\n');
 		nnl = strlen(buffer) + 50 + 12 * nnl;
 		disposto = (char *) malloc(sizeof(char) * nnl);
 		*disposto=0;

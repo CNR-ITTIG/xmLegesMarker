@@ -6,6 +6,15 @@
 * Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
 * Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
 ******************************************************************************/
+
+/*
+N	(n.|num.)
+TUTTINUMERI	({S}*{N}*{S}*{NUM}|{ROMANO}|{LATINO}|{ORD})
+
+orig:
+TUTTINUMERI	({NUM}|{ROMANO}|{LATINO}|{ORD})
+*/
+
 %{
 // Scanner Case-Insensitive
 // compilare con flex -i -8 -Pall nomefile
@@ -89,7 +98,8 @@ ORD		({ORDNOSEX}[oa])
 ROMANO		([ivxl]+)
 LETTERE		([a-z])
 
-TUTTINUMERI	({NUM}|{ROMANO}|{LATINO}|{ORD})
+N	(n.|num.)
+TUTTINUMERI	({S}*{N}*{S}*{NUM}|{ROMANO}|{LATINO}|{ORD})
 
 %s InCorpoAllegato
 %s InTestaAllegato
