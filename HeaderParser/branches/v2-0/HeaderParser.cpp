@@ -301,7 +301,8 @@ if(tdoc == 1) {
 		xmlNodePtr nApprovazione = xmlNewChild(descrittori, NULL, BAD_CAST "approvazione", NULL);
 		xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
 		xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
-		xmlNewProp(nUrn, BAD_CAST "value", BAD_CAST "");
+		//xmlNewProp(nUrn, BAD_CAST "value", BAD_CAST "");
+		xmlAddChild(nUrn, xmlNewText(BAD_CAST "")); //La dtd dei ddl non ha ancora value come attributo di urn
 		xmlNewProp(nApprovazione, BAD_CAST "internal_id", BAD_CAST "");
 		xmlNewProp(nApprovazione, BAD_CAST "leg", BAD_CAST "");
 		xmlNewProp(nApprovazione, BAD_CAST "norm", BAD_CAST "");	
@@ -827,8 +828,9 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
     delete[] states;
   }
   
-  // parse annessi   // <--- MA SERVE IL MODELLO ANNESSI ?? 
-  if(sequence.size() > 0){
+  // parse annessi   // <--- MA SERVE IL MODELLO ANNESSI ?? (DL30settembre2003 crasha se tolgo il commento!)
+  /*
+  if(sequence.size() > 0) {
     states = new int[sequence.size()];
     footer_annessi_model.viterbiPath(sequence, states, sequence.size());
     if (hasCorrectStates(states, sequence.size())){
@@ -849,11 +851,12 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
     }
     delete[] states;
   }
+  */
 
   // if nothing found print default footer
   if(!found)
     defaultFooter(strbuffer, lastcomma);	
-  else{
+  else {
     // put remains (annessi) in error tag
     if (offset < offsets.size())
       saveTag(hp_sconosciuto, offsets[offset], strbuffer.length(), strbuffer, root_node, tdoc); 

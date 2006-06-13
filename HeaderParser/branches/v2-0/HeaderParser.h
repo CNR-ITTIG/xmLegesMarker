@@ -195,6 +195,7 @@ class HeaderParser
   xmlNodePtr openContextTags(int tagvalue, xmlNodePtr startnode) const ;
   bool ignoreTag(int tagvalue) const;
   bool nothingTag(int tagvalue) const;
+  bool pubTag(int tagvalue) const;
   bool trimmedTag(int tagvalue) const;
   bool trimmedTagDDL(int tagvalue) const; //Aggiunta
   bool errorTag(int tagvalue) const;
