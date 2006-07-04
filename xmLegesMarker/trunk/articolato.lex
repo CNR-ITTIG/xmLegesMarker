@@ -9,10 +9,40 @@
 ******************************************************************************/
 
 /*
+*********************************************
 <InLettera,InNumero,InPuntata>{PVACAPO}|{NL}	{ //<--può non esserci il ; alla fine di una lettera!?
 //Il problema è che così viene rilevato questo anche in caso di PTACAPO e salta la sequenza (VERIFICARE!)
 
 PTACAPO		(([.]{S}*{DECORAZ}*{FR})|({FR}{FR}))  // <-- vecchio PTACAPO
+*********************************************
+----SEZIONE (old)----
+<InCapo,InComma,InLettera,InNumero>^{SEZIONE}/{NL}	{
+	if (!checkRomano(sezione))
+		REJECT;
+	save(sezione);
+}
+
+<InCapo,InComma,InLettera,InNumero>^{SEZIONE}/{RUBRICASEP}	{
+	if (configGetRubricaTipo()==adiacente)
+	{
+		if (!checkRomano(sezione))
+			REJECT;
+		save(sezione);
+	}
+	else REJECT;
+}
+*********************************************
+Nota su LISTE: 
+sono gestite liste letterali, numeriche, puntate. Le liste letterali possono
+contenere liste numeriche, e viceversa. A causa del sistema di controllo sequenza al massimo
+si può avere un livello di nidificazione di liste gestito correttamente (non si garantisce
+per esempio il caso "lista letterale che contiene lista numerica che contiene altra lista
+letterale" con il *controllo sequenza*).
+Altra questione: problemi di "gerarchia" dovuti a tag.h e domTagOpen() (determinati elementi
+vengono attaccati seguendo uno schema preciso, forse troppo rigido in questo caso): risulta
+per esempio in caso di lista numerica con dentro lista letterale che la letterale va direttamente
+sotto comma (corpo), cioè sullo stesso livello della numerica.
+*********************************
 */
 
 
@@ -43,6 +73,7 @@ int tipoRubriche = 1;
 int numdis=0;
 int numtes=0;
 int art_dec=0;
+int stacklog=0;
 
 /******************************************************************* CHECK ****/
 int check(tagTipo tipo) {
@@ -85,6 +116,7 @@ int checkLettera(tagTipo tipo) {
 	//numConv = convLetteraToInt((char*)utilCercaCarattere(yytext));
 	current_lettera = getLettera((char*)utilCercaCarattere(yytext));
 	numConv = convNTLetteraToInt(current_lettera);
+	if(numConv == -1) return 0;
 	latConv = latinToArabic(yytext);
 	return check(tipo);
 }
@@ -278,10 +310,9 @@ ROMANO		([ivxl]+{S}*)
 
 %s InCapo InArticolo InArticoloRubrica
 %s InPreComma InComma InCommaAlinea InCommaDec
-%s InPreLetNum
-%s InLettera InLetteraAlinea
-%s InNumero
-%s InPuntata
+%s InLettera InNumero InPuntata
+%s InLetteraAlinea InNumeroAlinea InPuntataAlinea
+%s InPreLet InPreNum InPrePunt
 %s InNota
 %x InVirgolette InVirgoDoppie
 %x Disegno
@@ -395,13 +426,13 @@ ROMANO		([ivxl]+{S}*)
 		REJECT;
 }
 
-<InCapo,InComma,InLettera,InNumero>^{SEZIONE}/{NL}	{
+^{SEZIONE}/{NL}		{
 	if (!checkRomano(sezione))
 		REJECT;
 	save(sezione);
 }
 
-<InCapo,InComma,InLettera,InNumero>^{SEZIONE}/{RUBRICASEP}	{
+^{SEZIONE}/{RUBRICASEP}		{
 	if (configGetRubricaTipo()==adiacente)
 	{
 		if (!checkRomano(sezione))
@@ -428,14 +459,6 @@ ROMANO		([ivxl]+{S}*)
 		REJECT;
 	numConv = 1;
 	artpos += artleng;
-	////tagNumero(tagN()-1)->fine = artpos;
-
-	//n=tagN();
-	//puts(utilItoa(n));
-	//for (i=0; i<n; i++)
-	//	puts(tagStringa(tagNumero(i)));
-	//unput('\n');
-	//unput('\n');
 	//printf("RUBRICA dopo: artpos=%d, artleng=%d\n", artpos, artleng);
 	commiNN = 1;
 	BEGIN(InArticolo);
@@ -457,11 +480,7 @@ ROMANO		([ivxl]+{S}*)
 	latConv	=	0;
 	save(articolo);
 	numConv = 1;
-	commiNN = 1;
-	
-	//if (configGetRubriche()==0)
-	//	BEGIN(InComma);
-		
+	commiNN = 1;		
 	BEGIN(InArticolo);
 }
 
@@ -469,7 +488,6 @@ ROMANO		([ivxl]+{S}*)
 	//printf("Articolo -%s-\n",yytext);
 	if (!checkCardinale(articolo))
 		REJECT;
-		
 	save(articolo);
 	numConv = 1;
 	commiNN = 1;
@@ -491,7 +509,7 @@ ROMANO		([ivxl]+{S}*)
 	if (!checkCardinale(comma))
 		REJECT;
 	save(comma);
-	//puts("IN COMMA");
+	if(stacklog) puts("IN COMMA");
 	BEGIN(InComma);
 }
 
@@ -522,6 +540,7 @@ ROMANO		([ivxl]+{S}*)
 		REJECT;
 	save(comma);
 	yy_pop_state();
+	if(stacklog) puts("IN COMMA");
 	BEGIN(InComma);
 }
 
@@ -531,6 +550,7 @@ ROMANO		([ivxl]+{S}*)
 	saveCommaNN();
 	commiNN++;
 	yy_pop_state();
+	if(stacklog) puts("IN COMMA");
 	BEGIN(InComma);
 }
 
@@ -542,6 +562,7 @@ ROMANO		([ivxl]+{S}*)
 	saveCommaNN();
 	commiNN++;
 	yy_pop_state();
+	if(stacklog) puts("IN COMMA");
 	BEGIN(InComma);
 }
 
@@ -549,30 +570,22 @@ ROMANO		([ivxl]+{S}*)
 	//printf("DECORAZ: artpos=%d, artleng=%d, yytext='%s'\n", artpos, artleng, yytext);
 	saveDec();
 	//<InCommaDec> serve per gestire il caso "1. fine. (L) \n 2. Inizio..."
+	if(stacklog) puts("IN COMMADEC");
 	yy_push_state(InCommaDec);
 }
 
 <InComma>{DUEPTACAPO} 	{
 	artpos += artleng;
-	//puts("InCommaAlinea");
-	yy_push_state(InCommaAlinea);
-}
-
-<InCommaAlinea>^{PUNTATASIM}	{
-	if(configGetDTDTipo() != flessibile)
-		REJECT;
-	save(puntata);
-	yy_pop_state();
-	BEGIN(InPuntata);
+	if(stacklog) puts("InCommaAlinea");
+	BEGIN(InCommaAlinea);
 }
 
 <InCommaAlinea>^{LETTERA1}	{
 	if (!checkLettera(lettera))
 		REJECT;
-	//puts("LETTERA1");
+	if(stacklog) puts("LETTERA1");
 	save(lettera);
-	yy_pop_state();
-	BEGIN(InLettera);
+	yy_push_state(InLettera);
 }
 
 <InCommaAlinea>^{NUMERO1}	{
@@ -581,76 +594,166 @@ ROMANO		([ivxl]+{S}*)
 		REJECT;
 	if (!checkCardinale(numero))
 		REJECT;
-	//puts("NUMERO 1");
+	if(stacklog) puts("NUMERO 1");
 	save(numero);
-	yy_pop_state();
-	BEGIN(InNumero);
+	yy_push_state(InNumero);
 }
 
-<InPreLetNum>^{LETTERA}		{
-	if (!checkLettera(lettera))
+<InCommaAlinea>^{PUNTATASIM} {
+	if(configGetDTDTipo() != flessibile)
 		REJECT;
-	//puts("LETTERA");
-	save(lettera);
+	save(puntata);
+	yy_push_state(InPuntata);
 }
 
-<InLettera>{DUEPTACAPO}		{
+<InLettera>{DUEPTACAPO}	{
 	artpos += artleng;
-	//puts("IN LETTERA ALINEA");
+	if(stacklog) puts("IN LETTERA ALINEA");
 	yy_push_state(InLetteraAlinea);
 }
 
-<InLetteraAlinea>{NUMERO1}	{
-	if (!checkCardinale(numero))
-		REJECT;
-	//puts("NUMERO 1");
-	save(numero);
-	yy_pop_state();
-	BEGIN(InNumero);
+<InNumero>{DUEPTACAPO} {
+	artpos += artleng;
+	if(stacklog) puts("IN NUMERO ALINEA");
+	yy_push_state(InNumeroAlinea);
 }
 
-<InPreLetNum>{NUMERO}		{
-	if (!checkCardinale(numero))
-		REJECT;
-	save(numero);
-	//puts("NUMERO");
-	yy_pop_state();
-	BEGIN(InNumero);
+<InPuntata>{DUEPTACAPO} {
+	artpos += artleng;
+	if(stacklog) puts("IN PUNTATA ALINEA");
+	yy_push_state(InPuntataAlinea);
 }
 
-<InPreLetNum>{PUNTATASIM}		{
-	//if (!checkCardinale(numero))
-		//REJECT;
+<InLetteraAlinea>^{NUMERO1}	{
+	if (!checkCardinale(numero))
+		REJECT;
+	if(stacklog) puts("NUMERO 1");
+	save(numero);
+	yy_push_state(InNumero);
+}
+
+<InLetteraAlinea>^{LETTERA}	 {
+	if(!checkLettera(lettera))
+		REJECT;
+	//Senza controllo sequenza potrebbe scambiare anche "Art." per una lettera (vedi modifica in util.c)
+	save(lettera);
+	if(stacklog) puts("pop_InLetteraAlinea");
+	yy_pop_state();
+}
+
+<InLetteraAlinea>^{PUNTATASIM}	{
+	if(stacklog) puts("PUNTATASIM 1");
 	save(puntata);
-	yy_pop_state();
-	BEGIN(InPuntata);
+	yy_push_state(InPuntata);
 }
 
-<InComma,InLettera,InNumero,InPuntata>{PTACAPO}	{
+<InNumeroAlinea>^{LETTERA1}	{
+	if (!checkLettera(lettera))
+		REJECT;
+	if(stacklog) puts("LETTERA 1");
+	save(lettera);
+	yy_push_state(InLettera);
+}
+
+<InNumeroAlinea>^{NUMERO} {
+	if(!checkCardinale(numero))
+		REJECT;
+	save(numero);
+	if(stacklog) puts("pop_InNumeroAlinea");
+	yy_pop_state();
+}
+
+<InNumeroAlinea>^{PUNTATASIM}	{
+	if(stacklog) puts("PUNTATASIM 1");
+	save(puntata);
+	yy_push_state(InPuntata);
+}
+
+<InPuntataAlinea>^{LETTERA1}	{
+	if (!checkLettera(lettera))
+		REJECT;
+	if(stacklog) puts("LETTERA 1");
+	save(lettera);
+	yy_push_state(InLettera);
+}
+
+<InPuntataAlinea>^{NUMERO} {
+	if(!checkCardinale(numero))
+		REJECT;
+	save(numero);
+	if(stacklog) puts("pop_InNumeroAlinea");
+	yy_pop_state();
+}
+
+<InPuntataAlinea>^{PUNTATASIM}	{
+	if(stacklog) puts("PUNTATASIM 1");
+	save(puntata);
+	yy_push_state(InPuntata);
+}
+
+<InLettera>{PVACAPO} {
 	artpos += artleng-1;
 	unput('\n');
-	//puts("PRE COMMA");
+	if(stacklog) puts("IN PRELET");
+	yy_push_state(InPreLet);
+}
+
+<InNumero>{PVACAPO}	{
+	artpos += artleng-1;
+	unput('\n');
+	if(stacklog) puts("IN PRENUM");
+	yy_push_state(InPreNum);
+}
+
+<InPuntata>{PVACAPO}	{
+	artpos += artleng-1;
+	unput('\n');
+	if(stacklog) puts("IN PREPUNT");
+	yy_push_state(InPrePunt);
+}
+
+<InPreLet>^{LETTERA}	{
+	if (!checkLettera(lettera))
+		REJECT;
+	save(lettera);
+	if(stacklog) puts("pop_InPreLet");
+	yy_pop_state();
+}
+
+<InPreNum>^{NUMERO}	{
+	if (!checkCardinale(numero))
+		REJECT;
+	save(numero);
+	if(stacklog) puts("pop_InPreNum");
+	yy_pop_state();
+}
+
+<InPrePunt>^{PUNTATASIM}	{
+	save(puntata);
+	if(stacklog) puts("pop_InPrePunt");
+	yy_pop_state();
+}
+
+<InLettera,InNumero,InPuntata>{PTACAPO}	{
+	artpos += artleng-1;
+	unput('\n');
+	//printf("\nPTACAPO: artpos=%d, artleng=%d, yytext='%s'", artpos, artleng, yytext);
+	if(stacklog) puts("pop_PTACAPO");
+	yy_pop_state();
+}
+
+<InComma>{PTACAPO}	{
+	artpos += artleng-1;
+	unput('\n');
+	if(stacklog) puts("PRE COMMA");
 	yy_push_state(InPreComma);
 }
 
 <InCommaDec>{NL}	{
 	artpos += artleng-1;
 	unput('\n');
-	//puts("PRE COMMA");
+	if(stacklog) puts("PRE COMMA");
 	yy_push_state(InPreComma);
-}
-
-<InLettera,InNumero,InPuntata>{PVACAPO}	{
-	artpos += artleng-1;
-	unput('\n');
-	//puts("IN PRELETNUM");
-	yy_push_state(InPreLetNum);
-}
-
-<InPreComma,InPreLetNum,InCommaAlinea,InLetteraAlinea>.		{
-	//puts("NO PRECOMMA / COMMA ALINEA / LETTERA ALINEA");
-	unput(yytext[0]);
-	yy_pop_state();
 }
 
 <InPreComma,InNota>{NOTAVV}	{
@@ -702,8 +805,7 @@ ROMANO		([ivxl]+{S}*)
 }
 
 <InVirgoDoppie>{VIRG2C}		{
-	nvir2ap--;
-	
+	nvir2ap--;	
 	if (nvir2ap==0) {
 		domAppendTextToLastNode(artpos);
 		domTagCloseFrom(virgolette);

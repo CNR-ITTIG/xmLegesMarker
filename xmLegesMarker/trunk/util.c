@@ -584,8 +584,11 @@ int convLetteraToInt(char *s) {
 //(non gestisce "aac aab...")
 //Converti a partire da una stringa (Null Terminated array di char).
 int convNTLetteraToInt(char *s) {
-	int num = 1;
+	int num = -1;
 	utilStringToLower(s);
+	//Non scambiare "Art." per l'inizio di una lettera...
+	//(serve ad evitare che venga messo il messaggio di warning)
+	if(strlen(s) == 3 && strncmp(s, "art", 3) == 0)	return -1;
 
 	if(strlen(s) == 1 || s[0]==s[1])
 		num = 26*(strlen(s)-1) + (s[0] - 'a' + 1);

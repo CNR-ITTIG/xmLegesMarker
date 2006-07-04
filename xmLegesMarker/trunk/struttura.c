@@ -47,7 +47,7 @@ xmlNodePtr GetLastRightTextNode(xmlNodePtr pParentNode)
 }
 
 //Scan node "next" list, returns a text node if present
-//(improvements: manage multiple text node as child, and node list (text+entity...)
+//(improvements: manage multiple text node in "next" list, and eventual NodeList (...+text+entity+...)
 xmlNodePtr getPartitionTextNode(xmlNodePtr node) {
 	if(node==NULL) return NULL;
 		
@@ -85,11 +85,12 @@ void checkEmptyRubrica(xmlNodePtr node) {
 int isEmptyRubrica(xmlNodePtr node) {
 	xmlNodePtr child;
 	if(node==NULL || xmlStrcmp(node->name, BAD_CAST tagTipoToNome(rubrica)) ) return 0;
-	if(node->children==NULL) return 1; 
+	if(node->children==NULL) return 1; //null children implies empty "rubrica" !?
 	child=node->children;
 	while(child!=NULL) {
+		//non-text children
 		if(!xmlNodeIsText(child)) return 0;
-		//Controlla il contenuto, se c'è almeno un carattere che non sia " \n\r\t" ritorna 0
+		//text children
 		if(!isEmptyText((char *)xmlNodeGetContent(child)))
 			return 0;
 		child=child->next;
@@ -98,15 +99,14 @@ int isEmptyRubrica(xmlNodePtr node) {
 }
 
 //Returns 1 if str (trimmed) is an empty string ( something like: str.trim().length() > 0)
-//>>>>MIGLIORARE QUESTA FUNZIONE<<< (?)
+//>>>>MIGLIORARE QUESTA FUNZIONE<<< 
 int isEmptyText(char *str) {
 	int i;
-	int len = strlen(str);
+	int len = strlen(str); //str must be null-terminated !
 	//printf("\n isEmptyText() - len:%d str:%s",len,str);
-	for(i=0; i<len; i++) {
+	for(i=0; i<len; i++)
 		if(str[i] > 33 && str[i]<127)
-			return 0; 	
-	}
+			return 0; //str is not empty if there is a character in that ascii-range (?!)
 	return 1;
 }
 
