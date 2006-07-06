@@ -34,7 +34,7 @@ PTACAPO		(([.]{S}*{DECORAZ}*{FR})|({FR}{FR}))  // <-- vecchio PTACAPO
 *********************************************
 Nota su LISTE: 
 sono gestite liste letterali, numeriche, puntate. Le liste letterali possono
-contenere liste numeriche, e viceversa. A causa del sistema di controllo sequenza al massimo
+contenere liste numeriche. A causa del sistema di controllo sequenza al massimo
 si può avere un livello di nidificazione di liste gestito correttamente (non si garantisce
 per esempio il caso "lista letterale che contiene lista numerica che contiene altra lista
 letterale" con il *controllo sequenza*).
@@ -45,6 +45,10 @@ sotto comma (corpo), cioè sullo stesso livello della numerica.
 ------
 <InLettera>PTACAPO -> si va sempre InPreComma
 <InNumero>PTACAPO -> si controlla se segue una lettera, altrimenti InPreComma
+<InPuntata>PTACAPO -> si controlla se segue una lettera, altrimenti InPreComma
+<InPuntata>PTACAPO -> si controlla se segue un numero, altrimenti InPreComma (ambiguità?)
+Non si controlla se segue un numero quando si è in <InLettera> (altrimenti ci sono problemi
+di ambiguità con il numero dei commi successivi).
 ------
 *********************************
 */
@@ -749,6 +753,20 @@ ROMANO		([ivxl]+{S}*)
 	artpos += artleng-1;
 	unput('\n');
 	if(stacklog) puts("pop_PTACAPO (lettera found)");
+	yy_pop_state();
+}
+
+<InPuntata>{PTACAPO}/{LETTERA} {
+	artpos += artleng-1;
+	unput('\n');
+	if(stacklog) puts("pop_PTACAPO (lettera found)");
+	yy_pop_state();
+}
+
+<InPuntata>{PTACAPO}/{NUMERO} {
+	artpos += artleng-1;
+	unput('\n');
+	if(stacklog) puts("pop_PTACAPO (numero found)");
 	yy_pop_state();
 }
 
