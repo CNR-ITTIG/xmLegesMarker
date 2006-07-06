@@ -14,6 +14,16 @@ int			domTextBufferIndex;
 xmlNodePtr	mRoot;// = NULL;
 xmlNodePtr	mcurrTagState[TAGTIPODIM];
 
+/*
+Elenchi Letterali / Numerici / Puntati
+--------------------------------------
+Al momento non vengono correttamente parsati elenchi letterali all'interno di elenchi
+numerici, per la disposizione gerarchica degli elementi che deriva dall'ordine in cui
+sono definiti (tag.h). Non sembra conveniente modificare varie funzioni (domTagOpen(),
+domGetLastNodeParent(), domGetLastChild()...) in modo da gestire questo particolare caso
+(devono essere considerati anche i vari elementi num, corpo, alinea, ecc...).
+*/
+
 //Aggiunta: ritorna l'ultimo nodo di una lista di "sibling"
 xmlNodePtr getLastSibling(xmlNodePtr node) {
 	xmlNodePtr tmp = node->next;
@@ -92,6 +102,7 @@ xmlNodePtr domGetLastNodeParent(tagTipo ptag)
 {	
 	xmlNodePtr tmp=NULL;
 	int n;
+	
 	//inizia a controllare dal tag con enumerazione minore
 	for(n=((int)ptag)-1;(n>=0) && (mcurrTagState[n]==NULL); n--);
 		if (n>=0)
@@ -219,13 +230,13 @@ void domAppendTextToLastNode(int pIndex)
 xmlNodePtr domTagOpen(tagTipo ptag,int pindex,int plen)
 {
 	//xmlNodePtr mtext;
-	xmlNodePtr currnode;
-	xmlNodePtr mparent=domGetLastNodeParent(ptag);
+	xmlNodePtr currnode, mparent, lastChild;
 	char *strbuff;
 	int n;
 
-	xmlNodePtr lastChild=domGetLastChild();
-	
+	mparent=domGetLastNodeParent(ptag);
+	lastChild=domGetLastChild();
+
  	//Se vi è testo non assegnato a nessun TAG
 	strbuff=domExtractStringBeforeIndex(pindex);
 	if (strbuff)
@@ -241,9 +252,8 @@ xmlNodePtr domTagOpen(tagTipo ptag,int pindex,int plen)
 	}
 
 	//elimina dallo STATOBUFFER tutti i nodi con enumerazione maggiore
-	for(n=(int)ptag;n<TAGTIPODIM;n++) {
+	for(n=(int)ptag;n<TAGTIPODIM;n++)
 		domTagClose(n);
-	}
 	
 	//if(ptag==decorazione)
 		//printf("\n name:%s\n",(char *)mparent->name);

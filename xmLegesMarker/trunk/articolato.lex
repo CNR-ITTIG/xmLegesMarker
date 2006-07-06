@@ -42,6 +42,10 @@ Altra questione: problemi di "gerarchia" dovuti a tag.h e domTagOpen() (determin
 vengono attaccati seguendo uno schema preciso, forse troppo rigido in questo caso): risulta
 per esempio in caso di lista numerica con dentro lista letterale che la letterale va direttamente
 sotto comma (corpo), cioè sullo stesso livello della numerica.
+------
+<InLettera>PTACAPO -> si va sempre InPreComma
+<InNumero>PTACAPO -> si controlla se segue una lettera, altrimenti InPreComma
+------
 *********************************
 */
 
@@ -509,7 +513,7 @@ ROMANO		([ivxl]+{S}*)
 	if (!checkCardinale(comma))
 		REJECT;
 	save(comma);
-	if(stacklog) puts("IN COMMA");
+	if(stacklog) puts("IN ARTICOLO - IN COMMA 1");
 	BEGIN(InComma);
 }
 
@@ -577,7 +581,8 @@ ROMANO		([ivxl]+{S}*)
 <InComma>{DUEPTACAPO} 	{
 	artpos += artleng;
 	if(stacklog) puts("InCommaAlinea");
-	BEGIN(InCommaAlinea);
+	//BEGIN(InCommaAlinea);
+	yy_push_state(InCommaAlinea);
 }
 
 <InCommaAlinea>^{LETTERA1}	{
@@ -585,7 +590,9 @@ ROMANO		([ivxl]+{S}*)
 		REJECT;
 	if(stacklog) puts("LETTERA1");
 	save(lettera);
+	//yy_pop_state();
 	yy_push_state(InLettera);
+	//BEGIN(InLettera);
 }
 
 <InCommaAlinea>^{NUMERO1}	{
@@ -596,14 +603,18 @@ ROMANO		([ivxl]+{S}*)
 		REJECT;
 	if(stacklog) puts("NUMERO 1");
 	save(numero);
+	//yy_pop_state();
 	yy_push_state(InNumero);
+	//BEGIN(InNumero);
 }
 
 <InCommaAlinea>^{PUNTATASIM} {
 	if(configGetDTDTipo() != flessibile)
 		REJECT;
 	save(puntata);
+	//yy_pop_state();
 	yy_push_state(InPuntata);
+	//BEGIN(InPuntata);
 }
 
 <InLettera>{DUEPTACAPO}	{
@@ -734,12 +745,21 @@ ROMANO		([ivxl]+{S}*)
 	yy_pop_state();
 }
 
+<InNumero>{PTACAPO}/{LETTERA} {
+	artpos += artleng-1;
+	unput('\n');
+	if(stacklog) puts("pop_PTACAPO (lettera found)");
+	yy_pop_state();
+}
+
 <InLettera,InNumero,InPuntata>{PTACAPO}	{
 	artpos += artleng-1;
 	unput('\n');
 	//printf("\nPTACAPO: artpos=%d, artleng=%d, yytext='%s'", artpos, artleng, yytext);
-	if(stacklog) puts("pop_PTACAPO");
+	//printf("\nPTACAPO: artpos=%d, artleng=%d\n", artpos, artleng);
+	if(stacklog) puts("pop_PTACAPO->InPreComma");
 	yy_pop_state();
+	yy_push_state(InPreComma);
 }
 
 <InComma>{PTACAPO}	{
