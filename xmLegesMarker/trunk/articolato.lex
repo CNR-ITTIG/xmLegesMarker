@@ -51,6 +51,21 @@ Non si controlla se segue un numero quando si è in <InLettera> (altrimenti ci so
 di ambiguità con il numero dei commi successivi).
 ------
 *********************************
+Fare in modo che entri in "inCommaALinea" solo se c'è un LETTERA1, NUMERO1 opp. PUNTATA
+------
+Previous:
+------
+<InComma>{DUEPTACAPO} 	{
+	artpos += artleng;
+	if(stacklog) puts("InCommaAlinea");
+	//BEGIN(InCommaAlinea);
+	yy_push_state(InCommaAlinea);
+}
+*********************************
+<InPreComma>{FR}*{COMMA}	{   <---- Perchè {FR}* ?? Così un comma può iniziare a meta riga...
+sostituito con:
+<InPreComma>^{COMMA}
+*********************************
 */
 
 
@@ -541,14 +556,14 @@ ROMANO		([ivxl]+{S}*)
 	BEGIN(InComma);
 }
 
-<InPreComma>{FR}*{COMMA}	{
+<InPreComma>^{COMMA}	{
 	if (configTipoCommi() != commiNumerati)
 		REJECT;
 	if (!checkCardinale(comma))
 		REJECT;
 	save(comma);
 	yy_pop_state();
-	if(stacklog) puts("IN COMMA");
+	if(stacklog) puts("IN COMMA (FR)");
 	BEGIN(InComma);
 }
 
@@ -558,7 +573,7 @@ ROMANO		([ivxl]+{S}*)
 	saveCommaNN();
 	commiNN++;
 	yy_pop_state();
-	if(stacklog) puts("IN COMMA");
+	if(stacklog) puts("IN COMMA (NN1)");
 	BEGIN(InComma);
 }
 
@@ -570,7 +585,7 @@ ROMANO		([ivxl]+{S}*)
 	saveCommaNN();
 	commiNN++;
 	yy_pop_state();
-	if(stacklog) puts("IN COMMA");
+	if(stacklog) puts("IN COMMA (NN2)");
 	BEGIN(InComma);
 }
 
@@ -582,7 +597,9 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InCommaDec);
 }
 
-<InComma>{DUEPTACAPO} 	{
+<InComma>{DUEPTACAPO}/{LETTERA1}	|
+<InComma>{DUEPTACAPO}/{NUMERO1}		|
+<InComma>{DUEPTACAPO}/{PUNTATA}			{
 	artpos += artleng;
 	if(stacklog) puts("InCommaAlinea");
 	//BEGIN(InCommaAlinea);
