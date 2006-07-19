@@ -358,6 +358,13 @@ if(tdoc == 2) {
 	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
 	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:tipoDestinatario", BAD_CAST "");
 	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
+
+	//Nuovi:
+	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:strutturaDestinataria", BAD_CAST "");
+	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
+	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:tipoProvvedimento", BAD_CAST "");
+	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
+
 	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:disciplina", BAD_CAST "");
 	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
 	//disciplina e areaScientifica sono in OR nella DTD.
@@ -1055,7 +1062,9 @@ void HeaderParser::findPubblicazione(const string& strbuffer,
   savePubblicazione(strbuffer, pub_states, pub_sequence.size(), offsets, offset, findChild("descrittori", meta), header_pubblicazione_tags);
   if(hasCorrectStates(pub_states, pub_sequence.size()))
     last = saveTags(strbuffer, pub_states, pub_sequence.size(), offsets, offset, 0, meta, header_pubblicazione_tags, 0, notes, curr_node);     
-  if(last < first-1)
+  //printf("\nFindPubblicazione() - first:%d last:%d\n",first,last);
+  //if(last < first-1) // <-- se c'è solo una parola tra formulafinale e dataeluogo non viene messa in error!
+  if(last <= first-1)
     saveTag(hp_sconosciuto, offsets[offset+last], offsets[offset+first], strbuffer, curr_node, 0);
   delete[] pub_states;
 }   
