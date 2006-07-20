@@ -349,7 +349,7 @@ if(tdoc == 2) {
 	xmlNewProp(proprietario, BAD_CAST "xlink:type", BAD_CAST "simple");
 	//xmlNewProp(proprietario, BAD_CAST "xmlns:cnr", BAD_CAST "http://www.cnr.it/provvedimenti/1.0");
 	//Nuova versione cnr-DTD:
-	xmlNewProp(proprietario, BAD_CAST "xmlns:cnr", BAD_CAST "http://www.cnr.it/provvedimenti/2.0");
+	xmlNewProp(proprietario, BAD_CAST "xmlns:cnr", BAD_CAST "http://www.cnr.it/provvedimenti/2.1");
 	
 	xmlNodePtr cnrmeta = xmlNewChild(proprietario, NULL, BAD_CAST "cnr:meta", BAD_CAST "");
 	xmlNodePtr thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:strutturaEmanante", BAD_CAST "");
