@@ -742,7 +742,8 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
   //printf("\nParseFooter\nbuffer: %s\n\n", strbuffer.c_str());
   
   //Qui si deve mettere nel lastcomma il testo fino a .\n opp. \n\n opp. .DECORAZIONE\n
-  strbuffer = strbuffer.substr(saveCommaDefault(strbuffer,lastcomma));
+  //strbuffer = strbuffer.substr(saveCommaDefault(strbuffer,lastcomma));
+  strbuffer = saveCommaDefault(strbuffer,lastcomma);
   
   if(strbuffer.find_first_not_of(" \n\t\r") == string::npos) return notes; //buffer vuoto, esci
   
@@ -774,6 +775,10 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
     if (hasCorrectStates(states, sequence.size())){
       if (!found){
       	//printf("\nformulafinale\n");
+
+			//for(int kk=0; kk < sequence.size(); kk++)
+				//printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
+      	
 		last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_formulafinale_tags, 
 			     header_sequence, header_offsets, &notes);
 		found = true;
@@ -898,21 +903,67 @@ void  HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) cons
 }
 */
 //defaultFooter() deve soltanto mettere tutto ciò che resta in un nodo error
-void  HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) const
+void HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) const
 {
 	saveTag(hp_sconosciuto, 0, footer.length(), footer, root_node, 0, NULL, NULL, false, NULL);
+}
+
+//true if node has children that are not text or entities
+//(at the moment check only for "virgolette") <-- improve in the future !?
+bool HeaderParser::structureNode(xmlNodePtr node) const
+{
+	xmlNodePtr tmp = node;
+	if(tmp==NULL) return false;
+	tmp = tmp->next;
+	while(tmp!=NULL) {
+		if(xmlStrcmp(tmp->name, (const xmlChar *)"text") != 0)
+			printf("\nstructureNode - No text child:%s\n",tmp->name);
+		if(!xmlStrcmp(tmp->name, (const xmlChar *)"virgolette"))
+			return true;
+		tmp=tmp->next;
+	}
+	return false;
+}
+
+//In caso di ultimo comma strutturato, cioè composto non di solo testo ed entità,
+//la ricerca del footer inizia più tardi. Es.: se è presente uno o più elementi "virgolette",
+//si mettono in lastcomma tali elementi e si inizia a cercare il "punto e a capo" 
+//(saveCommaDefault()) subito dopo l'ultimo nodo "virgolette".
+xmlNodePtr HeaderParser::getFooterFromStructureNode(xmlNodePtr node) const
+{
+	xmlNodePtr tmp = node, last = node;
+	if(tmp==NULL) return NULL;
+	tmp = tmp->next;
+	while(tmp!=NULL) {
+		if(!xmlStrcmp(tmp->name, (const xmlChar *)"virgolette"))
+			last = tmp->next;
+		tmp=tmp->next;
+	}
+	return last;
 }
 
 //Mette nell'ultimo comma il testo fino a un ". \n"
 //Restituisce l'indice del carattere successivo il "\n" 
 //Se non trova il "punto e a capo" ritorna la lunghezza della stringa (cioè considera
 //tutto come corpo dell'ultimo comma...)
-int  HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastcomma) const
+std::string HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastcomma) const
 {
-  unsigned int dot, ret1, ret2, ret;
-  bool found = false;
-  dot = footer.find('.');
+  unsigned int dot=0, ret1=0, ret2=0, ret=0;
+  bool found = false, structure = false;
+  xmlNodePtr last = NULL;
+  
+  if(structureNode(lastcomma)) {
+  	printf("\nLASTCOMMA has a structure!\n");
+  	last = getFooterFromStructureNode(lastcomma);
+  	structure = true;
+  	if(last!=NULL) {
+  		footer = (char *)xmlNodeListGetString(NULL, last, 0);
+  	} else
+  		footer = ""; //Se last è NULL non c'è niente dopo VIRGOLETTE ?
+  }
+	printf("\n saveCommaDefault - analizzo FOOTER:\n%s",footer.c_str());
 
+  dot = footer.find('.');
   while(dot != string::npos) {
 	ret1 = footer.find('\n',dot);
 	ret2 = footer.find('\r',dot);
@@ -935,12 +986,26 @@ int  HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastcomma) co
 		break;
 	}
   }
+  printf("\nFINE. RET:%d\n",ret);
+  
+  if(structure) {
+  	if(!found)
+  		return footer.substr(footer.length());
+  	else {
+  		xmlUnlinkNode(last);
+  		xmlFreeNode(last);
+		addSiblingString(lastcomma->parent, footer.substr(0, ret+1)); //lastcomma non è corpo ma è gia il child !
+		return footer.substr(ret+1);
+  	}
+  }
+  
   if(!found)
-	return footer.length();
+	return footer.substr(footer.length());   //praticamente non restituisce niente...
+	//return "";
   	
   xmlNodeSetContent(lastcomma, BAD_CAST "");
-  addSiblingString(lastcomma, footer.substr(0, ret+1));  	
-  return ret+1;
+  addSiblingString(lastcomma->parent, footer.substr(0, ret+1)); //lastcomma non è corpo ma è gia il child !
+  return footer.substr(ret+1);
 }
 
 xmlNodePtr HeaderParser::addChildIfMissing(const char * nodename, 
@@ -1081,6 +1146,7 @@ unsigned int HeaderParser::saveLastComma(const string& strbuffer,
 					 int * notes) const 
 {
   int state = getFirstMatchingState(states, statesnumber, tags);
+  //printf("\nSaveLastComma - state:%d\n",state);
   if(state==0) {
   	//In questo caso viene rilevata una sequenza nel footer in uno dei modelli ma tale
   	//sequenza inizia con l'inizio del buffer: o si duplica il contenuto
