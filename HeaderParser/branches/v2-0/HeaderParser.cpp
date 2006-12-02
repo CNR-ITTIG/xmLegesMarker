@@ -948,7 +948,8 @@ xmlNodePtr HeaderParser::getFooterFromStructureNode(xmlNodePtr node) const
 //tutto come corpo dell'ultimo comma...)
 std::string HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastcomma) const
 {
-  unsigned int dot=0, ret1=0, ret2=0, ret=0;
+//  unsigned int dot=0, ret1=0, ret2=0, ret=0;
+  string::size_type dot=0, ret1=0, ret2=0, ret=0;
   bool found = false, structure = false;
   xmlNodePtr last = NULL;
   
@@ -961,6 +962,7 @@ std::string HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastco
   	} else
   		footer = ""; //Se last è NULL non c'è niente dopo VIRGOLETTE ?
   }
+    footer.append(1, '\n');
 	printf("\n saveCommaDefault - analizzo FOOTER:\n%s",footer.c_str());
 
   dot = footer.find('.');
