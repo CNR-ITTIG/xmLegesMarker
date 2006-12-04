@@ -111,6 +111,9 @@ int checkCommaMod(char *txt) {
 int checkCommaMod(char *txt, xmlNodePtr corpo) {
 	if (txt==NULL) return 0;
 	
+	//Compara con caratteri minuscoli!
+	utilStringToLower(txt);
+	
 	//if (strstr(txt, "soppress") || strstr(txt, "abrogat") ) <-- "soppressione" solitamente non indica una mod...
 	if (strstr(txt, "soppresso") || strstr(txt, "soppressa") || strstr(txt, "abrogat") ||
 			strstr(txt, "soppressi") || strstr(txt, "soppresse") )

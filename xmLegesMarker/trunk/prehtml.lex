@@ -7,6 +7,24 @@
 * Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
 * 			Lorenzo Bacci (lorenzobacci@gmail.com)
 ******************************************************************************/
+
+/*
+//OLD InComment:
+
+\<!--						{
+							BEGIN(InComment);
+							}
+
+<InComment>({TKN}+|{Q})		{
+							prehtmlAppendString(strdup(prehtmltext));
+							}
+
+<InComment>-->				{
+							prehtmlAppendString(strdup(prehtmltext));
+							BEGIN(0);
+							}
+*/
+
 %{
 #include <stdio.h>
 #include <string.h>
@@ -125,28 +143,25 @@ TAGDEL	(head|form|script|style)
 &#[0-9]+;		prehtmlAppendString(strdup(prehtmltext));	// lasciate entità numeriche  //(..se ne rimangono..)
 
 
-&			norAppendString("&#38;");		// & che non delimita un'entità
+&				prehtmlAppendString("&#38;");		// & che non delimita un'entità
 
 
 \<\?						{
 							prehtmlAppendString(strdup(prehtmltext));
 							BEGIN(InPI);}
 							
-<InPI>({TKN}+|{Q})					prehtmlAppendString(strdup(prehtmltext));
+<InPI>({TKN}+|{Q})			prehtmlAppendString(strdup(prehtmltext));
 
 <InPI>\?>					{
 							prehtmlAppendString(strdup(prehtmltext));
 							BEGIN(0);}
 							
 \<!--						{
-							prehtmlAppendString(strdup(prehtmltext));
 							BEGIN(InComment);}
 							
-<InComment>({TKN}+|{Q})				prehtmlAppendString(strdup(prehtmltext));
-
 <InComment>-->				{
-							prehtmlAppendString(strdup(prehtmltext));
-							BEGIN(0);}
+							BEGIN(0);
+							}
 
 \<pre>						{	
 							flagpre=1;}

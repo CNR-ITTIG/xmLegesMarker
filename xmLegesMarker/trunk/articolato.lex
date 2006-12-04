@@ -66,6 +66,15 @@ Previous:
 sostituito con:
 <InPreComma>^{COMMA}
 *********************************
+
+//InPuntata - ambiguo con comma successivo...
+<InPuntata>{PTACAPO}/{NUMERO} {
+	artpos += artleng-1;
+	unput('\n');
+	if(stacklog) puts("pop_PTACAPO (numero found)");
+	yy_pop_state();
+}
+
 */
 
 
@@ -777,13 +786,6 @@ ROMANO		([ivxl]+{S}*)
 	artpos += artleng-1;
 	unput('\n');
 	if(stacklog) puts("pop_PTACAPO (lettera found)");
-	yy_pop_state();
-}
-
-<InPuntata>{PTACAPO}/{NUMERO} {
-	artpos += artleng-1;
-	unput('\n');
-	if(stacklog) puts("pop_PTACAPO (numero found)");
 	yy_pop_state();
 }
 
