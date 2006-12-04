@@ -962,9 +962,15 @@ std::string HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastco
   	} else
   		footer = ""; //Se last è NULL non c'è niente dopo VIRGOLETTE ?
   }
-    footer.append(1, '\n');
-	printf("\n saveCommaDefault - analizzo FOOTER:\n%s",footer.c_str());
+  
+  //I doc. html possono non avere un carattere di ritorno a capo alla fine del footer
+  //quindi si aggiunge il carattere alla fine del footer (non disturba gli altri casi?!)
+  footer.append(1, '\n');
+  
+  //printf("\n saveCommaDefault - analizzo FOOTER:\n%s",footer.c_str());
 
+  //Assume che ci sia almeno un carattere di ritorno a capo (\n opp. \r)
+  //all'interno della stringa del footer
   dot = footer.find('.');
   while(dot != string::npos) {
 	ret1 = footer.find('\n',dot);
@@ -988,6 +994,7 @@ std::string HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastco
 		break;
 	}
   }
+  
   printf("\nFINE. RET:%d\n",ret);
   
   if(structure) {
