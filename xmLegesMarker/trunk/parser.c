@@ -24,7 +24,7 @@
 #include "annessi.h"	
 #include "tag.h"
 
-const char *versione = "1.5";
+const char *versione = "1.6 - [NIR 2.2]";
 int visErrore = 0;
 char *bufferEnd;
 char *namebin = "";
@@ -414,7 +414,9 @@ int main(int argc, char *argv[])
 		tdoc=1;
 	if(tdoc==0)
 		xmlNewProp(root, BAD_CAST "tipo", BAD_CAST "originale");
-//	xmlNewProp(root, BAD_CAST "xmlns", BAD_CAST "http://www.normeinrete.it/nir/1.1");
+
+	//E' necessario metterlo qui il namespace??
+	//xmlNewProp(root, BAD_CAST "xmlns", BAD_CAST "http://www.normeinrete.it/nir/2.2/");
 	xmlNewProp(root, BAD_CAST "xmlns:h", BAD_CAST "http://www.w3.org/HTML/1998/html4");
 	xmlNewProp(root, BAD_CAST "xmlns:xlink", BAD_CAST "http://www.w3.org/1999/xlink");
 

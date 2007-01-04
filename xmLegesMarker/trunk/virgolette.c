@@ -119,9 +119,10 @@ int checkCommaMod(char *txt, xmlNodePtr corpo) {
 			strstr(txt, "soppressi") || strstr(txt, "soppresse") )
 		return 1;
 		
+	//Devono anche essere presenti delle virgolette nel corpo
 	if ( (strstr(txt, "sostituit") || strstr(txt, "aggiunt") ||
 			strstr(txt, "modificat") ||	strstr(txt, "inserit") ) &&
-				virgoletteInCorpo(corpo) ) //Devono anche essere presenti delle virgolette nel corpo
+				virgoletteInCorpo(corpo) )
 		return 1;
 
 	return 0;
@@ -151,6 +152,9 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 	
 	int areInMod=0;
 	char *desc=(char *)xmlNodeListGetRawString(NULL,pNodoCorpo->children,0);
+	
+	//printf("\nPossibile MOD:\n%s\n", desc);
+	
 	if(checkCommaMod(desc, pNodoCorpo))
 	{
 		IDMOD++;

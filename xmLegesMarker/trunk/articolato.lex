@@ -306,21 +306,21 @@ GINO	 	({S}*[.]?{S}*\(.*\)\.?({S}*-)?)
 RUBRICASEP	([ \-(])
 RUBRICA 	({S}*[^10].*{FR})
 
+/* Evitare il "Dangerous trailing context" warning del flex (dovuto agli {S}*):  */
+/* PTACAPODEC	(([.]{FR})|({NL}{FR})) */
+PTACAPODEC	(([.]{FR})|{NL})
+DUEPTACAPO	([:]{FR}+)
 
-/* Alla fine di una lettera/numero può esserci una decorazione (dopo il ; o il .) : */
+/* PTACAPO e PVACAPO anche se due FR consecutivi e *non* c'è il carattere ':' prima */
+/* Alla fine di una lettera/numero può esserci una decorazione (dopo il ; o il .) */
 /* PTACAPO		(([.]{FR})|({FR}{FR})) */
 /* PVACAPO		(([;]{FR})|({FR}{FR})) */
 PTACAPO		(([.]{FR})|({FR}{FR})|([.]{S}*{DECORAZ}{FR}))
 PVACAPO		(([;]{FR})|({FR}{FR})|([;]{S}*{DECORAZ}{FR}))
 
-/* Evitare il "Dangerous trailing context" warning del flex (dovuto agli {S}*):  */
-/* PTACAPODEC	(([.]{FR})|({NL}{FR})) */
-PTACAPODEC	(([.]{FR})|{NL})
-DUEPTACAPO	([:]{FR})
-
 VIRGO		(["])
 /* 						virgolette sx: win e utf-8 */
-VIRG2A		([«\x93]|\xe0\x80\x9c|<<|\xab)	
+VIRG2A		({S}*[«\x93]|\xe0\x80\x9c|<<|\xab)	
 /* 						virgolette dx: win e utf-8 */
 VIRG2C		([»\x94]|\xe0\x80\x9d|>>|\xbb)	
 
@@ -739,11 +739,18 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InPreLet);
 }
 
-<InNumero>{PVACAPO}	{
+<InNumero>{PVACAPO}/{NUMERO}	{
 	artpos += artleng-1;
 	unput('\n');
 	if(stacklog) puts("IN PRENUM");
 	yy_push_state(InPreNum);
+}
+
+<InNumero>{PVACAPO}/{LETTERA}	{
+	artpos += artleng-1;
+	unput('\n');
+	if(stacklog) puts("IN PRELET");
+	yy_push_state(InPreLet);
 }
 
 <InPuntata>{PVACAPO}	{
@@ -830,7 +837,7 @@ ROMANO		([ivxl]+{S}*)
 	BEGIN(InNota);
 }
 
-<InComma,InLettera,InNumero>{VIRGO}		{
+<InComma,InLettera,InNumero>{DUEPTACAPO}?{VIRGO}	{
 		artpos += artleng;
 		sequenzaInc(virgolette);	//Incrementa l'ID Vir
 		domTagOpen(virgolette,artpos,0);
@@ -846,7 +853,7 @@ ROMANO		([ivxl]+{S}*)
 	yy_pop_state();
 }
 
-<InComma,InLettera,InNumero>{VIRG2A}		{
+<InComma,InLettera,InNumero>{DUEPTACAPO}?{VIRG2A}	{
 	nvir2ap = 1;
 	artpos += artleng;
 	sequenzaInc(virgolette);
