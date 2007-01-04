@@ -301,8 +301,9 @@ if(tdoc == 1) {
 		xmlNodePtr nApprovazione = xmlNewChild(descrittori, NULL, BAD_CAST "approvazione", NULL);
 		xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
 		xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
-		//xmlNewProp(nUrn, BAD_CAST "value", BAD_CAST "");
-		xmlAddChild(nUrn, xmlNewText(BAD_CAST "")); //La dtd dei ddl non ha ancora value come attributo di urn
+		//La dtd dei ddl non ha ancora value (valore) come attributo di urn
+		//xmlNewProp(nUrn, BAD_CAST "valore", BAD_CAST "");
+		xmlAddChild(nUrn, xmlNewText(BAD_CAST ""));
 		xmlNewProp(nApprovazione, BAD_CAST "internal_id", BAD_CAST "");
 		xmlNewProp(nApprovazione, BAD_CAST "leg", BAD_CAST "");
 		xmlNewProp(nApprovazione, BAD_CAST "norm", BAD_CAST "");	
@@ -353,20 +354,20 @@ if(tdoc == 2) {
 	
 	xmlNodePtr cnrmeta = xmlNewChild(proprietario, NULL, BAD_CAST "cnr:meta", BAD_CAST "");
 	xmlNodePtr thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:strutturaEmanante", BAD_CAST "");
-	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
+	xmlNewProp(thisCnrMeta, BAD_CAST "valore", BAD_CAST "");
 	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:autoritaEmanante", BAD_CAST "");
-	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
+	xmlNewProp(thisCnrMeta, BAD_CAST "valore", BAD_CAST "");
 	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:tipoDestinatario", BAD_CAST "");
-	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
+	xmlNewProp(thisCnrMeta, BAD_CAST "valore", BAD_CAST "");
 
 	//Nuovi:
 	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:strutturaDestinataria", BAD_CAST "");
-	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
+	xmlNewProp(thisCnrMeta, BAD_CAST "valore", BAD_CAST "");
 	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:tipoProvvedimento", BAD_CAST "");
-	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
+	xmlNewProp(thisCnrMeta, BAD_CAST "valore", BAD_CAST "");
 
 	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:disciplina", BAD_CAST "");
-	xmlNewProp(thisCnrMeta, BAD_CAST "value", BAD_CAST "");
+	xmlNewProp(thisCnrMeta, BAD_CAST "valore", BAD_CAST "");
 	//disciplina e areaScientifica sono in OR nella DTD.
 	
 	//Aggiungi tag specifici
@@ -381,9 +382,8 @@ if(tdoc == 2) {
 	xmlNewProp(nRedazione, BAD_CAST "norm", BAD_CAST "");
 	
 	xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
-	//dtd2.1 Il valore non è più figlio, ma va nell'attributo value:
-	//xmlAddChild(nUrn, xmlNewText(BAD_CAST "urn:nir:consiglio.nazionale.ricerche:provvedimento:"));
-	xmlNewProp(nUrn, BAD_CAST "value", BAD_CAST "urn:nir:consiglio.nazionale.ricerche:provvedimento:");
+	//dtd2.2 - usare attributo 'valore'
+	xmlNewProp(nUrn, BAD_CAST "valore", BAD_CAST "urn:nir:consiglio.nazionale.ricerche:provvedimento:");
 
 	xmlNodePtr emanode = xmlNewChild(intestazione, NULL, BAD_CAST "emanante", BAD_CAST "");
 	xmlAddChild(emanode, xmlNewText(BAD_CAST "Consiglio Nazionale delle Ricerche"));
@@ -516,7 +516,7 @@ if(tdoc == 2) {
   // save URN
   if(urn != "") {
     xmlNodePtr nodeUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
-    xmlNewProp(nodeUrn, BAD_CAST "value", BAD_CAST urn.c_str());
+    xmlNewProp(nodeUrn, BAD_CAST "valore", BAD_CAST urn.c_str());
   }
   
   //AGGIUNTA: addMissingMeta() qui? Esistono documenti senza footer...
@@ -552,7 +552,7 @@ void  HeaderParser::defaultHeader(xmlNodePtr descrittori, xmlNodePtr intestazion
   xmlNewProp(redazione, BAD_CAST "id", BAD_CAST "red1");
   xmlNewProp(redazione, BAD_CAST "norm", BAD_CAST "");
   xmlNodePtr urn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
-  xmlNewProp(urn, BAD_CAST "value", BAD_CAST "");
+  xmlNewProp(urn, BAD_CAST "valore", BAD_CAST "");
   xmlNodePtr tipodoc = xmlNewChild(intestazione, NULL, BAD_CAST "tipoDoc", BAD_CAST "");
   xmlNodePtr datadoc = xmlNewChild(intestazione, NULL, BAD_CAST "dataDoc", BAD_CAST "");
   xmlNewProp(datadoc, BAD_CAST "norm", BAD_CAST "");  
@@ -604,7 +604,11 @@ void HeaderParser::addMissingFooter(xmlNodePtr meta,xmlNodePtr descrittori,xmlNo
 			      xmlNodePtr conclusione,int tdoc) const 
 {
 	if(tdoc==2) { //Provvedimenti CNR
-		//All'interno di sottoscrizioni deve esserci un 'visto'
+		//aggiornamento dtd2.2 - sottoscrizioni non più presente?!
+		return;
+
+		//All'interno di sottoscrizioni deve esserci un 'visto' 
+		/*
 		xmlNodePtr tmpnode = findChild("sottoscrizioni", conclusione);
 		if(tmpnode == NULL) return;
 		xmlNodePtr vistonode = findChild("visto", tmpnode);
@@ -613,6 +617,7 @@ void HeaderParser::addMissingFooter(xmlNodePtr meta,xmlNodePtr descrittori,xmlNo
 			xmlAddChild(vistonode, xmlNewText(BAD_CAST ""));
 			xmlAddChild(tmpnode,vistonode);
 		}
+		*/
 	}
 }
 
@@ -815,6 +820,7 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
   }	
 
   // parse sottoscrizioni
+  
   if(sequence.size() > 0){
     states = new int[sequence.size()];
     footer_sottoscrizioni_model.viterbiPath(sequence, states, sequence.size());
@@ -829,16 +835,21 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
 		findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, meta, conclusione, &notes);
       }
       found = true;
-      xmlNodePtr sottoscrizioni = xmlNewChild(conclusione, NULL, BAD_CAST "sottoscrizioni", NULL);
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, sottoscrizioni, footer_sottoscrizioni_tags, tdoc);
-      if(tdoc==0)
-      	addChildIfMissing("visto", NULL, sottoscrizioni);
+      //dtd2.2: non esistono più gli elementi 'sottoscrizioni', 'sottoscrivente' e 'visto'
+      //ma soltanto una serie di elementi 'firma' con attributo 'tipo' di valore "sottoscrizione" o "visto".
+      //xmlNodePtr sottoscrizioni = xmlNewChild(conclusione, NULL, BAD_CAST "sottoscrizioni", NULL);
+      //last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, sottoscrizioni, footer_sottoscrizioni_tags, tdoc);
+      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, conclusione, footer_sottoscrizioni_tags, tdoc);
+      //if(tdoc==0)
+      //	addChildIfMissing("visto", NULL, sottoscrizioni);
       removeProcessedElements(sequence, last);
       removeProcessedElements(header_sequence, last);
       offset += last + 1;
+      
     }
     delete[] states;
   }
+  
   
   // parse annessi   // <--- MA SERVE IL MODELLO ANNESSI ?? (DL30settembre2003 crasha se tolgo il commento!)
   /*
@@ -877,7 +888,7 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
   // save URN
   if(urn != "") {
     xmlNodePtr nodUrn = addChildIfMissing("urn", NULL, descrittori, NULL);
-	xmlNewProp(nodUrn, BAD_CAST "value", BAD_CAST urn.c_str()); 
+	xmlNewProp(nodUrn, BAD_CAST "valore", BAD_CAST urn.c_str()); 
   }
 
   // add compulsory meta
@@ -1072,7 +1083,7 @@ void HeaderParser::addMissingMeta(xmlNodePtr descrittori) const
   }
   xmlNodePtr urn = addChildIfMissing("urn", &added, descrittori);
   if(added)
-	xmlNewProp(urn,BAD_CAST "value", BAD_CAST "");
+	xmlNewProp(urn,BAD_CAST "valore", BAD_CAST "");
 }
 
 //TRUE se la sequenza non è completamente composta di stati -1 e 0
@@ -1313,6 +1324,23 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
   	xmlAddChild(startnode, xmlNewText(BAD_CAST buffer.substr(start,end-start).c_str()));
     return NULL;
   }
+  
+  //Conclusione - dtd2.2 (vedi anche 'parse sottoscrizioni')
+  //dtd2.2: non esistono più gli elementi 'sottoscrizioni', 'sottoscrivente' e 'visto'
+  //ma soltanto una serie di elementi 'firma' con attributo 'tipo' di valore "sottoscrizione" o "visto".
+  //In pratica qui si sostituisce l'elemento 'sottoscrivente' con 'firma tipo=sottoscrizione'
+  //e l'elemento 'visto' con 'firma tipo=visto'
+  if(tagvalue == hp_sottoscrivente) {
+    xmlNodePtr nFirma = xmlNewChild(startnode, NULL, BAD_CAST "firma", BAD_CAST buffer.substr(start,end-start).c_str());
+  	xmlNewProp(nFirma, BAD_CAST "tipo", BAD_CAST "sottoscrizione");
+    return NULL;
+  }
+  if(tagvalue == hp_visto) {
+    xmlNodePtr nFirma = xmlNewChild(startnode, NULL, BAD_CAST "firma", BAD_CAST buffer.substr(start,end-start).c_str());
+  	xmlNewProp(nFirma, BAD_CAST "tipo", BAD_CAST "visto");
+    return NULL;
+  }
+  
   
   xmlNodePtr currnode = (withtags) ? openTag(tagvalue, startnode, buffer.substr(start,end-start), id) : startnode;
   

@@ -62,7 +62,7 @@ typedef enum HeaderParser_tagTipo {
 	hp_legislatura=39,
 	hp_relazione=40,
 	hp_div=41,
-	hp_nothing=42} HP_tagTipo;
+	hp_nothing=42 } HP_tagTipo;
 
 //#define TAGTIPODIM 39
 
