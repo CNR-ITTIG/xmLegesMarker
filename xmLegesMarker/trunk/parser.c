@@ -24,7 +24,7 @@
 #include "annessi.h"	
 #include "tag.h"
 
-const char *versione = "1.6 - [NIR 2.2]";
+const char *versione = "1.6.1 - [NIR 2.2]";
 int visErrore = 0;
 char *bufferEnd;
 char *namebin = "";
@@ -366,7 +366,7 @@ int main(int argc, char *argv[])
 	if (configTipoInput() == html)		/* ---------------------------------- input html */
 	{
 		bufferToPre = prehtmlAnalizza(bufferNor);
-		
+
 		if (lo == 1)
 		{
 			puts("------------------------------ INIZIO bufferToPre -----------------------------------\n");

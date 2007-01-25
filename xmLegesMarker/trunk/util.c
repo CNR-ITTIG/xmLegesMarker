@@ -311,7 +311,7 @@ void MoveAllChildren(xmlNodePtr pFrom,xmlNodePtr pTo)
 	xmlNodePtr nlist = xmlCopyNodeList(cur);
 	//Unlink e FreeNode a partire dall'ultimo nodo della lista:
 	while (cur != NULL) {
-		tmp=cur;
+		tmp = cur;
 		cur = cur->next;
 	}
 	while (tmp != NULL) {
@@ -320,7 +320,7 @@ void MoveAllChildren(xmlNodePtr pFrom,xmlNodePtr pTo)
 		xmlUnlinkNode(cur);
 		xmlFreeNode(cur);
 	}
-	xmlAddChild(pTo, nlist);
+	xmlAddChild(pTo, nlist);  //xmlAddChildList() ??
 }
 /* </sostituzione> */
 

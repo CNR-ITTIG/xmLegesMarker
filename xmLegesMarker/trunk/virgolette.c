@@ -29,62 +29,90 @@ int virgoletteInCorpo(xmlNodePtr corpo) {
 }
 
 // Aggiunta:
-// Sostituzione "manuale" di un nodo
+// Sostituzione "manuale" di un nodo (sostituisce "a" con "b")
 void replaceNode(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p) {
 //Non è detto che se a->prev è NULL, a->parent non sia NULL (virgolette ha entrambi NULL)
 // => utilizzo l'argomento 'p' (è il vero nodo precedente a virgolette, NULL se primo della lista)
 
 	//xmlNodePtr prev=NULL;
-	xmlNodePtr next=NULL, parent=NULL, children=NULL;
+	xmlNodePtr next=NULL, parent=NULL, children=NULL, last=NULL;
 	
 	if(a==NULL || b==NULL) return;
-	//if(a->prev!=NULL)
-		//prev=a->prev;
+//	if(a->prev!=NULL) //vedi nota sopra.
+//		prev=a->prev;
 	if(a->next!=NULL)
 		next=a->next;
 	if(a->parent!=NULL)
 		parent=a->parent;
 	if(a->children!=NULL)
 		children=a->children;
+	if(a->last!=NULL)
+		last=a->children;
 		
 	b->parent=parent;
 	b->next=next;
 	b->children=children;
-	if(p!=NULL)
+	b->last=last;
+	if(p!=NULL) // && p->next==a ??
 		p->next=b;
-	else
+	//else
+	//	parent->children=b;
+	if(parent!=NULL && parent->children==a)
 		parent->children=b;
 	
-	//(si deve anche considerare l'a->next->prev che adesso punta ancora a 'b' non ad 'a'!!)
+	//si deve anche considerare l'a->next->prev...
 	if(next!=NULL && next->prev!=NULL)
 		next->prev=b;
+
+	//parent->children->last
+	if(parent !=NULL && parent->children!=NULL
+		&& parent->children->last!=NULL 
+		&& parent->children->last==a)
+		parent->children->last=b;
+		
+	//children->parent ?
+	if(children!=NULL && children->parent==a)
+		children->parent=b;
 }
 
 //Sostituisce b ad a, ritorna a con tutti i suoi figli (non vanno sotto b)
 xmlNodePtr replaceNodeWithChildren(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p) {
-	xmlNodePtr next=NULL, parent=NULL;
+
+	xmlNodePtr next=NULL, parent=NULL, last=NULL;
 	
 	if(a==NULL || b==NULL) return NULL;
 	if(a->next!=NULL)
 		next=a->next;
 	if(a->parent!=NULL)
 		parent=a->parent;
+	if(a->last!=NULL)
+		last=a->last;
 		
 	b->parent=parent;
 	b->next=next;
+	b->last=last;
 	if(p!=NULL)
 		p->next=b;
-	else
+	//else
+	//	parent->children=b;
+	if(parent->children==a)
 		parent->children=b;
 
 	//(si deve anche considerare l'a->next->prev che adesso punta ancora a 'b' non ad 'a'!!)
 	if(next!=NULL && next->prev!=NULL)
 		next->prev=b;
 
+	//parent->children->last
+	if(parent!=NULL && parent->children!=NULL 
+		&& parent->children->last!=NULL
+		&& parent->children->last==a)
+		parent->children->last=b;
+		
 	//Ritorna a
 	a->next=NULL;
 	a->prev=NULL;
 	a->parent=NULL;
+	a->last=NULL;
 	return a;	
 }
 
@@ -108,7 +136,16 @@ int checkCommaMod(char *txt) {
 	return ret;
 }
 */
+/*
+ * Controlla se il comma è "modificativo".
+ */
 int checkCommaMod(char *txt, xmlNodePtr corpo) {
+	/*
+	 * Per essere "modificativo" deve contenere le parole chiave
+	 * della "soppressione", oppure deve contenere le parole chiave
+	 * dell'"inserimento" (o "sostituzione") E contenere almeno un
+	 * elemento VIRGOLETTE.
+	 */
 	if (txt==NULL) return 0;
 	
 	//Compara con caratteri minuscoli!
@@ -151,15 +188,17 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 	xmlNodePtr cur=pNodoCorpo->children;//firstVirgo=GetFirstNodebyTagTipo(pNodoCorpo,BAD_CAST tagTipoToNome(virgolette));	
 	
 	int areInMod=0;
-	char *desc=(char *)xmlNodeListGetRawString(NULL,pNodoCorpo->children,0);
+	//char *desc=(char *)xmlNodeListGetRawString(NULL,pNodoCorpo->children,0);
+	char *desc=(char *)xmlNodeListGetRawString(NULL,cur,0);
 	
 	//printf("\nPossibile MOD:\n%s\n", desc);
 	
-	if(checkCommaMod(desc, pNodoCorpo))
+	if(checkCommaMod(desc,pNodoCorpo))
 	{
 		IDMOD++;
-		xmlNodePtr newNodoMod=xmlNewNode(NULL, BAD_CAST tagTipoToNome(mod));
-		domSetIDtoNode(newNodoMod, mod,IDMOD,0,NULL);
+		xmlNodePtr newNodoMod = xmlNewNode(NULL, BAD_CAST tagTipoToNome(mod));
+		domSetIDtoNode(newNodoMod,mod,IDMOD,0,NULL);
+		
 		//Sposta tutti i figli del CORPO nel nuovo nodo MOD
 		MoveAllChildren(pNodoCorpo,newNodoMod);
 				
@@ -174,7 +213,7 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 	xmlNodePtr prevnode = NULL; //il "vero nodo precedente"
 	if (!areInMod)
 	while (cur != NULL) {
-		 if (IsNode(cur,virgolette) ){
+		if (IsNode(cur,virgolette) ){
 			//se è presente una VIRGOLETTA
 			//nel caso in cui NON sia un comma di modifica sostituisce VIRGOLETTE con ERRORE
 			//Crea un nodo errore PRIMA
@@ -190,7 +229,7 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 			xmlNodePtr newNodoTxt=xmlNewText(allText);
 			
 			//xmlReplaceNode(cur,newNodoTxt);
-			replaceNode(cur,newNodoTxt, prevnode);
+			replaceNode(cur,newNodoTxt,prevnode);
 			
 			//--- Messaggio di verifica temporaneamente tolto: ---
 			//xmlAddPrevSibling(newNodoTxt,newNodoErrPre);
@@ -218,8 +257,7 @@ void virgoletteInMod(xmlNodePtr pParentNode)
 		//Se il nodo corrente è una CORPO, cerca di individuare le VIRGOLETTE al suo interno e vi inserisce un MOD
 		if (IsNode(cur,corpo)){
 			ModificaVirgolette(cur);
-		}else
-		{
+		} else {
 			//prosegue la ricorsione solo se non è un CORPO
 			virgoletteInMod(cur);
 		}
