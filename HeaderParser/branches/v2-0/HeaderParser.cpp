@@ -965,7 +965,7 @@ std::string HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastco
   xmlNodePtr last = NULL;
   
   if(structureNode(lastcomma)) {
-  	printf("\nLASTCOMMA has a structure!\n");
+  	printf("\nLASTCOMMA has an internal structure...\n");
   	last = getFooterFromStructureNode(lastcomma);
   	structure = true;
   	if(last!=NULL) {
@@ -1010,7 +1010,7 @@ std::string HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastco
   
   if(structure) {
   	if(!found)
-  		return footer.substr(footer.length());
+  		return footer.substr(footer.length());  // == return footer; ?
   	else {
   		xmlUnlinkNode(last);
   		xmlFreeNode(last);
@@ -1584,7 +1584,27 @@ void addSiblingString(xmlNodePtr node, string str) {
 		child = tmp;
 		tmp = tmp->next;
 	}
-	child->next = ncontent;
+	
+	/*
+	 * 01/24/2007	 
+	 * DDL3008-B.html DDL3509.htm
+	 * (ddl + html + virgolette nell'ultimo comma
+	 * (structured comma)).
+	 * child->next e ncontent puntano alla stessa roba!
+	 * A causa di questo, successivamente, se si fa una
+	 * xmlNodeListGetString() si va in loop infinito.
+	 * ncontent dovrebbe essere giusto, il problema
+	 * accade prima, child dovrebbe puntare all'ultimo
+	 * nodo "virgolette", mentre child->next dovrebbe
+	 * puntare a null (0x0).
+	 */
+	if(child == ncontent) {
+		printf("\nWARNING!! \"child == ncontent\" ISSUE !!\n");
+	} else {
+		child->next = ncontent;
+	}
+	
+	//update "last" pointer!
 }
 
 string normalizeDate(const string& buffer)
