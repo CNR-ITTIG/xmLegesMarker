@@ -275,6 +275,8 @@ int HeaderParser::parseHeader(std::string& header,
 	//printf("\nHeaderParser\ntdoc: %d\n", tdoc);
 	//printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
 	
+	adjustEntities(header);
+	
 	//Replace "1°" (primo) with "1" (> and < ?)
 	delPrimo(header);
 	//printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
@@ -313,6 +315,11 @@ if(tdoc == 1) {
 		//xmlNewProp(redazione, BAD_CAST "url", BAD_CAST ""); //non obbligatorio nella dtd
 		
 		states = new int[sequence.size()];
+		
+		//debug:
+		//for(int kk=0; kk < sequence.size() && kk < 300; kk++)
+			//printf("\n %d: sequence[]=%d ", kk, sequence[kk]);
+				
 		header_ddl_model.viterbiPath(sequence, states, sequence.size());
 		if ((first = getFirstMatchingState(states, sequence.size(), header_ddl_tags)) < sequence.size()){
 	    	found = true;
@@ -920,7 +927,7 @@ void HeaderParser::defaultFooter(std::string footer, xmlNodePtr lastcomma) const
 }
 
 //true if node has children that are not text or entities
-//(at the moment check only for "virgolette") <-- improve in the future !?
+//(at the moment check only for "virgolette")
 bool HeaderParser::structureNode(xmlNodePtr node) const
 {
 	xmlNodePtr tmp = node;
@@ -978,7 +985,7 @@ std::string HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastco
   //quindi si aggiunge il carattere alla fine del footer (non disturba gli altri casi?!)
   footer.append(1, '\n');
   
-  //printf("\n saveCommaDefault - analizzo FOOTER:\n%s",footer.c_str());
+  printf("\n saveCommaDefault - analizzo FOOTER:\n%s",footer.c_str());
 
   //Assume che ci sia almeno un carattere di ritorno a capo (\n opp. \r)
   //all'interno della stringa del footer
@@ -1023,8 +1030,16 @@ std::string HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastco
 	return footer.substr(footer.length());   //praticamente non restituisce niente...
 	//return "";
   	
-  xmlNodeSetContent(lastcomma, BAD_CAST "");
-  addSiblingString(lastcomma->parent, footer.substr(0, ret+1)); //lastcomma non è corpo ma è gia il child !
+  //xmlNodeSetContent(lastcomma, BAD_CAST "");
+  //addSiblingString(lastcomma->parent, footer.substr(0, ret+1)); //lastcomma non è corpo ma è gia il child !
+  
+  xmlNodePtr parent = lastcomma->parent;
+  //xmlUnlinkNode(lastcomma);
+  //xmlFreeNode(lastcomma);
+  unlinkAllChildren(parent);
+  addSiblingString(parent, footer.substr(0, ret+1));
+  lastcomma = parent->children;
+  
   return footer.substr(ret+1);
 }
 
@@ -1607,6 +1622,29 @@ void addSiblingString(xmlNodePtr node, string str) {
 	//update "last" pointer!
 }
 
+/*
+ * Svuota completamente il nodo anche se composto
+ * da una lista nodo testo / nodo entità...
+ */
+void unlinkAllChildren(xmlNodePtr parent)
+{
+	xmlNodePtr cur = parent->children;	//FirstChild
+	xmlNodePtr tmp = NULL;
+	if(cur == NULL) return;
+	
+	//Unlink e FreeNode a partire dall'ultimo nodo della lista:
+	while (cur != NULL) {
+		tmp = cur;
+		cur = cur->next;
+	}
+	while (tmp != NULL) {
+		cur = tmp;
+		tmp = tmp->prev;
+		xmlUnlinkNode(cur);
+		xmlFreeNode(cur);
+	}
+}
+
 string normalizeDate(const string& buffer)
 {
 	//Aggiunta (data del tipo xx/yy/zz )
@@ -1695,6 +1733,17 @@ void SqueezeWords(string& buf)
     while((beg = buf.find(words[i],beg)) != string::npos)
       buf.replace(beg,words[i].length(),squeezed[i]);
   }
+}
+
+void adjustEntities(string& buf)
+{
+	int beg = 0;
+	while((beg = buf.find("&#xB0;",beg)) != string::npos)
+		buf.replace(beg,6,"°");
+
+	beg = 0;
+	while((beg = buf.find("&#xBA;",beg)) != string::npos)
+		buf.replace(beg,6,"°");
 }
 
 //Replace "1°" (primo) with "1"

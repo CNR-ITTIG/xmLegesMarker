@@ -93,6 +93,7 @@ class Month{
 
 void addDivDecorations(xmlNodePtr parent);
 void addSiblingString(xmlNodePtr node, string str);
+void unlinkAllChildren(xmlNodePtr parent);
 std::string normalizeDate(const std::string& buffer);
 std::string lowercase(const std::string& word);
 void copyElements(const vector<int>& src, 
@@ -100,6 +101,7 @@ void copyElements(const vector<int>& src,
 		  unsigned int start, 
 		  unsigned int end);
 void SqueezeWords(string& buf);
+void adjustEntities(string& buf);
 void delPrimo(string& buf);
 std::string trimEnd(const std::string& buf, unsigned int * trimmed);
 std::string extractURN(std::string& strbuffer);
