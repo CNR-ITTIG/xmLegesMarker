@@ -355,9 +355,8 @@ if(tdoc == 2) {
 	//Aggiungi tag 'proprietario' vuoti
 	xmlNodePtr proprietario = xmlNewChild(meta, NULL, BAD_CAST "proprietario", BAD_CAST "");
 	xmlNewProp(proprietario, BAD_CAST "xlink:type", BAD_CAST "simple");
-	//xmlNewProp(proprietario, BAD_CAST "xmlns:cnr", BAD_CAST "http://www.cnr.it/provvedimenti/1.0");
 	//Nuova versione cnr-DTD:
-	xmlNewProp(proprietario, BAD_CAST "xmlns:cnr", BAD_CAST "http://www.cnr.it/provvedimenti/2.1");
+	xmlNewProp(proprietario, BAD_CAST "xmlns:cnr", BAD_CAST "http://www.cnr.it/provvedimenti/2.2");
 	
 	xmlNodePtr cnrmeta = xmlNewChild(proprietario, NULL, BAD_CAST "cnr:meta", BAD_CAST "");
 	xmlNodePtr thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:strutturaEmanante", BAD_CAST "");
@@ -985,7 +984,7 @@ std::string HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastco
   //quindi si aggiunge il carattere alla fine del footer (non disturba gli altri casi?!)
   footer.append(1, '\n');
   
-  printf("\n saveCommaDefault - analizzo FOOTER:\n%s",footer.c_str());
+  //printf("\n saveCommaDefault - analizzo FOOTER:\n%s",footer.c_str());
 
   //Assume che ci sia almeno un carattere di ritorno a capo (\n opp. \r)
   //all'interno della stringa del footer
