@@ -31,15 +31,15 @@ tipoStruttura	_configDocStruttura = docarticolato;			// tipo struttura (default=
 int		_configNodeCount=0;			//DISATTIVATO
 tipoDTD		_configDTDTipo=completo;	//INIT
 
-char _configDTDBaseStringa[MAXSTRINGA+1] = "nirlight.dtd";
+char _configDTDBaseStringa[MAXSTRINGA+1] = "nirbase.dtd";
 //char _configDTDBaseMeta[MAXSTRINGA+1] = "<meta><descrittori><pubblicazione norm=\"\"/><redazione nome=\"\" id=\"red1\" norm=\"\"/><urn>URN</urn></descrittori></meta>";
 // meta --> lavoripreparatori? , redazionale? , proprietario* , disposizioni?
 
-char _configDTDCompletoStringa[MAXSTRINGA+1] = "nirstrict.dtd"; 
+char _configDTDCompletoStringa[MAXSTRINGA+1] = "nircompleto.dtd"; 
 //char _configDTDCompletoMeta[MAXSTRINGA+1] = "<meta>META</meta>";
 //char *_configDTDCompletoMeta = _configDTDBaseMeta;
 
-char _configDTDFlessibileStringa[MAXSTRINGA+1] = "nirloose.dtd";
+char _configDTDFlessibileStringa[MAXSTRINGA+1] = "nirflessibile.dtd";
 //char _configDTDFlessibileMeta[MAXSTRINGA+1] = "<meta>META</meta>";
 //char *_configDTDFlessibileMeta = _configDTDBaseMeta;
 

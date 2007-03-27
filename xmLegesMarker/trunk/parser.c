@@ -24,7 +24,7 @@
 #include "annessi.h"	
 #include "tag.h"
 
-const char *versione = "1.6.1 - [NIR 2.2]";
+const char *versione = "1.7 - [NIR 2.2]";
 int visErrore = 0;
 char *bufferEnd;
 char *namebin = "";
@@ -359,7 +359,7 @@ int main(int argc, char *argv[])
 	}
 	buffer[i] = 0;
 	fclose(fp);
-	bufferSize = i;
+	bufferSize = i;		
 
 	bufferNor = normalizza(buffer);		/* ---- tratta: \n, \r, &, paragrafo (Aggiunta: "<" ">") */
 	
@@ -421,6 +421,10 @@ int main(int argc, char *argv[])
 	xmlNewProp(root, BAD_CAST "xmlns:xlink", BAD_CAST "http://www.w3.org/1999/xlink");
 
 	xmlDocSetRootElement(doc, root);
+
+//			puts("------------------------------ INIZIO bufferEnd -----------------------------------\n");
+	//		printf("\n%s\n",bufferEnd); 
+		//	puts("------------------------------ FINE bufferEnd -------------------------------------\n");
 
 	AnnessiAnalizza(bufferEnd, root, nir);
 

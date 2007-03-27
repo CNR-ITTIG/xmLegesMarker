@@ -355,6 +355,7 @@ ROMANO		([ivxl]+{S}*)
 
 <Disegno>^({S}*{DISEGNO}{S}*)$	{
 									numdis++;
+									printf("\nDisegno numdis:%d numtes:%d\n", numdis, numtes);
 									if (numdis==numtes) {
 										BEGIN(0);
 										//configSetDdlTestate(0); //Altrimenti disturba eventuali allegati...
@@ -907,6 +908,7 @@ int _ArticolatoLexStart(  char * buf)
 	BEGIN(0);
 	if(configGetDocTestoTipo() == disegnolegge)	{
 		numtes=configDdlTestate();
+		printf("\nDis numdis:%d numtes:%d\n", numdis, numtes);
 		if (numtes)	
 			BEGIN(Disegno);
 		else
