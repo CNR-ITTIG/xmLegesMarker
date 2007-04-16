@@ -105,6 +105,7 @@ int tipoRubriche = 1;
 int numdis=0;
 int numtes=0;
 int art_dec=0;
+
 int stacklog=0;
 
 /******************************************************************* CHECK ****/
@@ -299,6 +300,10 @@ NUMERO1		({FR}*{S}*(1|0){PS}?{LATINO}?[).])
 NUMERO		({FR}*{S}*{NUM}{PS}?{LATINO}?[).])
 PUNTATASIM	(\-|\*|\x95|\x96|\x97|\xAD)
 PUNTATA		({FR}*{S}*{PUNTATASIM}{PS}?)
+
+PARTIZIONE_1 ({LIBRO}|{PARTE}|{PARTE2}|{TITOLO}|{CAPO}|{SEZIONE})
+PARTIZIONE_2 ({COMMA}|{ARTICOLORUB}|{ARTBASE}|{ARTICOLO})
+PARTIZIONE ({PARTIZIONE_1}|{PARTIZIONE_2})
 
 ARTICOLORUB	({S}*{NUMARTICOLO}{S}*{DECORAZ}?)
 ARTICOLOAGO	({S}*{NUM}{PS}?{LATINO}?{PS}?{S}*{DECORAZ}?)
@@ -797,12 +802,12 @@ ROMANO		([ivxl]+{S}*)
 	yy_pop_state();
 }
 
-<InLettera,InNumero,InPuntata>{PTACAPO}	{
+<InLettera,InNumero,InPuntata>{PTACAPO}/{PARTIZIONE}	{
 	artpos += artleng-1;
 	unput('\n');
 	//printf("\nPTACAPO: artpos=%d, artleng=%d, yytext='%s'", artpos, artleng, yytext);
 	//printf("\nPTACAPO: artpos=%d, artleng=%d\n", artpos, artleng);
-	if(stacklog) puts("pop_PTACAPO->InPreComma");
+	if(stacklog) puts("pop_PTACAPO(PARTIZIONE FOUND)->InPreComma");
 	yy_pop_state();
 	yy_push_state(InPreComma);
 }
