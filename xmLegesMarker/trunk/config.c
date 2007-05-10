@@ -44,7 +44,7 @@ char _configDTDFlessibileStringa[MAXSTRINGA+1] = "nirflessibile.dtd";
 //char *_configDTDFlessibileMeta = _configDTDBaseMeta;
 
 char _configDTDDlStringa[MAXSTRINGA+1] = "dllight.dtd";
-char _configDTDCnrStringa[MAXSTRINGA+1] = "cnr.dtd";
+//char _configDTDCnrStringa[MAXSTRINGA+1] = "cnr.dtd";
 
 char _configHeaderParser[MAXSTRINGA+1] = "/usr/local/bin/HeaderParser";
 char _configHeaderParserModels[MAXSTRINGA+1] = "/usr/local/lib/HeaderParser/Models";
@@ -345,7 +345,7 @@ char *configGetDTDTipoStringa(void){
 		case completo:		return _configDTDCompletoStringa;
 		case flessibile:	return _configDTDFlessibileStringa;
 		case dl:			return _configDTDDlStringa;		
-		case cnr:			return _configDTDCnrStringa;
+		//case cnr:			return _configDTDCnrStringa;
 		default:			return "";
 	}
 }
@@ -488,7 +488,7 @@ char *configTestaVuota(tipoDTD tipo) {
 		case completo:		return _configTestaVuotaCompleto;
 		case flessibile:	return _configTestaVuotaFlessibile;
 		case dl:			return _configDTDDlStringa;  //stesso valore di ritorno
-		case cnr:			return _configDTDCnrStringa; //di configGetDTDTipoStringa()... 
+		//case cnr:			return _configDTDCnrStringa; //di configGetDTDTipoStringa()... 
 	}
 }
 

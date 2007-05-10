@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 					else if (!strcmp(tmp, "completo"))		configSetDTDTipo(completo);
 					else if (!strcmp(tmp, "flessibile"))	configSetDTDTipo(flessibile);
 					else if (!strcmp(tmp, "dl"))	configSetDTDTipo(dl);
-					else if (!strcmp(tmp, "cnr"))	configSetDTDTipo(cnr);					
+					//else if (!strcmp(tmp, "cnr"))	configSetDTDTipo(cnr);					
 					else 
 					{
 						fprintf(stderr, "Errore tipo di dtd: %s\n", tmp);
@@ -467,7 +467,7 @@ void help(void)
 	puts("");
 	puts("Opzioni:");
 	puts("-c file      : file di configurazione");
-	puts("-d dtd       : tipo di dtd (base,completo,flessibile,dl,cnr)");
+	puts("-d dtd       : tipo di dtd (base,completo,flessibile,dl)"); //,cnr)");
 	puts("-e encoding  : set di caratteri del file di origine");
 	puts("               alcune abbreviazioni:");
 	puts("               'iso'=iso-8859-15, 'utf'=UTF-8, 'win'=windows-1252 ");
