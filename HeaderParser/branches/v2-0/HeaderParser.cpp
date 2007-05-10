@@ -355,8 +355,6 @@ if(tdoc == 2) {
 	//Aggiungi tag 'proprietario' vuoti
 	xmlNodePtr proprietario = xmlNewChild(meta, NULL, BAD_CAST "proprietario", BAD_CAST "");
 	xmlNewProp(proprietario, BAD_CAST "xlink:type", BAD_CAST "simple");
-	//Nuova versione cnr-DTD:
-	xmlNewProp(proprietario, BAD_CAST "xmlns:cnr", BAD_CAST "http://www.cnr.it/provvedimenti/2.2");
 	
 	xmlNodePtr cnrmeta = xmlNewChild(proprietario, NULL, BAD_CAST "cnr:meta", BAD_CAST "");
 	xmlNodePtr thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:strutturaEmanante", BAD_CAST "");
@@ -366,7 +364,6 @@ if(tdoc == 2) {
 	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:tipoDestinatario", BAD_CAST "");
 	xmlNewProp(thisCnrMeta, BAD_CAST "valore", BAD_CAST "");
 
-	//Nuovi:
 	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:strutturaDestinataria", BAD_CAST "");
 	xmlNewProp(thisCnrMeta, BAD_CAST "valore", BAD_CAST "");
 	thisCnrMeta = xmlNewChild(cnrmeta, NULL, BAD_CAST "cnr:tipoProvvedimento", BAD_CAST "");
