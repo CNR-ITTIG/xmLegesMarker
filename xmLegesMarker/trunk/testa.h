@@ -5,7 +5,7 @@
 * Copyright:	ITTIG/CNR - Firenze - Italy (http://www.ittig.cnr.it)
 * Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
 * Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
-* 			Lorenzo Bacci (lorenzobacci@gmail.com)
+* 			Lorenzo Bacci (bacci@ittig.cnr.it)
 ******************************************************************************/
 #ifndef TESTA_H
 #define TESTA_H
