@@ -245,6 +245,8 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		tdoc=1;
 	if(configGetDocTestoTipo() == provCNR) // && ruolo == principale) //<- doc.non valido se DDL+DecretoLegge
 		tdoc=2;
+	if(strcmp(configGetDocNome(),"Regolamento Regionale") == 0) 
+		tdoc=3;
 
 	// inserisco nodi di testa
 	nmeta = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "meta", NULL);

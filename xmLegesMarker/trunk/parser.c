@@ -24,7 +24,7 @@
 #include "annessi.h"	
 #include "tag.h"
 
-const char *versione = "1.7 - [NIR 2.2]";
+const char *versione = "1.8 - [NIR 2.2]";
 int visErrore = 0;
 char *bufferEnd;
 char *namebin = "";
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
 				else if (!strcmp(tmp, "reg"))	{configSetDocTesto(documentoNIR); configSetDocNome("Regolamento"); }
 				else if (!strcmp(tmp, "circ"))	{configSetDocTesto(documentoNIR); configSetDocNome("Circolare"); }
 				else if (!strcmp(tmp, "prov"))	{configSetDocTesto(documentoNIR); configSetDocNome("Provvedimento"); }
-				else if (!strcmp(tmp, "rreg"))	{configSetDocTesto(documentoNIR); configSetDocNome("Regolamento Regionale"); }
+				else if (!strcmp(tmp, "rreg"))	{configSetDocTesto(documentoNIR); configSetDocNome("Regolamento Regionale"); } 
 				// Parametro per individuare automaticamente il tipo di documento:
 				else if(!strcmp(tmp,"unknown")) { unknown_init(); configSetDocTesto(unknown); }
 				//

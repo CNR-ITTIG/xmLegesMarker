@@ -61,16 +61,6 @@ int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 		exit(-1);	
 	}
 
-	/*
-	//Aggiunta
-	int tdoc = 0; //variabile che tiene conto del tipo di documento
-	if(configGetDocTestoTipo() == disegnolegge)
-		tdoc=1;
-
-	if(configGetDocTestoTipo() == provCNR)
-		tdoc=2;
-	*/
-	
 	notes=parser.parseHeader(tmpstr, pmeta, pdescrittori, pintestazione, pformulainiziale, tdoc, notes);
 	
 	loggerInfo("FINE Testa");
