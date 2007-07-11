@@ -50,6 +50,11 @@ sotto comma (corpo), cioè sullo stesso livello della numerica.
 Non si controlla se segue un numero quando si è in <InLettera> (altrimenti ci sono problemi
 di ambiguità con il numero dei commi successivi).
 ------
+11/07/2007 - Aggiunte le seguenti regole per evitare ambiguità ;\n (opp. .\n in un comma)
+e non termina la partizione:
+<InLettera>{PVACAPO}/{LETTERA} {
+<InPuntata>{PVACAPO}/{PUNTATA}	{
+<InComma>{PTACAPO}/{PARTIZIONE}	{
 *********************************
 Fare in modo che entri in "inCommaALinea" solo se c'è un LETTERA1, NUMERO1 opp. PUNTATA
 ------
@@ -169,6 +174,9 @@ void save(tagTipo tipo) {
 	}
 
 		domTagOpen(tipo,artpos,0);
+		if(stacklog==1 && tipo==articolo) {
+			printf("\nARTICOLO num:%d lat:%d\n",numConv,latConv);
+		}
 		if(tipo==lettera) {
 			//printf("\nLETTERA num:%d lat:%d current_lettera:%s\n",numConv,latConv,current_lettera);
 			domSetIDLettera(current_lettera,latConv);
@@ -738,7 +746,7 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InPuntata);
 }
 
-<InLettera>{PVACAPO} {
+<InLettera>{PVACAPO}/{LETTERA} {
 	artpos += artleng-1;
 	unput('\n');
 	if(stacklog) puts("IN PRELET");
@@ -759,7 +767,7 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InPreLet);
 }
 
-<InPuntata>{PVACAPO}	{
+<InPuntata>{PVACAPO}/{PUNTATA}	{
 	artpos += artleng-1;
 	unput('\n');
 	if(stacklog) puts("IN PREPUNT");
@@ -812,7 +820,7 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InPreComma);
 }
 
-<InComma>{PTACAPO}	{
+<InComma>{PTACAPO}/{PARTIZIONE}	{
 	artpos += artleng-1;
 	unput('\n');
 	if(stacklog) puts("PRE COMMA");
