@@ -23,6 +23,7 @@ HeaderParser::HeaderParser(std::string modeldir,
 			   std::string header_cnr_model_file,
 			   std::string header_ddl_model_file,
 			   std::string header_regreg_model_file,
+			   std::string header_delibera_model_file,
 			   std::string footer_formulafinale_model_file,
 			   std::string footer_dataeluogo_model_file,
 			   std::string footer_sottoscrizioni_model_file,
@@ -91,6 +92,16 @@ HeaderParser::HeaderParser(std::string modeldir,
   else{
     istringstream in_s(header_regreg_model_default);
     in_s >> header_regreg_model;
+  }
+
+  ifstream in15((modeldir + "/" + header_delibera_model_file).c_str());
+  if(in15.good()){
+    in15 >> header_delibera_model;
+    in15.close();
+  }
+  else{
+    istringstream in_s(header_delibera_model_default);
+    in_s >> header_delibera_model;
   }
 
   ifstream in2((modeldir + "/" + footer_formulafinale_model_file).c_str());
@@ -232,6 +243,15 @@ void HeaderParser::init(istream& in)
     is >> state >> tag >> open >> ws;
     header_regreg_tags[state] = make_pair(tag,open);
   }
+  if(!Lexer::getLine(in,buf) || buf != "DELIBERA"){
+    cerr << "ERROR in reading parser config file" << endl;
+    exit(1);
+  }
+  while(Lexer::getLine(in,buf) && buf != ""){
+    istringstream is(buf);
+    is >> state >> tag >> open >> ws;
+    header_delibera_tags[state] = make_pair(tag,open);
+  }
   if(!Lexer::getLine(in,buf) || buf != "FOOTER"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
@@ -281,6 +301,7 @@ void HeaderParser::init(istream& in)
 //1: disegno di legge
 //2: provvedimento CNR
 //3: regolamento regionale
+//4: delibera
 int HeaderParser::parseHeader(std::string& header, 
 			      xmlNodePtr meta,
 			      xmlNodePtr descrittori,
@@ -293,14 +314,14 @@ int HeaderParser::parseHeader(std::string& header,
   unsigned int last = 0, first = 0, offset = 0;
   int * states = NULL, * pub_states = NULL;
 
-	//printf("\nHeaderParser\ntdoc: %d\n", tdoc);
+	printf("\nHeaderParser\ntdoc: %d\n", tdoc);
 	//printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
 	
 	adjustEntities(header);
 	
 	//Replace "1°" (primo) with "1" (> and < ?)
 	delPrimo(header);
-	//printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
+	printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
   
   // recover URN if present
   string urn = extractURN(header);
@@ -489,6 +510,50 @@ if(tdoc == 3) {
 				//printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
 			
 	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_regreg_tags, tdoc);      
+	        removeProcessedElements(sequence, last);
+	        offset += last + 1;
+	        addDivDecorations(intestazione->parent);
+		}
+		delete[] states;
+	} 
+	if(sequence.size() > 0 || found == false) { 
+		//Se non è stato rilevata l'intestazione viene messo tutto in error:
+		//printf("\noffset:%d size:%d\n",offset,offsets.size());
+		// se rimane qualcosa mettilo in un tag errore
+    	if (offset < offsets.size())
+      		saveTag(hp_sconosciuto, offsets[offset], strbuffer.length(), strbuffer, intestazione, tdoc); 
+	}
+	return notes; 	
+}
+
+//Delibera
+if(tdoc == 4) {
+	//Aggiungi tag specifici
+	xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
+	xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST "");
+	xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");
+	xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "");
+			
+	xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
+	xmlNewProp(nRedazione, BAD_CAST "id", BAD_CAST "");
+	xmlNewProp(nRedazione, BAD_CAST "nome", BAD_CAST "");
+	xmlNewProp(nRedazione, BAD_CAST "norm", BAD_CAST "");
+	
+	xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
+	xmlNewProp(nUrn, BAD_CAST "valore", BAD_CAST "");
+
+	if(sequence.size() > 0) {
+		found = true;
+		
+		states = new int[sequence.size()];
+		
+		header_delibera_model.viterbiPath(sequence, states, sequence.size());
+		if ((first = getFirstMatchingState(states, sequence.size(), header_delibera_tags)) < sequence.size()){
+	    	found = true;
+			for(int kk=0; kk < sequence.size(); kk++)
+				printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
+			
+	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_delibera_tags, tdoc);      
 	        removeProcessedElements(sequence, last);
 	        offset += last + 1;
 	        addDivDecorations(intestazione->parent);
@@ -1782,13 +1847,14 @@ string trimEnd(const string& buf, unsigned int * trimmed)
 
 void SqueezeWords(string& buf)
 {
-  static int numwords = 15;
+  static int numwords = 16;
   static string words[] = {"d i s p o n e", "d e c r e t a", "a d o t t a", "e m a n a", "p r o m u l g a",
 			   "D i s p o n e", "D e c r e t a", "A d o t t a", "E m a n a", "P r o m u l g a",
-			   "D I S P O N E", "D E C R E T A", "A D O T T A", "E M A N A", "P R O M U L G A"};
+			   "D I S P O N E", "D E C R E T A", "A D O T T A", "E M A N A", "P R O M U L G A",
+			   "O M I S S I S"};
   static string squeezed[] = {"dispone", "decreta", "adotta", "emana", "promulga",
 			      "Dispone", "Decreta", "Adotta", "Emana", "Promulga",
-			      "DISPONE", "DECRETA", "ADOTTA", "EMANA", "PROMULGA"};
+			      "DISPONE", "DECRETA", "ADOTTA", "EMANA", "PROMULGA", "OMISSIS"};
   for (int i = 0; i < numwords; i++){
     int beg = 0;
     while((beg = buf.find(words[i],beg)) != string::npos)
