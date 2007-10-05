@@ -247,6 +247,8 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		tdoc=2;
 	if(strcmp(configGetDocNome(),"Regolamento Regionale") == 0) 
 		tdoc=3;
+	if(strcmp(configGetDocNome(),"Delibera") == 0) 
+		tdoc=4;
 
 	// inserisco nodi di testa
 	nmeta = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "meta", NULL);

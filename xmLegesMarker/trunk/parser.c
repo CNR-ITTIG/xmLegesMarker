@@ -192,7 +192,8 @@ int main(int argc, char *argv[])
 				else if (!strcmp(tmp, "reg"))	{configSetDocTesto(documentoNIR); configSetDocNome("Regolamento"); }
 				else if (!strcmp(tmp, "circ"))	{configSetDocTesto(documentoNIR); configSetDocNome("Circolare"); }
 				else if (!strcmp(tmp, "prov"))	{configSetDocTesto(documentoNIR); configSetDocNome("Provvedimento"); }
-				else if (!strcmp(tmp, "rreg"))	{configSetDocTesto(documentoNIR); configSetDocNome("Regolamento Regionale"); } 
+				else if (!strcmp(tmp, "rreg"))	{configSetDocTesto(documentoNIR); configSetDocNome("Regolamento Regionale"); }
+				else if (!strcmp(tmp, "del"))	{configSetDocTesto(documentoNIR); configSetDocNome("Delibera"); } 
 				// Parametro per individuare automaticamente il tipo di documento:
 				else if(!strcmp(tmp,"unknown")) { unknown_init(); configSetDocTesto(unknown); }
 				//
@@ -503,7 +504,7 @@ void help(void)
 	puts("               ddl=disegno di legge        nir=documento NIR");
 	puts("               reg=regolamento             circ=circolare");
 	puts("               rreg=regolamento regionale  prov=provvedimento");
-	puts("               cnr=provvedimento CNR");
+	puts("               cnr=provvedimento CNR       del=delibera");
 	puts("-T nomeTipo  : nome tipo di atto da analizzare; valido solo per -t nir");
 	puts("-M <dir>     : directory dei modelli per scansione testa e coda");
 	puts("-v           : livello di log: error, warn, info, debug");

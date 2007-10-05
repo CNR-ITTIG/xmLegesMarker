@@ -6,6 +6,10 @@
 * Licence:	GNU/GPL (http://www.gnu.org/licenses/gpl.html)
 * Authors:	Mirco Taddei (m.taddei@ittig.cnr.it)
 ******************************************************************************/
+/*
+DELIBERA	(d{S}*e{S}*l{S}*i{S}*b{S}*e{S}*r{S}*a)
+*/
+
 %{
 // Scanner Case-Insensitive
 // compilare con flex -i -8 -Pdis disposto
@@ -28,8 +32,8 @@ NL	(\n)
 FINEPAR	([.;:]{S}*)
 DECRETA	(d{S}*e{S}*c{S}*r{S}*e{S}*t{S}*a)
 EMANA		(e{S}*m{S}*a{S}*n{S}*a)
+DELIBERA	(d{S}e{S}l{S}i{S}b{S}e{S}r{S}a)
 ADOTTA	(a{S}*d{S}*o{S}*t{S}*t{S}*a)
-DELIBERA	(d{S}*e{S}*l{S}*i{S}*b{S}*e{S}*r{S}*a)
 DISPONE	(d{S}*i{S}*s{S}*p{S}*o{S}*n{S}*e)
 DETERMINA (d{S}*e{S}*t{S}*e{S}*r{S}*m{S}*i{S}*n{S}*a)
 
