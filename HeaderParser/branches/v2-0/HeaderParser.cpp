@@ -318,6 +318,7 @@ int HeaderParser::parseHeader(std::string& header,
 	//printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
 	
 	adjustEntities(header);
+	adjustEsecutivita(header);
 	
 	//Replace "1°" (primo) with "1" (> and < ?)
 	delPrimo(header);
@@ -528,11 +529,8 @@ if(tdoc == 3) {
 
 //Delibera
 if(tdoc == 4) {
+	
 	//Aggiungi tag specifici
-	xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
-	xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST "");
-	xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");
-	xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "");
 			
 	xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
 	xmlNewProp(nRedazione, BAD_CAST "id", BAD_CAST "");
@@ -550,13 +548,62 @@ if(tdoc == 4) {
 		header_delibera_model.viterbiPath(sequence, states, sequence.size());
 		if ((first = getFirstMatchingState(states, sequence.size(), header_delibera_tags)) < sequence.size()){
 	    	found = true;
-			for(int kk=0; kk < sequence.size(); kk++)
-				printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
+			for(int kk=0; kk < sequence.size(); kk++) {
+				if(states[kk] != 27) {
+					printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
+				}
+			}		
 			
-	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_delibera_tags, tdoc);      
+	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_delibera_tags, tdoc);
+	        
+	        /*      
+
+	int * states = NULL, first = 0, currtag = -1, start = 0, end = 0;
+	unsigned int trimmed = 0;
+	hash_map<int,pair<int,int> >::const_iterator statetag;
+	states = new int[sequence.size()];
+
+		for(int k=0; k < sequence.size(); k++) {
+			if(states[k] < 1) continue;
+			statetag = header_delibera_tags.find(states[k]);
+			currtag = (statetag->second).first;
+			if(currtag == hp_pubblicazione) {
+				if(start == 0) {
+					start = offsets[k];
+					end = offsets[k+1];
+					continue;
+				}
+				end = offsets[k+1];
+			}
+		}
+		if(end > 0) {
+			string data = normalizeDate(trimEnd(strbuffer.substr(start,end-start), &trimmed));
+			xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
+			xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");
+			xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "");
+  			xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST data.c_str());
+		} else {
+			xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
+			xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST "");
+			xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");
+			xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "");
+		}
+			
+		*/
+
 	        removeProcessedElements(sequence, last);
 	        offset += last + 1;
 	        addDivDecorations(intestazione->parent);
+
+			/*
+       		pub_found = savePubblicazione(strbuffer, states, sequence.size(), offsets, offset, descrittori, header_delibera_tags);
+			if(!pub_found) {
+				xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
+				xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST "");
+				xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");
+				xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "");
+		 	}
+		 	*/
 		}
 		delete[] states;
 	} 
@@ -1491,6 +1538,14 @@ xmlNodePtr HeaderParser::saveTag(int tagvalue,
 	xmlAddNextSibling(startnode,currnode);
 	return currnode;
   }
+
+/*
+  if(tagvalue == hp_preambolo && tdoc == 4) {
+  	addSemicolumnFormatTags(buffer.substr(start,end-start), currnode);
+	xmlAddNextSibling(startnode,currnode);
+	return currnode;  	
+  }
+  */
     
   if(formatTag(tagvalue)){
     if(tagvalue == hp_preambolo)
@@ -1871,6 +1926,14 @@ void adjustEntities(string& buf)
 	beg = 0;
 	while((beg = buf.find("&#xBA;",beg)) != string::npos)
 		buf.replace(beg,6,"°");
+}
+
+void adjustEsecutivita(string& buf)
+{
+	int beg = 0;
+	while((beg = buf.find("Esecutivit&#xE0;",beg)) != string::npos) {
+		buf.replace(beg,16,"Esecutivita");
+	}
 }
 
 //Replace "1°" (primo) with "1"

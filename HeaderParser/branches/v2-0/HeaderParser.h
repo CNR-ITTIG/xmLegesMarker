@@ -102,6 +102,7 @@ void copyElements(const vector<int>& src,
 		  unsigned int end);
 void SqueezeWords(string& buf);
 void adjustEntities(string& buf);
+void adjustEsecutivita(string& buf);
 void delPrimo(string& buf);
 std::string trimEnd(const std::string& buf, unsigned int * trimmed);
 std::string extractURN(std::string& strbuffer);
