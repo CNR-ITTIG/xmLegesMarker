@@ -1,3 +1,7 @@
+#!/bin/bash
+
+## Su Windows/Cygwin: in caso di errore provare:
+## dos2unix.exe loadDefault.sh 
 
 rm -f Default.h
 
