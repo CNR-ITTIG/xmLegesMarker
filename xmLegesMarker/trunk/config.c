@@ -240,6 +240,8 @@ char * tipoTestoStringa(tipoTesto testo) {
 	case disegnolegge: 				return "DisegnoLegge";		// vers. 2
 	case provCNR:					return "DocumentoNIR";
 	case documentoNIR:				return "DocumentoNIR";		// doc. generico (articolato e no)
+	case statutocomunale:			return "DocumentoNIR";
+	case regolamentocomunale:		return "DocumentoNIR";	
 	}
 	return "DocumentoNIR";
 }
@@ -289,6 +291,8 @@ tipoStruttura tipoTestoStruttura(tipoTesto testo) {
 	case decretoministeriale: 			return docarticolato;
 	case leggeregionale: 				return docarticolato;
 	case disegnolegge: 				return docarticolato;
+	case statutocomunale:			return docarticolato;
+	case regolamentocomunale:		return docarticolato;
 	}
 	return docsemiarticolato;
 }
