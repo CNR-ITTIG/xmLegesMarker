@@ -548,62 +548,19 @@ if(tdoc == 4) {
 		header_delibera_model.viterbiPath(sequence, states, sequence.size());
 		if ((first = getFirstMatchingState(states, sequence.size(), header_delibera_tags)) < sequence.size()){
 	    	found = true;
+	    	/*
+	    	//Debug
 			for(int kk=0; kk < sequence.size(); kk++) {
 				if(states[kk] != 27) {
 					printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
 				}
-			}		
-			
-	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_delibera_tags, tdoc);
-	        
-	        /*      
-
-	int * states = NULL, first = 0, currtag = -1, start = 0, end = 0;
-	unsigned int trimmed = 0;
-	hash_map<int,pair<int,int> >::const_iterator statetag;
-	states = new int[sequence.size()];
-
-		for(int k=0; k < sequence.size(); k++) {
-			if(states[k] < 1) continue;
-			statetag = header_delibera_tags.find(states[k]);
-			currtag = (statetag->second).first;
-			if(currtag == hp_pubblicazione) {
-				if(start == 0) {
-					start = offsets[k];
-					end = offsets[k+1];
-					continue;
-				}
-				end = offsets[k+1];
 			}
-		}
-		if(end > 0) {
-			string data = normalizeDate(trimEnd(strbuffer.substr(start,end-start), &trimmed));
-			xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
-			xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");
-			xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "");
-  			xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST data.c_str());
-		} else {
-			xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
-			xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST "");
-			xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");
-			xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "");
-		}
+			*/		
 			
-		*/
-
+	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_delibera_tags, tdoc);	        
 	        removeProcessedElements(sequence, last);
 	        offset += last + 1;
 	        addDivDecorations(intestazione->parent);
-
-			/*
-       		pub_found = savePubblicazione(strbuffer, states, sequence.size(), offsets, offset, descrittori, header_delibera_tags);
-			if(!pub_found) {
-				xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
-				xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST "");
-				xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");
-				xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "");
-		 	}
-		 	*/
 		}
 		delete[] states;
 	} 
@@ -2103,16 +2060,29 @@ void HeaderParser::parseHeaderGetTipo(std::string& strbuffer)
 	//printf("\nHeaderParserUNKNOWN\nbuffer: %s\n\n\n", buffer);
 	
 	vector<int> sequence, offsets;
-	if(!header_extractor.buildExample(sequence, offsets, buffer, strlen(buffer), 0))
-		//return notes;
+	if(!header_extractor.buildExample(sequence, offsets, buffer, strlen(buffer), 0)) {
+		printf("ERROR: buildExample() failed!\n");
 		return;
+	}
 	
 	string tipodoc = "";
+	printf("\nTryng with DDL...\n");
 	tipodoc = find_type(strbuffer, header_ddl_model, header_ddl_tags, sequence, offsets);
 	if(tipodoc == "") {
+		printf("\nTryng with DEL...\n");
+		tipodoc = find_type(strbuffer, header_delibera_model, header_delibera_tags, sequence, offsets);
+	}
+	if(tipodoc == "") {
+		printf("\nTryng with REGREG...\n");
+		tipodoc = find_type(strbuffer, header_regreg_model, header_regreg_tags, sequence, offsets);
+	}
+	if(tipodoc == "") {
+		printf("\nTryng with CNR...\n");
 		tipodoc = find_type(strbuffer, header_cnr_model, header_cnr_tags, sequence, offsets);
-		if(tipodoc == "") 
-			tipodoc = find_type(strbuffer, header_intestazione_model, header_intestazione_tags, sequence, offsets);
+	}
+	if(tipodoc == "") {
+		printf("\nTryng with GENERIC...\n"); 
+		tipodoc = find_type(strbuffer, header_intestazione_model, header_intestazione_tags, sequence, offsets);
 	}
 
 	//manda il tipo di doc. allo stdout  <-- No, deve essere scritto su un file...
@@ -2121,7 +2091,6 @@ void HeaderParser::parseHeaderGetTipo(std::string& strbuffer)
 	if (!(fo = fopen("temp/unknown_type.tmp", "w"))) //Nome file da concordare con xmLegesEditor
 	{
 		fprintf(stderr, "Errore apertura file \"temp/unknown_type.tmp\" \n");
-		//return notes;
 		return;
 	}
 	fprintf(fo, "%s", tipodoc.c_str());
@@ -2142,12 +2111,14 @@ string HeaderParser::find_type(string strbuffer,
 
 	model.viterbiPath(sequence, states, sequence.size());
 	if ((first = getFirstMatchingState(states, sequence.size(), tags)) < sequence.size()){
+		printf("\n..Found..\n");
 		for(int k=0; k < sequence.size(); k++) {
 			if(states[k] < 1) continue;
 			statetag = tags.find(states[k]);
 			currtag = (statetag->second).first;
 			if(currtag == hp_tipodoc) {
 				if(start == 0) {
+					printf("\n..Start..\n");
 					start = offsets[k];
 					end = offsets[k+1];
 					continue;
