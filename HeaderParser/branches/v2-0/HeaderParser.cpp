@@ -322,7 +322,7 @@ int HeaderParser::parseHeader(std::string& header,
 	
 	//Replace "1°" (primo) with "1" (> and < ?)
 	delPrimo(header);
-	printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
+	//printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
   
   // recover URN if present
   string urn = extractURN(header);
@@ -1888,9 +1888,18 @@ void adjustEntities(string& buf)
 void adjustEsecutivita(string& buf)
 {
 	int beg = 0;
-	while((beg = buf.find("Esecutivit&#xE0;",beg)) != string::npos) {
-		buf.replace(beg,16,"Esecutivita");
-	}
+
+	/*
+	 * Esecutivit&#xC3;&#xA0;
+	 * Esecutivit&#xE0;
+	 *
+	 * Trasformare in "Esecutivita " se ci sono entities,
+	 * Aggiungere uno stato intermedio per il rumore
+	 * con bassa probabilità nel modello. 	
+	*/
+	while((beg = buf.find("Esecutivit&#",beg)) != string::npos) {
+		buf.insert(beg + 10,"a ");
+	}	
 }
 
 //Replace "1°" (primo) with "1"
