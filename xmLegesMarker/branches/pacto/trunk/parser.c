@@ -510,7 +510,7 @@ void help(void)
 	puts("               rreg=regolamento regionale  prov=provvedimento");
 	puts("               cnr=provvedimento CNR       del=delibera");
 	puts("               stc=Statuto Comunale       regc=Regolamento Comunale");
-	puts("               delc=Delibera Consiliare");
+	puts("               del=Delibera Consiliare");
 	puts("-T nomeTipo  : nome tipo di atto da analizzare; valido solo per -t nir");
 	puts("-M <dir>     : directory dei modelli per scansione testa e coda");
 	puts("-v           : livello di log: error, warn, info, debug");

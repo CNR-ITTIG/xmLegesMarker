@@ -242,6 +242,7 @@ char * tipoTestoStringa(tipoTesto testo) {
 	case documentoNIR:				return "DocumentoNIR";		// doc. generico (articolato e no)
 	case statutocomunale:			return "DocumentoNIR";
 	case regolamentocomunale:		return "DocumentoNIR";	
+	case deliberaconsiliare:		return "DocumentoNIR";
 	}
 	return "DocumentoNIR";
 }
@@ -293,6 +294,7 @@ tipoStruttura tipoTestoStruttura(tipoTesto testo) {
 	case disegnolegge: 				return docarticolato;
 	case statutocomunale:			return docarticolato;
 	case regolamentocomunale:		return docarticolato;
+	case deliberaconsiliare:		return docarticolato;
 	}
 	return docsemiarticolato;
 }
