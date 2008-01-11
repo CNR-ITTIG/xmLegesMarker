@@ -62,7 +62,8 @@ typedef enum HeaderParser_tagTipo {
 	hp_legislatura=39,
 	hp_relazione=40,
 	hp_div=41,
-	hp_nothing=42 } HP_tagTipo;
+	hp_nothing=42,
+	hp_datavigore=43 } HP_tagTipo;
 
 //#define TAGTIPODIM 39
 
@@ -133,7 +134,7 @@ class HeaderParser
   hash_map<int,pair<int,int> > footer_dataeluogo_tags;
   hash_map<int,pair<int,int> > footer_sottoscrizioni_tags;
   hash_map<int,pair<int,int> > footer_annessi_tags;
-  xmlNodePtr root_node;
+  xmlNodePtr root_node;  
 
  public:
   HeaderParser(std::string model_dir,
@@ -272,7 +273,16 @@ class HeaderParser
 			 const vector<int>& offsets, 
 			 unsigned int offset, 
 			 xmlNodePtr descrittori,
-			 const hash_map<int,pair<int,int> >& tags) const;
+			 const hash_map<int,pair<int,int> >& tags,
+			 int tdoc = 0) const;
+  bool saveEntrataVigore(const string& strbuffer, 
+			 int * states, 
+			 unsigned int statesnumber,
+			 const vector<int>& offsets, 
+			 unsigned int offset, 
+			 xmlNodePtr descrittori,
+			 const hash_map<int,pair<int,int> >& tags,
+			 int tdoc = 0) const;
   xmlNodePtr addChildIfMissing(const char * nodename, 
 			       bool * added,
 			       xmlNodePtr startnode = NULL,

@@ -313,7 +313,7 @@ int HeaderParser::parseHeader(std::string& header,
   bool found = false, pub_found = false;
   unsigned int last = 0, first = 0, offset = 0;
   int * states = NULL, * pub_states = NULL;
-
+  
 	printf("\nHeaderParser\ntdoc: %d\n", tdoc);
 	//printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
 	
@@ -531,12 +531,16 @@ if(tdoc == 3) {
 if(tdoc == 4) {
 	
 	//Aggiungi tag specifici
-			
+	xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
+	xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST "");
+	xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");
+	xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "");
 	xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
 	xmlNewProp(nRedazione, BAD_CAST "id", BAD_CAST "");
 	xmlNewProp(nRedazione, BAD_CAST "nome", BAD_CAST "");
 	xmlNewProp(nRedazione, BAD_CAST "norm", BAD_CAST "");
-	
+	xmlNodePtr entratavig = xmlNewChild(descrittori, NULL, BAD_CAST "entratainvigore", NULL);
+  	xmlNewProp(entratavig, BAD_CAST "norm", BAD_CAST "");
 	xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
 	xmlNewProp(nUrn, BAD_CAST "valore", BAD_CAST "");
 
@@ -548,16 +552,18 @@ if(tdoc == 4) {
 		header_delibera_model.viterbiPath(sequence, states, sequence.size());
 		if ((first = getFirstMatchingState(states, sequence.size(), header_delibera_tags)) < sequence.size()){
 	    	found = true;
-	    	/*
+	    	
 	    	//Debug
 			for(int kk=0; kk < sequence.size(); kk++) {
 				if(states[kk] != 27) {
-					printf("\n %d: sequence[]=%d   states[]=%d", kk, sequence[kk], states[kk]);
+					printf(" %d: sequence[]=%d   states[]=%d\n", kk, sequence[kk], states[kk]);
 				}
 			}
-			*/		
+					
 			
-	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_delibera_tags, tdoc);	        
+	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_delibera_tags, tdoc);
+	        savePubblicazione(strbuffer, states, sequence.size(), offsets, offset, descrittori, header_delibera_tags, tdoc);
+	        saveEntrataVigore(strbuffer, states, sequence.size(), offsets, offset, descrittori, header_delibera_tags, tdoc);
 	        removeProcessedElements(sequence, last);
 	        offset += last + 1;
 	        addDivDecorations(intestazione->parent);
@@ -810,9 +816,10 @@ bool HeaderParser::savePubblicazione(const string& strbuffer,
 				     const vector<int>& offsets, 
 				     unsigned int offset, 
 				     xmlNodePtr descrittori,
-				     const hash_map<int,pair<int,int> >& tags) const
+				     const hash_map<int,pair<int,int> >& tags,
+				     int tdoc) const
 {
-  if(findChild("pubblicazione", descrittori) != NULL)
+ if(tdoc == 0 && findChild("pubblicazione", descrittori) != NULL)
     return true;
   if(!hasCorrectStates(states, statesnumber))
     return false;
@@ -827,6 +834,7 @@ bool HeaderParser::savePubblicazione(const string& strbuffer,
       data = normalizeDate(strbuffer.substr(offsets[offset+i],offsets[offset+i+3]-offsets[offset+i]));
       i+=2;
       found++;
+      printf("data_pub found!\n");
     }
     else if((k->second).first == hp_numpubbl){
       num = trimEnd(strbuffer.substr(offsets[offset+i],offsets[offset+i+1]-offsets[offset+i]), &trimmed);
@@ -837,12 +845,63 @@ bool HeaderParser::savePubblicazione(const string& strbuffer,
       found++;
     }
   }
-  xmlNodePtr pubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
-  xmlNewProp(pubblicazione, BAD_CAST "tipo", BAD_CAST "GU");
-  xmlNewProp(pubblicazione, BAD_CAST "num", BAD_CAST num.c_str());
-  xmlNewProp(pubblicazione, BAD_CAST "norm", BAD_CAST data.c_str());
+  bool newpub = false;
+  xmlNodePtr pubblicazione = findChild("pubblicazione", descrittori);
+  if(pubblicazione == NULL) {
+  	pubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
+  	newpub = true;
+  }
+  
+  string tipopub = "GU";
+  if(tdoc == 4) {
+  	tipopub = "";
+  }
+
+  if(newpub) {
+	xmlNewProp(pubblicazione, BAD_CAST "tipo", BAD_CAST tipopub.c_str());
+	xmlNewProp(pubblicazione, BAD_CAST "num", BAD_CAST num.c_str());
+	xmlNewProp(pubblicazione, BAD_CAST "norm", BAD_CAST data.c_str());  	
+  } else {
+	xmlSetProp(pubblicazione, BAD_CAST "tipo", BAD_CAST tipopub.c_str());
+	xmlSetProp(pubblicazione, BAD_CAST "num", BAD_CAST num.c_str());
+	xmlSetProp(pubblicazione, BAD_CAST "norm", BAD_CAST data.c_str());
+  }
   return true;
   //cout << "<pubblicazione tipo=\"GU\" num=\"" << num << "\" norm=\"" << data << "\"/>" << endl;
+}
+
+//Salva i valori degli attributi di "entratainvigore"
+bool HeaderParser::saveEntrataVigore(const string& strbuffer, 
+				     int * states, 
+				     unsigned int statesnumber,
+				     const vector<int>& offsets, 
+				     unsigned int offset, 
+				     xmlNodePtr descrittori,
+				     const hash_map<int,pair<int,int> >& tags,
+				     int tdoc) const
+{
+  if(!hasCorrectStates(states, statesnumber))
+    return false;
+
+  int found = 0, maxfound = 1;
+  unsigned int trimmed;
+  string data;
+  for (unsigned int i = 0; i < statesnumber && found < maxfound; i++){
+    hash_map<int,pair<int,int> >::const_iterator k = tags.find(states[i]);
+    assert(k != tags.end());
+    if((k->second).first == hp_datavigore){
+      data = normalizeDate(strbuffer.substr(offsets[offset+i],offsets[offset+i+3]-offsets[offset+i]));
+      i+=2;
+      found++;
+      printf("data_vigore found!\n");
+    }
+  }
+  xmlNodePtr entratavigore = findChild("entratainvigore", descrittori);
+  if(entratavigore == NULL) {
+  	entratavigore = xmlNewChild(descrittori, NULL, BAD_CAST "entratainvigore", NULL);
+  }
+  xmlNewProp(entratavigore, BAD_CAST "norm", BAD_CAST data.c_str());
+  return true;
 }
 
 void copyElements(const vector<int>& src, 
@@ -1959,7 +2018,8 @@ bool HeaderParser::pubTag(int tagvalue) const
   case hp_pubblicazione: 
   case hp_datapubbl:
   case hp_numpubbl:
-  case hp_sopubbl: return true;
+  case hp_sopubbl:
+  case hp_datavigore: return true;
   default: return false;
   }
 }
