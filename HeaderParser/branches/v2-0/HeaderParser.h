@@ -15,6 +15,9 @@
 #include <libxml/tree.h>
 #include <HMM.h>
 #include <TextSequenceFeatureExtractor.h>
+#include <fstream>
+#include <string>
+#include <assert.h>
 
 #define THRESHOLD -1e15
 using namespace std;
@@ -63,7 +66,10 @@ typedef enum HeaderParser_tagTipo {
 	hp_relazione=40,
 	hp_div=41,
 	hp_nothing=42,
-	hp_datavigore=43 } HP_tagTipo;
+	hp_datavigore=43,
+	hp_pactoUfficio=44,
+	hp_pactoRelatore=45,
+	hp_pactoNumProposta=46 } HP_tagTipo;
 
 //#define TAGTIPODIM 39
 
@@ -226,7 +232,8 @@ class HeaderParser
 		     int end,
 		     const string& buffer,
 		     xmlNodePtr startnode,
-		     int tdoc,
+		     int tdoc = 0,
+		     xmlNodePtr auxNode = NULL,
 		     xmlNodePtr prev_node = NULL,
 		     xmlNodePtr subs_node = NULL,
 		     bool withtags = true,
@@ -249,7 +256,8 @@ class HeaderParser
 			unsigned int initstate,
 			xmlNodePtr startnode,
 			const hash_map<int,pair<int,int> >& tags,
-			int tdoc,
+			int tdoc = 0,
+			xmlNodePtr auxNode = NULL,
 			int * id = 0,
 			xmlNodePtr prev_node = NULL,
 			xmlNodePtr subs_node = NULL) const;
@@ -283,6 +291,16 @@ class HeaderParser
 			 xmlNodePtr descrittori,
 			 const hash_map<int,pair<int,int> >& tags,
 			 int tdoc = 0) const;
+  bool HeaderParser::savePacto(const string& strbuffer, 
+				     int * states, 
+				     unsigned int statesnumber,
+				     const vector<int>& offsets, 
+				     unsigned int offset, 
+				     xmlNodePtr descrittori,
+				     const hash_map<int,pair<int,int> >& tags,
+				     xmlNodePtr pactoUfficio,
+				     xmlNodePtr pactoRelatore,
+				     xmlNodePtr pactoNumProposta) const;  
   xmlNodePtr addChildIfMissing(const char * nodename, 
 			       bool * added,
 			       xmlNodePtr startnode = NULL,
