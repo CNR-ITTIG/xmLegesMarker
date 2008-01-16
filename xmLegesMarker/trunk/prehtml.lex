@@ -38,7 +38,7 @@
 int Lista[20];
 int Tipo[20];
 int ii,jj;
-int flagpre = 0;
+int flagpre = 1;
 static int numStart;
 char ExtractChar;
 
