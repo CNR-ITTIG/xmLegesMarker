@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
 				else if (!strcmp(tmp, "del"))	{configSetDocTesto(documentoNIR); configSetDocNome("Delibera"); } 
 				else if (!strcmp(tmp, "stc"))	{configSetDocTesto(documentoNIR); configSetDocNome("Statuto Comunale"); } 
 				else if (!strcmp(tmp, "regc"))	{configSetDocTesto(documentoNIR); configSetDocNome("Regolamento Comunale"); } 
-				else if (!strcmp(tmp, "del"))	{configSetDocTesto(documentoNIR); configSetDocNome("Delibera Consiliare"); } 
+				else if (!strcmp(tmp, "delc"))	{configSetDocTesto(documentoNIR); configSetDocNome("Delibera Consiliare"); } 
 				// Parametro per individuare automaticamente il tipo di documento:
 				else if(!strcmp(tmp,"unknown")) { unknown_init(); configSetDocTesto(unknown); }
 				//
