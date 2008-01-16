@@ -27,6 +27,7 @@ HeaderParser::HeaderParser(std::string modeldir,
 			   std::string header_ddl_model_file,
 			   std::string header_regreg_model_file,
 			   std::string header_delibera_model_file,
+			   std::string header_regcom_model_file,
 			   std::string footer_formulafinale_model_file,
 			   std::string footer_dataeluogo_model_file,
 			   std::string footer_sottoscrizioni_model_file,
@@ -105,6 +106,16 @@ HeaderParser::HeaderParser(std::string modeldir,
   else{
     istringstream in_s(header_delibera_model_default);
     in_s >> header_delibera_model;
+  }
+
+  ifstream in16((modeldir + "/" + header_regcom_model_file).c_str());
+  if(in16.good()){
+    in16 >> header_regcom_model;
+    in16.close();
+  }
+  else{
+    istringstream in_s(header_regcom_model_default);
+    in_s >> header_regcom_model;
   }
 
   ifstream in2((modeldir + "/" + footer_formulafinale_model_file).c_str());
@@ -255,6 +266,15 @@ void HeaderParser::init(istream& in)
     is >> state >> tag >> open >> ws;
     header_delibera_tags[state] = make_pair(tag,open);
   }
+  if(!Lexer::getLine(in,buf) || buf != "REGCOM"){
+    cerr << "ERROR in reading parser config file" << endl;
+    exit(1);
+  }
+  while(Lexer::getLine(in,buf) && buf != ""){
+    istringstream is(buf);
+    is >> state >> tag >> open >> ws;
+    header_regcom_tags[state] = make_pair(tag,open);
+  }
   if(!Lexer::getLine(in,buf) || buf != "FOOTER"){
     cerr << "ERROR in reading parser config file" << endl;
     exit(1);
@@ -305,6 +325,7 @@ void HeaderParser::init(istream& in)
 //2: provvedimento CNR
 //3: regolamento regionale
 //4: delibera
+//5: regolamento comunale
 int HeaderParser::parseHeader(std::string& header, 
 			      xmlNodePtr meta,
 			      xmlNodePtr descrittori,
@@ -579,6 +600,55 @@ if(tdoc == 4) {
 	        saveEntrataVigore(strbuffer, states, sequence.size(), offsets, offset, descrittori, header_delibera_tags, tdoc);
 	        savePacto(strbuffer, states, sequence.size(), offsets, offset, descrittori, 
 	        	header_delibera_tags, pactoUfficio, pactoRelatore, pactoNumProposta);
+	        removeProcessedElements(sequence, last);
+	        offset += last + 1;
+	        addDivDecorations(intestazione->parent);
+		}
+		delete[] states;
+	} 
+	if(sequence.size() > 0 || found == false) { 
+		//Se non è stato rilevata l'intestazione viene messo tutto in error:
+		//printf("\noffset:%d size:%d\n",offset,offsets.size());
+		// se rimane qualcosa mettilo in un tag errore
+    	if (offset < offsets.size())
+      		saveTag(hp_sconosciuto, offsets[offset], strbuffer.length(), strbuffer, intestazione, tdoc); 
+	}
+	return notes; 	
+}
+
+//Regolamento comunale
+if(tdoc == 5) {
+	
+	//Aggiungi tag specifici
+	xmlNodePtr nPubblicazione = xmlNewChild(descrittori, NULL, BAD_CAST "pubblicazione", NULL);
+	xmlNewProp(nPubblicazione, BAD_CAST "norm", BAD_CAST "");
+	xmlNewProp(nPubblicazione, BAD_CAST "num", BAD_CAST "");
+	xmlNewProp(nPubblicazione, BAD_CAST "tipo", BAD_CAST "");
+	xmlNodePtr entratavig = xmlNewChild(descrittori, NULL, BAD_CAST "entratainvigore", NULL);
+  	xmlNewProp(entratavig, BAD_CAST "norm", BAD_CAST "");
+	xmlNodePtr nRedazione = xmlNewChild(descrittori, NULL, BAD_CAST "redazione", NULL);
+	xmlNewProp(nRedazione, BAD_CAST "id", BAD_CAST "red1");
+	xmlNewProp(nRedazione, BAD_CAST "nome", BAD_CAST "");
+	xmlNewProp(nRedazione, BAD_CAST "norm", BAD_CAST "");
+	xmlNodePtr nUrn = xmlNewChild(descrittori, NULL, BAD_CAST "urn", NULL);
+	xmlNewProp(nUrn, BAD_CAST "valore", BAD_CAST "");
+
+	if(sequence.size() > 0) {
+		found = true;
+		
+		states = new int[sequence.size()];
+		
+		header_regcom_model.viterbiPath(sequence, states, sequence.size());
+		if ((first = getFirstMatchingState(states, sequence.size(), header_regcom_tags)) < sequence.size()){
+	    	found = true;
+			/*	    	
+	    	//Debug
+			for(int kk=0; kk < sequence.size(); kk++) {
+					printf(" %d: sequence[]=%d   states[]=%d\n", kk, sequence[kk], states[kk]);
+			}
+			*/
+	        last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, intestazione, header_regcom_tags,
+	        				 tdoc, NULL, 0, NULL, NULL);
 	        removeProcessedElements(sequence, last);
 	        offset += last + 1;
 	        addDivDecorations(intestazione->parent);
@@ -2235,7 +2305,7 @@ void HeaderParser::parseHeaderGetTipo(std::string& strbuffer)
 	printf("\nTryng with DDL...\n");
 	tipodoc = find_type(strbuffer, header_ddl_model, header_ddl_tags, sequence, offsets);
 	if(tipodoc == "") {
-		printf("\nTryng with DEL...\n");
+		printf("\nTryng with DELC...\n");
 		tipodoc = find_type(strbuffer, header_delibera_model, header_delibera_tags, sequence, offsets);
 	}
 	if(tipodoc == "") {
