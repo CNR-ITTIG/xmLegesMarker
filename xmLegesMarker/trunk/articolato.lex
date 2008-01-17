@@ -101,6 +101,7 @@ long artpos = 0;
 static int numConv;
 static int latConv;
 char *current_lettera = NULL;
+int nvirap = 1;
 int nvir2ap = 1;
 int commiNN = 1;
 int firstSave;
@@ -111,7 +112,9 @@ int numdis=0;
 int numtes=0;
 int art_dec=0;
 
-int stacklog=0;
+int stacklog=1;
+int countlog=0;
+int maxlog=3;
 
 /******************************************************************* CHECK ****/
 int check(tagTipo tipo) {
@@ -174,8 +177,13 @@ void save(tagTipo tipo) {
 	}
 
 		domTagOpen(tipo,artpos,0);
-		if(stacklog==1 && tipo==articolo) {
+		if(stacklog==1 && tipo==articolo) {		
 			printf("\nARTICOLO num:%d lat:%d\n",numConv,latConv);
+			countlog++;
+			if(countlog > maxlog) {
+			  printf(">> Turning off stack logs...\n");
+			  stacklog = 0;
+			  }
 		}
 		if(tipo==lettera) {
 			//printf("\nLETTERA num:%d lat:%d current_lettera:%s\n",numConv,latConv,current_lettera);
@@ -302,12 +310,12 @@ COMMA1		({S}*(1|0){PS}?{LATINO}?{S}*[).])
 COMMA		({FR}*{S}*{NUM}{PS}?{LATINO}?{S}*[).])
 COMMANN1	({FR}{1,}{S}*)
 COMMANN2	({FR}*{S}*)
-LETTERA1	({FR}*{S}*(a){PS}?{LATINO}?[).])
+LETTERA1	({S}*(a){PS}?{LATINO}?[).])
 LETTERA		({FR}*{S}*{LET}{PS}?{LATINO}?[).])
-NUMERO1		({FR}*{S}*(1|0){PS}?{LATINO}?[).])
+NUMERO1		({S}*(1|0){PS}?{LATINO}?[).])
 NUMERO		({FR}*{S}*{NUM}{PS}?{LATINO}?[).])
 PUNTATASIM	(\-|\*|\x95|\x96|\x97|\xAD)
-PUNTATA		({FR}*{S}*{PUNTATASIM}{PS}?)
+PUNTATA		({S}*{PUNTATASIM}{PS}?)
 
 PARTIZIONE_1 ({LIBRO}|{PARTE}|{PARTE2}|{TITOLO}|{CAPO}|{SEZIONE})
 PARTIZIONE_2 ({COMMA}|{ARTICOLORUB}|{ARTBASE}|{ARTICOLO})
@@ -621,11 +629,10 @@ ROMANO		([ivxl]+{S}*)
 }
 
 <InComma>{DUEPTACAPO}/{LETTERA1}	|
-<InComma>{DUEPTACAPO}/{NUMERO1}		|
-<InComma>{DUEPTACAPO}/{PUNTATA}			{
+<InComma>{DUEPTACAPO}/{NUMERO1}	|
+<InComma>{DUEPTACAPO}/{PUNTATA}	{
 	artpos += artleng;
 	if(stacklog) puts("InCommaAlinea");
-	//BEGIN(InCommaAlinea);
 	yy_push_state(InCommaAlinea);
 }
 
@@ -634,9 +641,7 @@ ROMANO		([ivxl]+{S}*)
 		REJECT;
 	if(stacklog) puts("LETTERA1");
 	save(lettera);
-	//yy_pop_state();
 	yy_push_state(InLettera);
-	//BEGIN(InLettera);
 }
 
 <InCommaAlinea>^{NUMERO1}	{
@@ -647,18 +652,14 @@ ROMANO		([ivxl]+{S}*)
 		REJECT;
 	if(stacklog) puts("NUMERO 1");
 	save(numero);
-	//yy_pop_state();
 	yy_push_state(InNumero);
-	//BEGIN(InNumero);
 }
 
-<InCommaAlinea>^{PUNTATASIM} {
+<InCommaAlinea>^{PUNTATA} {
 	if(configGetDTDTipo() != flessibile)
 		REJECT;
 	save(puntata);
-	//yy_pop_state();
 	yy_push_state(InPuntata);
-	//BEGIN(InPuntata);
 }
 
 <InLettera>{DUEPTACAPO}	{
@@ -696,8 +697,8 @@ ROMANO		([ivxl]+{S}*)
 	yy_pop_state();
 }
 
-<InLetteraAlinea>^{PUNTATASIM}	{
-	if(stacklog) puts("PUNTATASIM 1");
+<InLetteraAlinea>^{PUNTATA}	{
+	if(stacklog) puts("PUNTATA 1");
 	save(puntata);
 	yy_push_state(InPuntata);
 }
@@ -718,8 +719,8 @@ ROMANO		([ivxl]+{S}*)
 	yy_pop_state();
 }
 
-<InNumeroAlinea>^{PUNTATASIM}	{
-	if(stacklog) puts("PUNTATASIM 1");
+<InNumeroAlinea>^{PUNTATA}	{
+	if(stacklog) puts("PUNTATA 1");
 	save(puntata);
 	yy_push_state(InPuntata);
 }
@@ -740,8 +741,8 @@ ROMANO		([ivxl]+{S}*)
 	yy_pop_state();
 }
 
-<InPuntataAlinea>^{PUNTATASIM}	{
-	if(stacklog) puts("PUNTATASIM 1");
+<InPuntataAlinea>^{PUNTATA}	{
+	if(stacklog) puts("PUNTATA 1");
 	save(puntata);
 	yy_push_state(InPuntata);
 }
@@ -790,7 +791,7 @@ ROMANO		([ivxl]+{S}*)
 	yy_pop_state();
 }
 
-<InPrePunt>^{PUNTATASIM}	{
+<InPrePunt>^{PUNTATA}	{
 	save(puntata);
 	if(stacklog) puts("pop_InPrePunt");
 	yy_pop_state();
@@ -852,19 +853,25 @@ ROMANO		([ivxl]+{S}*)
 }
 
 <InComma,InLettera,InNumero>{DUEPTACAPO}?{VIRGO}	{
-		artpos += artleng;
-		sequenzaInc(virgolette);	//Incrementa l'ID Vir
-		domTagOpen(virgolette,artpos,0);
-		domSetID(virgolette,sequenzaGetNum(virgolette),sequenzaGetLat(virgolette));
-		yy_push_state(YYSTATE);
-		BEGIN(InVirgolette);
+	nvirap = 1;	
+	artpos += artleng;
+	//printf("\nVIRGO AP num:%d lat:%d\n",numConv,latConv);
+	sequenzaInc(virgolette);	//Incrementa l'ID Vir
+	domTagOpen(virgolette,artpos,0);
+	domSetID(virgolette,sequenzaGetNum(virgolette),sequenzaGetLat(virgolette));
+	yy_push_state(YYSTATE);
+	BEGIN(InVirgolette);
 }
 
 <InVirgolette>{VIRGO}	{
-	domAppendTextToLastNode(artpos);
-	domTagCloseFrom(virgolette);
+	nvirap--;	
+	//printf("\nVIRGO CL num:%d lat:%d\n",numConv,latConv);
+	if (nvirap==0) {
+		domAppendTextToLastNode(artpos);
+		domTagCloseFrom(virgolette);
+		yy_pop_state();
+	}
 	artpos+=artleng;
-	yy_pop_state();
 }
 
 <InComma,InLettera,InNumero>{DUEPTACAPO}?{VIRG2A}	{
