@@ -112,9 +112,9 @@ int numdis=0;
 int numtes=0;
 int art_dec=0;
 
-int stacklog=1;
+int stacklog=0;
 int countlog=0;
-int maxlog=3;
+int maxlog=9999;
 
 /******************************************************************* CHECK ****/
 int check(tagTipo tipo) {
