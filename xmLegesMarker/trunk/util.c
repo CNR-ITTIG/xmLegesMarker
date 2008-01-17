@@ -395,20 +395,27 @@ xmlNodePtr GetFirstNodebyTagTipo(xmlNodePtr pNodoParent , xmlChar *pnomeTag) {
 	return NULL;
 }
 
+/*
+ * ISSUE: boundaries of the static buffer... (change it in the future?)
+ * dlgs.appalti.txt -> max size of the buffer: 21339 !
+ * 
 //Controlla *tutto* il sotto-albero (ricerca in larghezza, usa buffer FIFO)
 //Possibile implementazione migliore: usare una lista e aggiornare solo il puntatore
 //all'elemento di testa invece di riorganizzare tutto il buffer (vedi adjustBuffer())
 //Se savebuf!=NULL non termina il processo quando viene ritrovato un nodo di tipo nomeTag
 //e inserisce il puntatore a quel nodo in savebuf (savesize è la dimensione di savebuf).
+ */
 xmlNodePtr totalGetFirstNodebyTagTipo(xmlNodePtr root, xmlChar *nomeTag, xmlNodePtr *savebuf, int savesize) {
 	int size = 0; //attuale numero di elementi nel buffer
-	const int max = 8192; //Max elementi nel buffer durante la ricerca? 
+	const int max = 65536; //Max elementi nel buffer durante la ricerca? 
 	//(vedi dlgs n.259 01-07-2003 (oltre 1900!))
-	//D.Lgs. 30 aprile 1992, n. 285 <--- 3761 !!!!!!
+	//D.Lgs. 30 aprile 1992, n. 285 <--- 3761 !!	
 	int max_filling = 0; //Massimo valore di riempimento raggiunto (debug)
 	xmlNodePtr buffer[max]; 
 	xmlNodePtr current, child;
 	int count = 0;
+	
+	int checkSize = 0;
 	
 	addNodeInBuffer(buffer, root, &size);
 	while(size > 0) {
@@ -421,18 +428,20 @@ xmlNodePtr totalGetFirstNodebyTagTipo(xmlNodePtr root, xmlChar *nomeTag, xmlNode
 
 		current = buffer[0];
 		adjustBuffer(buffer, &size);
-		//printf("\n - %s - %d [%d]", (char *)current->name, size, max_filling);
+		if(checkSize) printf("\n - %s - %d [%d]", (char *)current->name, size, max_filling);
 		if (!xmlStrcmp(current->name, nomeTag)) {
 			if(savebuf!=NULL) {
 				if(count>savesize-1) {
-					printf("\n>>WARNING<< - totalGetFirstNodebyTagTipo() - savebuf is full! (%d)!!",savesize);
-					//printf("\n - %s - %d [%d]", (char *)current->name, size, max_filling);
+					if(checkSize) {
+						printf("\n>>WARNING<< - totalGetFirstNodebyTagTipo() - savebuf is full! (%d)!!",savesize);
+						printf("\n - %s - %d [%d]", (char *)current->name, size, max_filling);
+					}
 					return *savebuf;
 				} 
 				savebuf[count]=current;
 				count++;
 			} else {
-				//printf("\n - %s - %d [%d]", (char *)current->name, size, max_filling);
+				if(checkSize) printf("\n - %s - %d [%d]", (char *)current->name, size, max_filling);
 				return current; //Trovato! Esci...
 			}
 		} else {
@@ -443,7 +452,7 @@ xmlNodePtr totalGetFirstNodebyTagTipo(xmlNodePtr root, xmlChar *nomeTag, xmlNode
 			}
 		}
 	}
-	//printf("\n - %d [%d]", size, max_filling);
+	if(checkSize) printf("\n - %d [%d]", size, max_filling);
 	return NULL; //Tag non trovato
 }
 
