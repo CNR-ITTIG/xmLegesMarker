@@ -16,8 +16,8 @@ LEXFLADEB= -i -8 -d
 
 
 #LIBS=-L$(LIBDIR) -littig-1.0 -lFeatureExtractor -lHeaderParser -lhmm -llexer -lstem `xml2-config --libs`
-LIBS=-L$(LIBDIR) -littig-1.0 -lFeatureExtractor -lHeaderParser -lhmm -llexer -lstem -L/usr/local/lib -lxml2 -lz -lm -lpthread -liconv
-#LIBS=-L$(LIBDIR) -littig-1.0 -lFeatureExtractor -lHeaderParser -lhmm -llexer -lstem -L/usr/local/lib -lxml2 -lz -lm -lpthread
+#LIBS=-L$(LIBDIR) -littig-1.0 -lFeatureExtractor -lHeaderParser -lhmm -llexer -lstem -L/usr/local/lib -lxml2 -lz -lm -lpthread -liconv
+LIBS=-L$(LIBDIR) -littig-1.0 -lFeatureExtractor -lHeaderParser -lhmm -llexer -lstem -L/usr/local/lib -lxml2 -lz -lm -lpthread
 #MAKELIB = ar rvs
 
 OBJS = parser.o util.o tag.o config.o sequenze.o \
