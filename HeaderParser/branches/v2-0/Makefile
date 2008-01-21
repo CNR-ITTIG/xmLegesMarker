@@ -7,7 +7,6 @@ TARGETLIB = libHeaderParser.a
 ARLIBS=${LIBDIR}/liblexer.a $(LIBDIR)/libFeatureExtractor.a $(LIBDIR)/libhmm.a
 LIBS=-lxml2 -L$(LIBDIR) -lFeatureExtractor -llexer -lhmm
 OBJECTS = HeaderParser.o
-#CFLAGS=-ggdb -Wno-deprecated -I/usr/include/libxml2/libxml -I/usr/include/libxml2 -I$(INCLUDEDIR)
 CFLAGS=-ggdb -Wno-deprecated `xml2-config --cflags` -I$(INCLUDEDIR)
 COMPILEXX = g++ -O3 $(CFLAGS)
 TARGETBIN = HeaderParser
