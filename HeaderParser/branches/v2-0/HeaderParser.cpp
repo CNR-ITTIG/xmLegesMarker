@@ -2149,9 +2149,16 @@ void adjustEsecutivita(string& buf)
 	 * Aggiungere uno stato intermedio per il rumore
 	 * con bassa probabilit� nel modello. 	
 	*/
-	while((beg = buf.find("Esecutivit&#",beg)) != string::npos) {
-		buf.insert(beg + 10,"a ");
-	}	
+	while((beg = buf.find("Esecutivit&",beg)) != string::npos) {
+		unsigned int end = buf.find(";", beg + 11);
+		if(end == string::npos || (end - (beg + 10) ) > 10) {
+			printf("\n>>>Error! adjustEsecutivita() - invalid 'end' value for entity!\n");
+			break;
+		}
+		unsigned int len = end - (beg + 10) + 1;
+		buf.replace(beg + 10, len, "a ");
+		beg = beg - 20; //do it again if there are more entities...
+	}
 }
 
 //Replace "1�" (primo) with "1"
