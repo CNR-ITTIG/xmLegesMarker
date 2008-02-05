@@ -1055,7 +1055,8 @@ void copyElements(const vector<int>& src,
     dst.push_back(src[i]);
 }
 
-int HeaderParser::parseFooter(xmlNodePtr lastcomma, 			      
+int HeaderParser::parseFooter(std::string& footer,
+			      xmlNodePtr lastcomma,
 			      xmlNodePtr meta,
 			      xmlNodePtr descrittori,
 			      xmlNodePtr formulafinale,
@@ -1063,13 +1064,8 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
 			      int tdoc,
 			      int notes) 
 {
-	//Considerando il testo all'interno dei vari tag come una lista di nodi testo/entit�
-	//non si pu� tirare fuori il contenuto del tag -errore- con xmlNodeGetContent(),
-	//in particolare quando si utilizzano testi in html (ricchi di entit�).
-	//xmlChar* content = xmlNodeGetContent(lastcomma);
-	xmlChar* content = xmlNodeListGetString(NULL, lastcomma, 0);
   //printf("\nFooter tdoc:%d\n",tdoc);
-  if(content == NULL || (char *)content == ""){
+  if(footer.compare("")) {
   	//printf("\nFooter NULL\n");
     defaultFooter("", lastcomma); 
     //Aggiunta -- addMissingMeta() solo nel caso generico...
@@ -1078,14 +1074,8 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
     return notes;
   }
     
-  string strbuffer = (char *) content;
-  xmlFree(content);
-  
-  //printf("\nParseFooter\nbuffer: %s\n\n", strbuffer.c_str());
-  
   //Qui si deve mettere nel lastcomma il testo fino a .\n opp. \n\n opp. .DECORAZIONE\n
-  //strbuffer = strbuffer.substr(saveCommaDefault(strbuffer,lastcomma));
-  strbuffer = saveCommaDefault(strbuffer,lastcomma);
+  string strbuffer = saveCommaDefault(strbuffer,lastcomma);
   
   if(strbuffer.find_first_not_of(" \n\t\r") == string::npos) return notes; //buffer vuoto, esci
   
@@ -1296,7 +1286,7 @@ std::string HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastco
   	last = getFooterFromStructureNode(lastcomma);
   	structure = true;
   	if(last!=NULL) {
-  		footer = (char *)xmlNodeListGetString(NULL, last, 0);
+  		footer = (char *) xmlNodeListGetString(NULL, last, 1);
   	} else
   		footer = ""; //Se last � NULL non c'� niente dopo VIRGOLETTE ?
   }

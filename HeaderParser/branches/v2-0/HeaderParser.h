@@ -171,7 +171,8 @@ class HeaderParser
 		  xmlNodePtr formulainiziale,
 		  int tdoc,
 		  int notes);
-  int parseFooter(xmlNodePtr lastcomma, 			      
+  int parseFooter(std::string& footer,
+		  xmlNodePtr lastcomma,		      
 		  xmlNodePtr meta,
 		  xmlNodePtr descrittori,
 		  xmlNodePtr formulafinale,
