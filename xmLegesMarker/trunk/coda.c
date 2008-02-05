@@ -57,7 +57,7 @@ int coda( int pnotes,xmlNodePtr ptipodoc, xmlNodePtr pCorpo,xmlNodePtr pmeta,xml
 		footer.insert(0,"\n");
 	}	
 		
-	pnotes=parser.parseFooter(pCorpo, pmeta, pdescrittori, pformulafinale, pconclusione, tdoc, pnotes);
+	pnotes=parser.parseFooter(footer, pCorpo, pmeta, pdescrittori, pformulafinale, pconclusione, tdoc, pnotes);
 	loggerInfo("FINE Coda");
 	
 	utilPercCalc(43);

@@ -141,14 +141,14 @@ TAGDEL	(head|form|script|style)
 
 %%
 
-&#8016;			prehtmlAppendString(1, "\'");
-&#8017;			prehtmlAppendString(1, "\'");
+&#8216;			prehtmlAppendString("\'");
+&#8217;			prehtmlAppendString("\'");
 
-&#8021;			prehtmlAppendString(1, "\"");
-&#8022;			prehtmlAppendString(1, "\"");
+&#8221;			prehtmlAppendString("\"");
+&#8222;			prehtmlAppendString("\"");
 
-&#8026;			prehtmlAppendString(1, ""); //Elimina punto centrale (bullet)
-&#167;				prehtmlAppendString(1, ""); //Elimina section symbol
+&#8026;			prehtmlAppendString(""); //Elimina punto centrale (bullet)
+&#167;				prehtmlAppendString(""); //Elimina section symbol
 
 \<\?						{
 							prehtmlAppendString(strdup(prehtmltext));
@@ -516,3 +516,4 @@ cp 1252 Encoding (from cp1252.txt)
 =FE	U+00FE	LATIN SMALL LETTER THORN
 =FF	U+00FF	LATIN SMALL LETTER Y WITH DIAERESIS
 */
+

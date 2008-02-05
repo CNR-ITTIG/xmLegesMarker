@@ -434,8 +434,8 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			
 			//Trattare il testo come una lista testo/entità:
 			//xmlChar* contNodo = xmlNodeGetContent(nformulainiziale);// formula iniziale
-			char* contNodo = xmlNodeListGetString(NULL, nformulainiziale, 1);
-			contNode = utilConvTextToIso(contNodo);
+			char* contNodo = (char *) xmlNodeListGetString(NULL, nformulainiziale, 1);
+			contNodo = utilConvTextToIso(contNodo);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)
 			
@@ -449,8 +449,8 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			
 			//Trattare il testo come una lista testo/entità:
 			//contNodo = xmlNodeGetContent(nformulafinale);	// formula finale
-			contNodo = xmlNodeListGetString(NULL, nformulafinale, 1);
-			contNode = utilConvTextToIso(contNodo);
+			contNodo = (char *) xmlNodeListGetString(NULL, nformulafinale, 1);
+			contNodo = utilConvTextToIso(contNodo);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)			
 			
@@ -463,8 +463,8 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			
 			//Trattare il testo come una lista testo/entità:
 			//contNodo = xmlNodeGetContent(nconclusione);	// conclusione
-			contNodo = xmlNodeListGetString(NULL, nconclusione, 1);
-			contNode = utilConvTextToIso(contNodo);
+			contNodo = (char *) xmlNodeListGetString(NULL, nconclusione, 1);
+			contNodo = utilConvTextToIso(contNodo);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)
 			

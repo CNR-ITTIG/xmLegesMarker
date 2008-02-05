@@ -121,7 +121,9 @@ int main(int argc, char *argv[])
 				{
 					char *tmp = (char *)strdup(optarg);
 					if (!strcmp(tmp,"iso"))				configSetEncoding("iso-8859-15");
+					if (!strcmp(tmp,"iso1"))			configSetEncoding("iso-8859-1");
 					else if (!strcmp(tmp,"win"))		configSetEncoding("windows-1252");
+					if (!strcmp(tmp,"utf16"))			configSetEncoding("UTF-16");
 					else if (!strcmp(tmp,"utf"))
 					{
 						configSetEncoding("UTF-8");
