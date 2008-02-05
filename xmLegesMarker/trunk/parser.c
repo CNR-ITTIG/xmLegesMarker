@@ -24,7 +24,7 @@
 #include "annessi.h"	
 #include "tag.h"
 
-const char *versione = "1.9 - [NIR 2.2]";
+const char *versione = "1.9 - [NIR 2.2] (enc!)";
 int visErrore = 0;
 char *bufferEnd;
 char *namebin = "";
@@ -440,7 +440,7 @@ int main(int argc, char *argv[])
 	if(configGetNodeCount())	utilNodeCount(root);
 
 	if (!fileout) fileout = "-";
-	xmlSaveFormatFileEnc(fileout, doc, (const char*)configEncoding(), 1);
+	xmlSaveFormatFileEnc(fileout, doc, (const char*) configEncoding(), 1);
 
 	/*
 	//Si può salvare il doc anche tramite xmlDocDump:

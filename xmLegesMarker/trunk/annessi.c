@@ -128,12 +128,15 @@ void AnnessiCicla(xmlNodePtr pNodoParent){
 			{
 				if (CurrErrorText->content)
 				{
-					char *realContent = (char *) xmlNodeListGetRawString(NULL,
+					char *realContent = (char *) xmlNodeListGetString(NULL,
 																		CurrErrorText,
-																		0);
+																		1);
 					//Duplicazione del testo contenuto nel nodo
 					//tmpbuff=(char *)strdup((char *)CurrErrorText->content);
-					tmpbuff=(char *)strdup(realContent);
+					//tmpbuff=(char *)strdup(realContent);
+					
+					tmpbuff = utilConvTextToIso(realContent);
+					
 				//puts("---------------------tmpBuffer-------------------------------");
 				//puts(tmpbuff);// *****E' UTF-8!!!!!!
 				//puts("---------------------------fine tmpBuffer-------------------------------");
@@ -183,12 +186,14 @@ xmlNodePtr GerStrutturaPreAnnessi(xmlNodePtr pParentNode)
 	{
 		if (CurrErrorText->content)
 		{
-			char *realContent = (char *) xmlNodeListGetRawString(NULL,
+			char *realContent = (char *) xmlNodeListGetString(NULL,
 																CurrErrorText,
-																0);
+																1);
 			//Duplicazione del testo contenuto nel nodo
 			//tmpbuff=(char *)strdup((char *)CurrErrorText->content);
-			tmpbuff=(char *)strdup(realContent);
+			//tmpbuff=(char *)strdup(realContent);
+			
+			tmpbuff = utilConvTextToIso(realContent);
 				
 			if (tmpbuff)
 			{

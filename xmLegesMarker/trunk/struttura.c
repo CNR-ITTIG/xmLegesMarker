@@ -432,7 +432,8 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			
 			//Trattare il testo come una lista testo/entità:
 			//xmlChar* contNodo = xmlNodeGetContent(nformulainiziale);// formula iniziale
-			xmlChar* contNodo = xmlNodeListGetString(NULL, nformulainiziale, 0);
+			char* contNodo = xmlNodeListGetString(NULL, nformulainiziale, 1);
+			contNode = utilConvTextToIso(contNodo);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)
 			
@@ -440,26 +441,28 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			if (contNodo) {
 				nnodo = xmlNewChild(nintestazione, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);
 				xmlAddChild(nnodo, xmlNewText(BAD_CAST "===== DTD BASE: FORMULA INIZIALE NON AMMESSA =====\n\n"));
-				xmlAddChild(nnodo, xmlNewText(contNodo));
+				xmlAddChild(nnodo, xmlNewText(BAD_CAST contNodo));
 			}
 			utilNodeDelete(nformulainiziale);
 			
 			//Trattare il testo come una lista testo/entità:
 			//contNodo = xmlNodeGetContent(nformulafinale);	// formula finale
-			contNodo = xmlNodeListGetString(NULL, nformulafinale, 0);
+			contNodo = xmlNodeListGetString(NULL, nformulafinale, 1);
+			contNode = utilConvTextToIso(contNodo);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)			
 			
 			if (contNodo) {
 				nnodo = xmlNewChild(narticolato, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);
 				xmlAddChild(nnodo, xmlNewText(BAD_CAST "===== DTD BASE: CORPO ALLEGATO NON AMMESSO =====\n\n"));
-				xmlAddChild(nnodo, xmlNewText(contNodo));
+				xmlAddChild(nnodo, xmlNewText(BAD_CAST contNodo));
 			}
 			utilNodeDelete(nformulafinale);
 			
 			//Trattare il testo come una lista testo/entità:
 			//contNodo = xmlNodeGetContent(nconclusione);	// conclusione
-			contNodo = xmlNodeListGetString(NULL, nconclusione, 0);
+			contNodo = xmlNodeListGetString(NULL, nconclusione, 1);
+			contNode = utilConvTextToIso(contNodo);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)
 			

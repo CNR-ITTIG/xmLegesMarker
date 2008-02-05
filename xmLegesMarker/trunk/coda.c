@@ -47,6 +47,15 @@ int coda( int pnotes,xmlNodePtr ptipodoc, xmlNodePtr pCorpo,xmlNodePtr pmeta,xml
 	if(configGetDocTestoTipo() == provCNR)
 		tdoc=2;
 	*/
+	
+	char *tmptxt = (char *) xmlNodeListGetString(NULL, pCorpo, 1);
+	
+	std::string footer = "";
+	
+	if(strcmp(tmptxt, "") != 0) {
+		footer = utilConvTextToIso(tmptxt);
+		footer.insert(0,"\n");
+	}	
 		
 	pnotes=parser.parseFooter(pCorpo, pmeta, pdescrittori, pformulafinale, pconclusione, tdoc, pnotes);
 	loggerInfo("FINE Coda");

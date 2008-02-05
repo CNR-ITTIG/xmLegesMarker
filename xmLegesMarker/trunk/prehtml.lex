@@ -25,79 +25,7 @@
 							}											
 */
 
-%{
-#include <stdio.h>
-#include <string.h>
-#include <IttigUtil.h>
-#include <IttigLogger.h>
-
-#include "config.h"
-#include "prehtml.h"
-#include "pre.h"
-
-int Lista[20];
-int Tipo[20];
-int ii,jj;
-int flagpre = 1;
-static int numStart;
-char ExtractChar;
-
-//char *numLI;
-char *cifre = NULL;
-char *Uita = NULL;
-
-int prehtmlwrap() 
-{
-	return 1;
-}
-
-void azzera(void)
-{
-
-	for (ii=0; ii<20; ii++)
-	{
-		Lista[ii] = 0;
-		Tipo[ii] = -1;
-	}
-	ii = 0;
-	jj = 0;
-}
-
-
-//\<pre>							flagpre=1;
-
-//{NL}							{
-//								if (flagpre==0) prehtmlAppendChars(1,' ');
-//								if (flagpre==1)	prehtmlAppendChars(1,'\n');}
-								
-//\<\/pre>						flagpre=0;
-
-
-%}
-
-
-S	([ ])
-NL	(\n)
-Q	(.|\n)
-TKN	([a-z0-9])
-LISTAORD (OL) 
-LISTANONORD (UL)
-ELEMLISTA (li)
-TAGNL	(br)
-TAG2NL	(div|p)
-TAGFORMAT (I)
-TAGA (a )
-
-TAGHEAD	(head)
-TAGFORM (form)
-
-TAGDEL	(head|form|script|style)
-
-%x InTagLista ListaTipo ListaStart InPI InTag InTagListaNonOrd
-%x InTagBA InTagDiv InTagDel InTagElementList InComment
-%option stack
-
-%%
+/*
 
 &quot;			prehtmlAppendChars(1, '"');		// convertite virgolette
 &nbsp;			prehtmlAppendChars(1, ' ');		// convertito spazio non divisibile
@@ -146,6 +74,82 @@ TAGDEL	(head|form|script|style)
 &				prehtmlAppendString("&#38;");		// & che non delimita un'entità
 
 
+*/
+
+%{
+#include <stdio.h>
+#include <string.h>
+#include <IttigUtil.h>
+#include <IttigLogger.h>
+
+#include "config.h"
+#include "prehtml.h"
+#include "pre.h"
+
+int Lista[20];
+int Tipo[20];
+int ii,jj;
+int flagpre = 1;
+static int numStart;
+char ExtractChar;
+
+//char *numLI;
+char *cifre = NULL;
+char *Uita = NULL;
+
+int prehtmlwrap() 
+{
+	return 1;
+}
+
+void azzera(void)
+{
+
+	for (ii=0; ii<20; ii++)
+	{
+		Lista[ii] = 0;
+		Tipo[ii] = -1;
+	}
+	ii = 0;
+	jj = 0;
+}
+
+
+%}
+
+
+S	([ ])
+NL	(\n)
+Q	(.|\n)
+TKN	([a-z0-9])
+LISTAORD (OL) 
+LISTANONORD (UL)
+ELEMLISTA (li)
+TAGNL	(br)
+TAG2NL	(div|p)
+TAGFORMAT (I)
+TAGA (a )
+
+TAGHEAD	(head)
+TAGFORM (form)
+
+TAGDEL	(head|form|script|style)
+
+%x InTagLista ListaTipo ListaStart InPI InTag InTagListaNonOrd
+%x InTagBA InTagDiv InTagDel InTagElementList InComment
+%option stack
+
+%%
+
+&#8016;			prehtmlAppendString(1, "\'");
+&#8017;			prehtmlAppendString(1, "\'");
+
+&#8021;			prehtmlAppendString(1, "\"");
+&#8022;			prehtmlAppendString(1, "\"");
+
+&#8026;			prehtmlAppendString(1, ""); //Elimina punto centrale (bullet)
+&#167;				prehtmlAppendString(1, ""); //Elimina section symbol
+
 \<\?						{
 							prehtmlAppendString(strdup(prehtmltext));
 							BEGIN(InPI);}
@@ -167,8 +171,8 @@ TAGDEL	(head|form|script|style)
 							flagpre=1;}
 
 {NL}							{
-								if (flagpre==0) prehtmlAppendChars(1,' ');
-								if (flagpre==1)	prehtmlAppendChars(1,'\n');}
+									prehtmlAppendChars(1,'\n');
+								}
 								
 \<\/(pre)>						{
 								flagpre=0;}

@@ -357,7 +357,8 @@ void utilErrore2ProcessingInstruction(xmlNodePtr pNodoParent )
 			if (txtnode){
 				//Trattare il testo come una lista testo/entità:
 				//xmlCont= xmlNodeGetContent(txtnode);				
-				xmlCont= xmlNodeListGetString(NULL, txtnode, 0); 
+				xmlCont= xmlNodeListGetString(NULL, txtnode, 1);
+				xmlCont = utilConvTextToIso(xmlCont);
 				//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 				//(può dare problemi in fase di visualizzazione...)
 								

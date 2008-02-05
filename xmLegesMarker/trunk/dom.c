@@ -142,7 +142,7 @@ char * domExtractStringBeforeIndex(int pindex)
 		sbufpre = strlen(tmpbufferPRE);;		
 
 		//Conversione del testo strappato nel formato UTF-8
-		tmpbufferAFTER=utilConvertiText(tmpbufferPRE);
+		tmpbufferAFTER=utilConvertiText(tmpbufferPRE);  // Ma non dovrebbe convertire DA utf8 ?
 		int sbufaft ;
 		sbufaft = strlen(tmpbufferAFTER);
 
