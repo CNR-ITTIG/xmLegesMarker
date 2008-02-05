@@ -285,9 +285,10 @@ xmlNodePtr domTagOpen(tagTipo ptag,int pindex,int plen)
 	domTextBufferIndex=pindex;
 
 	if(plen>0) {
-		strbuff=utilGetPartialText(domTextBuffer,pindex,plen);
+		strbuff = utilGetPartialText(domTextBuffer, pindex, plen);
 		
-		char *t=utilConvertiText(strbuff);
+		//char *t = utilConvertiText(strbuff); //a che serve???????
+		char *t = strbuff;
 
 		//'decorazione' deve avere 'rango' (L/R/LR):
 		if(ptag == decorazione)

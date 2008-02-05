@@ -320,8 +320,10 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 	{
 		
 		//printf("\n------ BUFFER1:%s\n",(char *)buffer);
-		if (ruolo == principale)
-			buffer = utilConvertiText(buffer);		// converto in UTF-8
+		if (ruolo == principale) {
+			//buffer = utilConvertiText(buffer);		// converto in UTF-8  //Perchè?
+			buffer = buffer;
+		}
 		unsigned int nnl = contaChar(buffer, '\n');
 		nnl = strlen(buffer) + 50 + 12 * nnl;
 		disposto = (char *) malloc(sizeof(char) * nnl);

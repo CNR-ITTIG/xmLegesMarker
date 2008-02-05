@@ -13,7 +13,7 @@
 /******************************************************************************/
 /******************************************************** STRUTTURA BUFFER ****/
 /******************************************************************************/
-xmlNodePtr ArticolatoAnalizza(  char *testo) {
+xmlNodePtr ArticolatoAnalizza(char *testo) {
 	char *testoIso=NULL;
 	size_t lin,lout;
 	//extern int flagAnnessi;
@@ -35,7 +35,8 @@ xmlNodePtr ArticolatoAnalizza(  char *testo) {
 	//Se il flag è 1 allora ci sono degli annessi, quindi è necessaria la conversione del testo in iso
 	if (flagAnn!=0)
 	{	
-		testoIso = utilConvTextToIso(testo);
+		//testoIso = utilConvTextToIso(testo);  //a che serve qui?
+		testoIso = testo;
 		//Qui alla variabile globale xxxTextBuffer verrà assegnato il testo nel formato originario
 		domInit(articolato,mNodoArticolato,testoIso);
 		ret=_ArticolatoLexStart(testoIso); //IL TESTO CHE VIENE PASSATO E' GIA' IN UTF-8!!!
