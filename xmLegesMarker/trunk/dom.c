@@ -193,7 +193,7 @@ void domClose(void)
 		
 		//Attacca una lista testo/entità piuttosto che un nodo di testo:
 		//xmlAddChild(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
-		addSibling(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
+		addSibling(lastChild, xmlStringGetNodeList(utilGetDoc(), BAD_CAST strbuff));
 	}
 }
 
@@ -219,7 +219,7 @@ void domAppendTextToLastNode(int pIndex)
 		
 		//Attacca una lista testo/entità piuttosto che un nodo di testo:
 		//xmlAddChild(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
-		addSibling(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));  //<--attacca la lista "a mano"...
+		addSibling(lastChild, xmlStringGetNodeList(utilGetDoc(), BAD_CAST strbuff));  //<--attacca la lista "a mano"...
 		
 		free(strbuff);
 	}
@@ -248,7 +248,7 @@ xmlNodePtr domTagOpen(tagTipo ptag,int pindex,int plen)
 		//Attacca una lista testo/entità piuttosto che un nodo di testo:
 		//xmlAddChild(lastChild, nlist);
 		//xmlNewChild(lastChild,NULL, nlist, BAD_CAST strbuff);
-		addSibling(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
+		addSibling(lastChild, xmlStringGetNodeList(utilGetDoc(), BAD_CAST strbuff));
 	}
 
 	//elimina dallo STATOBUFFER tutti i nodi con enumerazione maggiore
@@ -295,7 +295,7 @@ xmlNodePtr domTagOpen(tagTipo ptag,int pindex,int plen)
 			domAddRango(currnode, t);
 
 		//Attacca una lista testo/entità piuttosto che un nodo di testo:
-		xmlAddChild(currnode, xmlStringGetNodeList(NULL, BAD_CAST t));
+		xmlAddChild(currnode, xmlStringGetNodeList(utilGetDoc(), BAD_CAST t));
 
 		domTextBufferIndex=pindex + plen;
 		

@@ -247,7 +247,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		tdoc=2;
 	if(!strcmp(configGetDocNome(),"Regolamento Regionale")) 
 		tdoc=3;
-	if(!strcmp(configGetDocNome(),"Delibera Consiliare")) 
+	if(!strcmp(configGetDocNome(),"Delibera Comunale")) 
 		tdoc=4;
 	if(!strcmp(configGetDocNome(),"Regolamento Comunale")) 
 		tdoc=5;
@@ -434,7 +434,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			
 			//Trattare il testo come una lista testo/entità:
 			//xmlChar* contNodo = xmlNodeGetContent(nformulainiziale);// formula iniziale
-			char* contNodo = (char *) xmlNodeListGetString(NULL, nformulainiziale, 1);
+			char* contNodo = (char *) xmlNodeListGetString(utilGetDoc(), nformulainiziale, 1);
 			contNodo = utilConvTextToIso(contNodo);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)
@@ -449,7 +449,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			
 			//Trattare il testo come una lista testo/entità:
 			//contNodo = xmlNodeGetContent(nformulafinale);	// formula finale
-			contNodo = (char *) xmlNodeListGetString(NULL, nformulafinale, 1);
+			contNodo = (char *) xmlNodeListGetString(utilGetDoc(), nformulafinale, 1);
 			contNodo = utilConvTextToIso(contNodo);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)			
@@ -463,7 +463,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			
 			//Trattare il testo come una lista testo/entità:
 			//contNodo = xmlNodeGetContent(nconclusione);	// conclusione
-			contNodo = (char *) xmlNodeListGetString(NULL, nconclusione, 1);
+			contNodo = (char *) xmlNodeListGetString(utilGetDoc(), nconclusione, 1);
 			contNodo = utilConvTextToIso(contNodo);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)

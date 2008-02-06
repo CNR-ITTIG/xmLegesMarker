@@ -36,7 +36,16 @@ int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 		if(pTextNode->children != NULL)
 			pTextNode = pTextNode->children;
 		
-		xmlChar *xmltxt = xmlNodeListGetString(NULL, pTextNode, 1);
+		xmlChar *xmltxt = NULL;
+		
+		char *strEnc = (char *) configEncoding();
+		//Non sostituire le entities in caso di codifica windows (gestite in prehtml.lex per gli html?)
+		if(!strcmp(strEnc, "windows-1252")) {
+			xmltxt = xmlNodeListGetString(utilGetDoc(), pTextNode, 0);
+			printf("\nINFO: testa() - windows encoding - don't parse entities...\n");
+		} else {
+			xmltxt = xmlNodeListGetString(utilGetDoc(), pTextNode, 1);
+		}
 		
 		tmptxt = (char *) xmltxt;
 		if(tmptxt == NULL) {

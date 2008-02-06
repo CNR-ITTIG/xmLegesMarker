@@ -44,7 +44,7 @@ typedef enum _tipoTesto {
 	documentoNIR,
 	statutocomunale,
 	regolamentocomunale,
-	deliberaconsiliare
+	deliberacomunale
 } tipoTesto;
 
 typedef enum _tipoNome {

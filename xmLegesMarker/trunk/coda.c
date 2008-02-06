@@ -31,31 +31,19 @@ int coda( int pnotes,xmlNodePtr ptipodoc, xmlNodePtr pCorpo,xmlNodePtr pmeta,xml
 	
 	loggerInfo("INIZIO Coda");
 	
-	//xmlNodePtr lastcomma_node = xmlNewChild(articolato_node, NULL, BAD_CAST "corpo", BAD_CAST text.c_str()); // prova
-    // if (pCorpo==NULL)printf("ELEMENTO VUOTO");
-	//else {
-	//	printf("->>>%s<<<-\n",xmlNodeGetContent(pCorpo));
-	//}
 	HeaderParser parser(configHeaderParserModels());
 	parser.setRootNode(ptipodoc);
 
-	//Aggiunta
-	/*
-	int tdoc = 0; //variabile che tiene conto del tipo di documento
-	if(configGetDocTestoTipo() == disegnolegge)
-		tdoc=1;
-	if(configGetDocTestoTipo() == provCNR)
-		tdoc=2;
-	*/
-	
-	char *tmptxt = (char *) xmlNodeListGetString(NULL, pCorpo, 1);
-	
+	char *tmptxt = (char *) xmlNodeListGetString(utilGetDoc(), pCorpo, 1);	
 	std::string footer = "";
-	
-	if(strcmp(tmptxt, "") != 0) {
+
+	if(tmptxt != NULL && strcmp(tmptxt, "") != 0) {
 		footer = utilConvTextToIso(tmptxt);
 		footer.insert(0,"\n");
-	}	
+	} else {
+		printf("\n>> Warning: footer is null or empty, skipping footer analysis!\n");
+		return pnotes;
+	}
 		
 	pnotes=parser.parseFooter(footer, pCorpo, pmeta, pdescrittori, pformulafinale, pconclusione, tdoc, pnotes);
 	loggerInfo("FINE Coda");
@@ -63,27 +51,3 @@ int coda( int pnotes,xmlNodePtr ptipodoc, xmlNodePtr pCorpo,xmlNodePtr pmeta,xml
 	utilPercCalc(43);
 	return pnotes ;
 }
-
-/*
-const char * coda(char *testo, int *p_notes) {
-	tag *t;
-	register int i;
-
-	for (i=tagN()-1, t=tagNumero(i); i>=0 && t->tipo != corpo; i--, t=tagNumero(i))
-		;
-
-	std::ostringstream out;
-	assert(out.good());
-	std::ostringstream footer;
-	for (i = t->inizio; testo[i]; i++)
-		footer << (unsigned char) testo[i];
-	HeaderParser parser(configHeaderParserModels());
-	std::istringstream in(footer.str());
-	*p_notes = parser.parseFooter(in, out, *p_notes);
-	return strdup(out.str().c_str());
-}
-
-
-*/
-
-
