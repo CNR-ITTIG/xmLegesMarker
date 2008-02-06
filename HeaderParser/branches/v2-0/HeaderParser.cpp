@@ -2120,11 +2120,11 @@ void adjustEntities(string& buf)
 {
 	int beg = 0;
 	while((beg = buf.find("&#xB0;",beg)) != string::npos)
-		buf.replace(beg,6,"�");
+		buf.replace(beg,6,"\xB0");
 
 	beg = 0;
 	while((beg = buf.find("&#xBA;",beg)) != string::npos)
-		buf.replace(beg,6,"�");
+		buf.replace(beg,6,"\xBA");
 }
 
 void adjustEsecutivita(string& buf)
