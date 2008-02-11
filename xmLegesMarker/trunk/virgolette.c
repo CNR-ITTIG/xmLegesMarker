@@ -185,18 +185,11 @@ void Virgolette2Errore(xmlNodePtr pParentNode){
 
 void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 {
-	xmlNodePtr cur=pNodoCorpo->children;	
-	if(cur == NULL) {
-		printf("\n>>WARNING: ModificaVirgolette() - cur is null!\n");
-		return;
-	}
+	xmlNodePtr cur=pNodoCorpo->children;//firstVirgo=GetFirstNodebyTagTipo(pNodoCorpo,BAD_CAST tagTipoToNome(virgolette));	
 	
 	int areInMod=0;
 	//char *desc=(char *)xmlNodeListGetRawString(NULL,pNodoCorpo->children,0);
-	char *desc = (char *) xmlNodeListGetString(utilGetDoc(), cur, 1);
-	
-	
-	desc = utilConvTextToIso(desc);
+	char *desc=(char *)xmlNodeListGetRawString(NULL,cur,0);
 	
 	//printf("\nPossibile MOD:\n%s\n", desc);
 	
@@ -230,12 +223,10 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 			//xmlAddChild(newNodoErrPre,xmlNewText("--- Partizione con virgolette: controllare se modificativa ---"));
 			//xmlNodePtr newNodoErrAfter=xmlNewNode(NULL, BAD_CAST tagTipoToNome(tagerrore));
 			
-			char *allText = (char *) xmlNodeListGetString(NULL, cur->children, 1);
-			allText = utilConvTextToIso(allText);
-			
+			xmlChar *allText=xmlNodeListGetRawString(NULL,cur->children,1);
 			//La riga precedente potrebbe aver trasformato entità in caratteri non validi (> <), esegui sstring():
 			//xmlNodePtr newNodoTxt=xmlNewText(sstring((char *)allText));
-			xmlNodePtr newNodoTxt=xmlNewText(BAD_CAST allText);
+			xmlNodePtr newNodoTxt=xmlNewText(allText);
 			
 			//xmlReplaceNode(cur,newNodoTxt);
 			replaceNode(cur,newNodoTxt,prevnode);
@@ -258,13 +249,13 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 //RICORSIVA
 void virgoletteInMod(xmlNodePtr pParentNode)
 {
-	if(pParentNode == NULL) return;
+	if (pParentNode==NULL)return ;
 
 	xmlNodePtr cur= pParentNode->children;	//FirstChild
 
 	while (cur != NULL) {
-		//Se il nodo corrente è un CORPO, cerca di individuare le VIRGOLETTE al suo interno e vi inserisce un MOD
-		if(IsNode(cur, corpo)) {
+		//Se il nodo corrente è una CORPO, cerca di individuare le VIRGOLETTE al suo interno e vi inserisce un MOD
+		if (IsNode(cur,corpo)){
 			ModificaVirgolette(cur);
 		} else {
 			//prosegue la ricorsione solo se non è un CORPO
@@ -273,4 +264,5 @@ void virgoletteInMod(xmlNodePtr pParentNode)
 		cur = cur->next; //NextChild
 	}
 }
+
 

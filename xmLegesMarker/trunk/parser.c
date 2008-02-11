@@ -24,7 +24,7 @@
 #include "annessi.h"	
 #include "tag.h"
 
-const char *versione = "1.9 - [NIR 2.2] (enc!)";
+const char *versione = "1.9 - [NIR 2.2]";
 int visErrore = 0;
 char *bufferEnd;
 char *namebin = "";
@@ -120,16 +120,15 @@ int main(int argc, char *argv[])
 			case 'e':	/* ---------------------------------- encoding */
 				{
 					char *tmp = (char *)strdup(optarg);
-					if (!strcmp(tmp,"iso"))					configSetEncoding("iso-8859-15");
-					else if (!strcmp(tmp,"iso1"))			configSetEncoding("iso-8859-1");
-					else if (!strcmp(tmp,"win"))			configSetEncoding("windows-1252");
-					else if (!strcmp(tmp,"utf16"))		configSetEncoding("UTF-16");
-					else if (!strcmp(tmp,"utf")) {
+					if (!strcmp(tmp,"iso"))				configSetEncoding("iso-8859-15");
+					else if (!strcmp(tmp,"win"))		configSetEncoding("windows-1252");
+					else if (!strcmp(tmp,"utf"))
+					{
 						configSetEncoding("UTF-8");
 						SetFlagUTF8(1);
-					} else {	
-						configSetEncoding(tmp);
 					}
+					else	
+						configSetEncoding(tmp);
 					free(tmp);
 				}
 				break;
@@ -198,7 +197,7 @@ int main(int argc, char *argv[])
 				else if (!strcmp(tmp, "del"))	{configSetDocTesto(documentoNIR); configSetDocNome("Delibera"); } 
 				else if (!strcmp(tmp, "stc"))	{configSetDocTesto(documentoNIR); configSetDocNome("Statuto Comunale"); } 
 				else if (!strcmp(tmp, "regc"))	{configSetDocTesto(documentoNIR); configSetDocNome("Regolamento Comunale"); } 
-				else if (!strcmp(tmp, "delc"))	{configSetDocTesto(documentoNIR); configSetDocNome("Delibera Comunale"); } 
+				else if (!strcmp(tmp, "delc"))	{configSetDocTesto(documentoNIR); configSetDocNome("Delibera Consiliare"); } 
 				// Parametro per individuare automaticamente il tipo di documento:
 				else if(!strcmp(tmp,"unknown")) { unknown_init(); configSetDocTesto(unknown); }
 				//
@@ -409,8 +408,6 @@ int main(int argc, char *argv[])
 	xmlNodePtr root = NULL;
 	
 	doc = xmlNewDoc(BAD_CAST "1.0");
-	
-	utilSetDoc(doc);
 
 	xmlCreateIntSubset(doc, BAD_CAST "NIR", NULL, BAD_CAST configGetDTDTipoStringa());
 	
@@ -443,7 +440,7 @@ int main(int argc, char *argv[])
 	if(configGetNodeCount())	utilNodeCount(root);
 
 	if (!fileout) fileout = "-";
-	xmlSaveFormatFileEnc(fileout, doc, (const char*) configEncoding(), 1);
+	xmlSaveFormatFileEnc(fileout, doc, (const char*)configEncoding(), 1);
 
 	/*
 	//Si può salvare il doc anche tramite xmlDocDump:
@@ -513,7 +510,7 @@ void help(void)
 	puts("               rreg=regolamento regionale  prov=provvedimento");
 	puts("               cnr=provvedimento CNR       del=delibera");
 	puts("               stc=Statuto Comunale       regc=Regolamento Comunale");
-	puts("               delc=Delibera Comunale");
+	puts("               delc=Delibera Consiliare");
 	puts("-T nomeTipo  : nome tipo di atto da analizzare; valido solo per -t nir");
 	puts("-M <dir>     : directory dei modelli per scansione testa e coda");
 	puts("-v           : livello di log: error, warn, info, debug");

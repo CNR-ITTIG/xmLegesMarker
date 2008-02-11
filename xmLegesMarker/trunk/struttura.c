@@ -247,7 +247,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		tdoc=2;
 	if(!strcmp(configGetDocNome(),"Regolamento Regionale")) 
 		tdoc=3;
-	if(!strcmp(configGetDocNome(),"Delibera Comunale")) 
+	if(!strcmp(configGetDocNome(),"Delibera Consiliare")) 
 		tdoc=4;
 	if(!strcmp(configGetDocNome(),"Regolamento Comunale")) 
 		tdoc=5;
@@ -320,10 +320,8 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 	{
 		
 		//printf("\n------ BUFFER1:%s\n",(char *)buffer);
-		if (ruolo == principale) {
-			//buffer = utilConvertiText(buffer);		// converto in UTF-8  //Perchè?
-			buffer = buffer;
-		}
+		if (ruolo == principale)
+			buffer = utilConvertiText(buffer);		// converto in UTF-8
 		unsigned int nnl = contaChar(buffer, '\n');
 		nnl = strlen(buffer) + 50 + 12 * nnl;
 		disposto = (char *) malloc(sizeof(char) * nnl);
@@ -434,8 +432,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			
 			//Trattare il testo come una lista testo/entità:
 			//xmlChar* contNodo = xmlNodeGetContent(nformulainiziale);// formula iniziale
-			char* contNodo = (char *) xmlNodeListGetString(utilGetDoc(), nformulainiziale, 1);
-			contNodo = utilConvTextToIso(contNodo);
+			xmlChar* contNodo = xmlNodeListGetString(NULL, nformulainiziale, 0);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)
 			
@@ -443,28 +440,26 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			if (contNodo) {
 				nnodo = xmlNewChild(nintestazione, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);
 				xmlAddChild(nnodo, xmlNewText(BAD_CAST "===== DTD BASE: FORMULA INIZIALE NON AMMESSA =====\n\n"));
-				xmlAddChild(nnodo, xmlNewText(BAD_CAST contNodo));
+				xmlAddChild(nnodo, xmlNewText(contNodo));
 			}
 			utilNodeDelete(nformulainiziale);
 			
 			//Trattare il testo come una lista testo/entità:
 			//contNodo = xmlNodeGetContent(nformulafinale);	// formula finale
-			contNodo = (char *) xmlNodeListGetString(utilGetDoc(), nformulafinale, 1);
-			contNodo = utilConvTextToIso(contNodo);
+			contNodo = xmlNodeListGetString(NULL, nformulafinale, 0);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)			
 			
 			if (contNodo) {
 				nnodo = xmlNewChild(narticolato, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);
 				xmlAddChild(nnodo, xmlNewText(BAD_CAST "===== DTD BASE: CORPO ALLEGATO NON AMMESSO =====\n\n"));
-				xmlAddChild(nnodo, xmlNewText(BAD_CAST contNodo));
+				xmlAddChild(nnodo, xmlNewText(contNodo));
 			}
 			utilNodeDelete(nformulafinale);
 			
 			//Trattare il testo come una lista testo/entità:
 			//contNodo = xmlNodeGetContent(nconclusione);	// conclusione
-			contNodo = (char *) xmlNodeListGetString(utilGetDoc(), nconclusione, 1);
-			contNodo = utilConvTextToIso(contNodo);
+			contNodo = xmlNodeListGetString(NULL, nconclusione, 0);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)
 			

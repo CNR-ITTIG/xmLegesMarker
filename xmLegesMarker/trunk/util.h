@@ -80,9 +80,6 @@ int contaChar(char *s, char);
 int latinToArabic(char *s);
 char * arabicToLatin(int n);
 
-xmlDocPtr utilGetDoc();
-void utilSetDoc(xmlDocPtr d);
-
 #ifdef __cplusplus
 }
 #endif

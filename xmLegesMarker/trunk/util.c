@@ -33,7 +33,6 @@ static int	 globSetAnnessi = 1;
 // Se è a 1 indica che il file di origine è in formato UTF-8
 static int	 flagUTF8 = 0;
 
-static xmlDocPtr doc = NULL;
 
 //Imposta la percentuale corrente
 void utilPercCurrSet(int pPerc)
@@ -142,13 +141,11 @@ char * utilConvertiText(char *txtin)
 		inizio=bufout;
 		const char * por=(const char *)txtin;
 
-		if (!ConvDescr) {
+		if (!ConvDescr)	
 			//if (strcmpi ((const char *)configEncoding(),"UTF-8") !=0 )
-			char * strEnc = (char *) configEncoding();
-			printf("\nUtilConvertiText() - enc: %s\n", strEnc);
-			ConvDescr = iconv_open("UTF-8", strEnc);
+			ConvDescr=iconv_open("UTF-8",(char *)configEncoding());
 			//ConvDescr=iconv_open("UTF-8","iso-8859-15");
-		}
+		
 
 		if (ConvDescr==(iconv_t)-1){
 			loggerError("iconv Errore iconv_open()");
@@ -195,14 +192,12 @@ char * utilConvTextToIso(char *txtin)
 
 		//UTF8Toisolat1(bufout,lout,txtin,lin);
 		
-		if (!ConvDescr2) {
-			char *strEnc = (char *)configEncoding();
-			printf("\nUtilConvertiText() - enc: %s\n", strEnc);	
-			ConvDescr2=iconv_open(strEnc,"UTF-8");
+		if (!ConvDescr2)	
+			ConvDescr2=iconv_open((char *)configEncoding(),"UTF-8");
 			//ConvDescr2=iconv_open("iso-8859-15","UTF-8");
-		}
 
-		if (ConvDescr2==(iconv_t)-1) {
+
+		if (ConvDescr2==(iconv_t)-1){
 			loggerError("iconv Errore iconv_open()");
 			exit(0);
 		}
@@ -361,12 +356,8 @@ void utilErrore2ProcessingInstruction(xmlNodePtr pNodoParent )
 	
 			if (txtnode){
 				//Trattare il testo come una lista testo/entità:
-				//xmlCont= xmlNodeGetContent(txtnode);
-				
-				//xmlCont= xmlNodeListGetString(utilGetDoc(), txtnode, 0);				
-				xmlCont= xmlNodeListGetString(utilGetDoc(), txtnode, 1);
-				xmlCont = utilConvTextToIso(xmlCont);
-				
+				//xmlCont= xmlNodeGetContent(txtnode);				
+				xmlCont= xmlNodeListGetString(NULL, txtnode, 0); 
 				//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 				//(può dare problemi in fase di visualizzazione...)
 								
@@ -698,11 +689,3 @@ char *convIntToLettera(int num) {
 	return ret;
 }
 */
-
-xmlDocPtr utilGetDoc() {
-	return doc;
-}
-
-void utilSetDoc(xmlDocPtr d) {
-	doc = d;
-}
