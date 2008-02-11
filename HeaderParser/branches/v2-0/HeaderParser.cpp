@@ -1055,8 +1055,7 @@ void copyElements(const vector<int>& src,
     dst.push_back(src[i]);
 }
 
-int HeaderParser::parseFooter(std::string& footer,
-			      xmlNodePtr lastcomma,
+int HeaderParser::parseFooter(xmlNodePtr lastcomma, 			      
 			      xmlNodePtr meta,
 			      xmlNodePtr descrittori,
 			      xmlNodePtr formulafinale,
@@ -1064,8 +1063,13 @@ int HeaderParser::parseFooter(std::string& footer,
 			      int tdoc,
 			      int notes) 
 {
+	//Considerando il testo all'interno dei vari tag come una lista di nodi testo/entit�
+	//non si pu� tirare fuori il contenuto del tag -errore- con xmlNodeGetContent(),
+	//in particolare quando si utilizzano testi in html (ricchi di entit�).
+	//xmlChar* content = xmlNodeGetContent(lastcomma);
+	xmlChar* content = xmlNodeListGetString(NULL, lastcomma, 0);
   //printf("\nFooter tdoc:%d\n",tdoc);
-  if(footer.compare("")) {
+  if(content == NULL || (char *)content == ""){
   	//printf("\nFooter NULL\n");
     defaultFooter("", lastcomma); 
     //Aggiunta -- addMissingMeta() solo nel caso generico...
@@ -1074,8 +1078,14 @@ int HeaderParser::parseFooter(std::string& footer,
     return notes;
   }
     
+  string strbuffer = (char *) content;
+  xmlFree(content);
+  
+  //printf("\nParseFooter\nbuffer: %s\n\n", strbuffer.c_str());
+  
   //Qui si deve mettere nel lastcomma il testo fino a .\n opp. \n\n opp. .DECORAZIONE\n
-  string strbuffer = saveCommaDefault(strbuffer,lastcomma);
+  //strbuffer = strbuffer.substr(saveCommaDefault(strbuffer,lastcomma));
+  strbuffer = saveCommaDefault(strbuffer,lastcomma);
   
   if(strbuffer.find_first_not_of(" \n\t\r") == string::npos) return notes; //buffer vuoto, esci
   
@@ -1286,7 +1296,7 @@ std::string HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastco
   	last = getFooterFromStructureNode(lastcomma);
   	structure = true;
   	if(last!=NULL) {
-  		footer = (char *) xmlNodeListGetString(NULL, last, 1);
+  		footer = (char *)xmlNodeListGetString(NULL, last, 0);
   	} else
   		footer = ""; //Se last � NULL non c'� niente dopo VIRGOLETTE ?
   }
@@ -2120,11 +2130,11 @@ void adjustEntities(string& buf)
 {
 	int beg = 0;
 	while((beg = buf.find("&#xB0;",beg)) != string::npos)
-		buf.replace(beg,6,"\xB0");
+		buf.replace(beg,6,"�");
 
 	beg = 0;
 	while((beg = buf.find("&#xBA;",beg)) != string::npos)
-		buf.replace(beg,6,"\xBA");
+		buf.replace(beg,6,"�");
 }
 
 void adjustEsecutivita(string& buf)
