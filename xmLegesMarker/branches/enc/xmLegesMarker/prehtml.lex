@@ -9,6 +9,15 @@
 ******************************************************************************/
 
 /*
+
+&#186;			prehtmlAppendString("°");		//GRADO
+\xBA				prehtmlAppendString("°");		//GRADO
+
+&#146;			prehtmlAppendChars(1, '\x92');
+
+*/
+
+/*
 //OLD InComment:
 
 \<!--						{
@@ -64,15 +73,6 @@ void azzera(void)
 }
 
 
-//\<pre>							flagpre=1;
-
-//{NL}							{
-//								if (flagpre==0) prehtmlAppendChars(1,' ');
-//								if (flagpre==1)	prehtmlAppendChars(1,'\n');}
-								
-//\<\/pre>						flagpre=0;
-
-
 %}
 
 
@@ -99,8 +99,8 @@ TAGDEL	(head|form|script|style)
 
 %%
 
-&quot;			prehtmlAppendChars(1, '"');		// convertite virgolette
-&nbsp;			prehtmlAppendChars(1, ' ');		// convertito spazio non divisibile
+&quot;			prehtmlAppendString("\"");		// convertite virgolette
+&nbsp;			prehtmlAppendString(" ");		// convertito spazio non divisibile
 
 &[a-z]+;		prehtmlAppendString(strdup(prehtmltext));	// lasciate entità simboliche
 
@@ -122,7 +122,7 @@ TAGDEL	(head|form|script|style)
 &#143;			prehtmlAppendChars(1, '\x8F');
 &#144;			prehtmlAppendChars(1, '\x90');
 &#145;			prehtmlAppendChars(1, '\x91');
-&#146;			prehtmlAppendChars(1, '\x92');
+
 &#147;			prehtmlAppendChars(1, '\x93');
 &#148;			prehtmlAppendChars(1, '\x94');
 &#149;			prehtmlAppendChars(1, '\x95');
@@ -140,11 +140,18 @@ TAGDEL	(head|form|script|style)
 &#171;			prehtmlAppendChars(1, '\xAB');		//#LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
 &#187;			prehtmlAppendChars(1, '\xBB');		//#RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
 
+&#8216;			prehtmlAppendString("\'");
+&#8217;			prehtmlAppendString("\'");
+
+&#8221;			prehtmlAppendString("\"");
+&#8222;			prehtmlAppendString("\"");
+
+&#8026;			prehtmlAppendString(""); //Elimina punto centrale (bullet)
+&#167;				prehtmlAppendString(""); //Elimina section symbol
+
 &#[0-9]+;		prehtmlAppendString(strdup(prehtmltext));	// lasciate entità numeriche  //(..se ne rimangono..)
 
-
-&				prehtmlAppendString("&#38;");		// & che non delimita un'entità
-
+&					prehtmlAppendString("&#38;");		// & che non delimita un'entità
 
 \<\?						{
 							prehtmlAppendString(strdup(prehtmltext));
@@ -167,8 +174,8 @@ TAGDEL	(head|form|script|style)
 							flagpre=1;}
 
 {NL}							{
-								if (flagpre==0) prehtmlAppendChars(1,' ');
-								if (flagpre==1)	prehtmlAppendChars(1,'\n');}
+									prehtmlAppendChars(1,'\n');
+								}
 								
 \<\/(pre)>						{
 								flagpre=0;}
@@ -512,3 +519,4 @@ cp 1252 Encoding (from cp1252.txt)
 =FE	U+00FE	LATIN SMALL LETTER THORN
 =FF	U+00FF	LATIN SMALL LETTER Y WITH DIAERESIS
 */
+

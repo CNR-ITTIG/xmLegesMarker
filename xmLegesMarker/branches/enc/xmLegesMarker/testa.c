@@ -25,6 +25,7 @@ int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 	loggerInfo("INIZIO Testa");
 
 	char *tmptxt = NULL;
+	
 	if (pTextNode) {
 		//Considerando il testo all'interno dei vari tag come una lista di nodi testo/entità
 		//non si può tirare fuori il contenuto del tag -errore- con xmlNodeGetContent(),
@@ -35,20 +36,33 @@ int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 		if(pTextNode->children != NULL)
 			pTextNode = pTextNode->children;
 		
-		xmlChar  *xmltxt=NULL;
-		xmltxt=xmlNodeListGetString(NULL, pTextNode, 0);
-		//Con la precedente riga si perdono le entità per avere un unico nodo di testo
-		//(può dare problemi in fase di visualizzazione...)	
+		xmlChar *xmltxt = NULL;
 		
-		tmptxt = (char *)xmltxt;
-		if(tmptxt == NULL)
+		char *strEnc = (char *) configEncoding();
+		//Non sostituire le entities in caso di codifica windows (gestite in prehtml.lex per gli html?)
+		if(!strcmp(strEnc, "windows-1252")) {
+			xmltxt = xmlNodeListGetString(utilGetDoc(), pTextNode, 0);
+			printf("\nINFO: testa() - windows encoding - don't parse entities...\n");
+		} else {
+			xmltxt = xmlNodeListGetString(utilGetDoc(), pTextNode, 1);
+		}
+		
+		tmptxt = (char *) xmltxt;
+		if(tmptxt == NULL) {
 			tmptxt = "";
+		}
 	} else { //Se non vi è testo
 		tmptxt=""; 	//(...se tmptxt=="", si potrebbe anche returnare...)
 	}
 	
-	std::string	tmpstr=tmptxt;
-	tmpstr.insert(0,"\n"); //inserito un \n prima del testo xchè l'header parser altrimenti mangia il testo
+	std::string tmpstr = "";
+	
+	if(strcmp(tmptxt, "") == 0) {
+		printf(">> WARNING - testa() - tmptxt is empty!\n");
+	} else {
+		tmpstr = utilConvTextToIso(tmptxt);
+		tmpstr.insert(0,"\n"); //inserito un \n prima del testo xchè l'header parser altrimenti mangia il testo
+	}
 
 	HeaderParser parser(configHeaderParserModels());
 	parser.setRootNode(ptipodoc);

@@ -112,7 +112,7 @@ int numdis=0;
 int numtes=0;
 int art_dec=0;
 
-int stacklog=0;
+int stacklog=1;
 int countlog=0;
 int maxlog=9999;
 
@@ -824,6 +824,13 @@ ROMANO		([ivxl]+{S}*)
 <InComma>{PTACAPO}/{PARTIZIONE}	{
 	artpos += artleng-1;
 	unput('\n');
+	if(stacklog) puts("PRE COMMA");
+	yy_push_state(InPreComma);
+}
+
+<InComma>{PTACAPO} {
+	if (configTipoCommi() != commiNNLineeVuote)
+		REJECT;
 	if(stacklog) puts("PRE COMMA");
 	yy_push_state(InPreComma);
 }
