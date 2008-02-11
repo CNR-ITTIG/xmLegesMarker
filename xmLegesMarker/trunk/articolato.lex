@@ -208,29 +208,6 @@ void save(tagTipo tipo) {
 	artpos+=artleng;
 	
 }
-/*
-void save(tagTipo tipo) {
-
-	register int i;
-
-	if (firstSave)
-	{
-		firstSave=0;
-		tagAppendi(tagInit(articolato, pos, -1, -1, -1, -1));
-	}
-	tagAppendi(tagInit(tipo, artpos, -1, numConv, latConv, -1));	//Apertura Tag
-	tagAppendi(tagInit(num, artpos, artpos+artleng, -1, -1, artleng));	//Apertura e chiusura Tag
-	if (tipo <= articolo)
-		tagAppendi(tagInit(rubrica, artpos+artleng, -1, -1, -1, -1));	//Apertura Tag
-	else
-		tagAppendi(tagInit(corpo, artpos+artleng, -1, -1, -1, -1));		//Apertura Tag
-	for (i=tipo+1; i<=numero; i++)
-		if (i != articolo)
-			sequenzaInit(i);
-	loggerDebug(utilConcatena(3, tagTipoToNome(tipo), ": ", yytext));
-	artpos+=artleng;
-
-}*/
 
 /*** Salva l'elemento DECORAZIONE */
 void saveDec() {
@@ -246,6 +223,11 @@ void saveCommaNN() {
 	domTagOpen(num,artpos,artleng);
 	domTagOpen(corpo,artpos+artleng,0);
 
+	int i;
+	for(i=comma+1; i<=numero; i++)
+		if (i != articolo)sequenzaInit(i);
+	
+
 //	tagAppendi(tagInit(comma, artpos, -1, commiNN, -1, -1));
 //	tagAppendi(tagInit(num, artpos, artpos+artleng, -1, -1, artleng));
 //	tagAppendi(tagInit(corpo, artpos+artleng, -1, -1, -1, -1));
@@ -253,16 +235,6 @@ void saveCommaNN() {
 	artpos += artleng;
 	loggerDebug("FINE saveCommaNN");
 }
-
-/*void saveCommaNN() {
-	loggerDebug("INIZIO saveCommaNN");
-	tagAppendi(tagInit(comma, artpos, -1, commiNN, -1, -1));
-	tagAppendi(tagInit(num, artpos, artpos+artleng, -1, -1, artleng));
-	tagAppendi(tagInit(corpo, artpos+artleng, -1, -1, -1, -1));
-	loggerDebug(utilConcatena(3, tagTipoToNome(comma), ": ", yytext));
-	artpos += artleng;
-	loggerDebug("FINE saveCommaNN");
-}*/
 
 // Da 1 a 3 lettere, non da 1 a 2, può essere anche aaa)
 
@@ -821,7 +793,29 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InPreComma);
 }
 
-<InComma>{PTACAPO}/{PARTIZIONE}	{
+<InLettera,InNumero,InPuntata>{PTACAPO} {
+	if( configTipoCommi() != commiNNLineeVuote ) {
+		REJECT;
+	}	
+	artpos += artleng-1;
+	unput('\n');
+	if(stacklog) puts("pop_PTACAPO(commaNN)->InPreComma");
+	yy_pop_state();
+	yy_push_state(InPreComma);
+
+}
+
+<InComma>{PTACAPO}/{PARTIZIONE} {
+	artpos += artleng-1;
+	unput('\n');
+	if(stacklog) puts("PRE COMMA");
+	yy_push_state(InPreComma);
+}
+
+<InComma>{PTACAPO} {
+	if( configTipoCommi() != commiNNLineeVuote ) {
+		REJECT;
+	}	
 	artpos += artleng-1;
 	unput('\n');
 	if(stacklog) puts("PRE COMMA");
