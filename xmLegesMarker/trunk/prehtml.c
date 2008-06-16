@@ -69,8 +69,6 @@ char *prehtmlAnalizza(char *testo)
 	return bufferhtml;
 }
 
-
-
 char prehtmlExtractChar(int elemento)
 {
 	
@@ -85,6 +83,4 @@ char prehtmlExtractChar(int elemento)
 		
 	return(elementChar);
 }
-
-
 
