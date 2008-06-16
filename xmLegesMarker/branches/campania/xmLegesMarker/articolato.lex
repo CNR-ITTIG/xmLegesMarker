@@ -547,17 +547,20 @@ ROMANO		([ivxl]+{S}*)
 		REJECT;
 	//printf("COMMA NN 1: artpos='%d' yytext='%s'", artpos, yytext);
 	saveCommaNN();
+	if(stacklog) puts("IN ARTICOLO - IN COMMA NN1");
 	commiNN++;
 	BEGIN(InComma);
 }
 
 <InArticolo>{COMMANN2}/[a-z]	{
+  //Vincolo: non ci deve essere la rubrica (??)
 	if (configGetRubriche() != 0)
 		REJECT;
 	if (configTipoCommi() != commiNNSenzaLinea) 
 		REJECT;
-	//printf("COMMA NN 1: artpos='%d' yytext='%s'", artpos, yytext);
+	//printf("COMMA NN 2: artpos='%d' yytext='%s'", artpos, yytext);
 	saveCommaNN();
+	if(stacklog) puts("IN ARTICOLO - IN COMMA NN2");
 	commiNN++;
 	BEGIN(InComma);
 }
@@ -815,13 +818,23 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InPreComma);
 }
 
-<InComma>{PTACAPO} {
+<InComma>{PTACAPO}/{COMMANN1} {
+	if( configTipoCommi() != commiNNLineeVuote ) {
+		REJECT;
+	}	
+	artpos += artleng-1;
+	unput('\n');
+	if(stacklog) puts("PRE COMMA nn1");
+	yy_push_state(InPreComma);
+}
+
+<InComma>{PTACAPO}/{COMMANN2} {
 	if( configTipoCommi() != commiNNSenzaLinea ) {
 		REJECT;
 	}	
 	artpos += artleng-1;
 	unput('\n');
-	if(stacklog) puts("PRE COMMA");
+	if(stacklog) puts("PRE COMMA nn2");
 	yy_push_state(InPreComma);
 }
 
