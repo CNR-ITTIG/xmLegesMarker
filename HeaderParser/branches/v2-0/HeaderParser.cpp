@@ -1069,7 +1069,7 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
 	//xmlChar* content = xmlNodeGetContent(lastcomma);
 	xmlChar* content = xmlNodeListGetString(NULL, lastcomma, 0);
   //printf("\nFooter tdoc:%d\n",tdoc);
-  if(content == NULL || (char *)content == ""){
+  if(content == NULL || (char *)content == "") {
   	//printf("\nFooter NULL\n");
     defaultFooter("", lastcomma); 
     //Aggiunta -- addMissingMeta() solo nel caso generico...
@@ -1087,7 +1087,16 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
   //strbuffer = strbuffer.substr(saveCommaDefault(strbuffer,lastcomma));
   strbuffer = saveCommaDefault(strbuffer,lastcomma);
   
-  if(strbuffer.find_first_not_of(" \n\t\r") == string::npos) return notes; //buffer vuoto, esci
+  if(strbuffer.find_first_not_of(" \n\t\r") == string::npos) {
+  	//buffer vuoto, esci
+  	
+  	//addMissingMeta() solo nel caso generico...
+    if(tdoc==0) {
+	    addMissingMeta(descrittori);
+    }
+    addMissingFooter(meta, descrittori, formulafinale, conclusione, tdoc);  	
+  	return notes;
+  }
   
   //printf("\nParseFooter\nbuffer: %s\n\n", strbuffer.c_str());
   //printf("\nLASTCOMMA0:%s", (char *)xmlNodeGetContent(lastcomma));
@@ -1153,11 +1162,10 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
       removeProcessedElements(header_sequence, last);
       offset += last + 1;
     }
-  delete[] states;
+    delete[] states;
   }	
 
   // parse sottoscrizioni
-  
   if(sequence.size() > 0){
     states = new int[sequence.size()];
     footer_sottoscrizioni_model.viterbiPath(sequence, states, sequence.size());
@@ -1185,33 +1193,7 @@ int HeaderParser::parseFooter(xmlNodePtr lastcomma,
     }
     delete[] states;
   }
-  
-  
-  // parse annessi   // <--- MA SERVE IL MODELLO ANNESSI ?? (DL30settembre2003 crasha se tolgo il commento!)
-  /*
-  if(sequence.size() > 0) {
-    states = new int[sequence.size()];
-    footer_annessi_model.viterbiPath(sequence, states, sequence.size());
-    if (hasCorrectStates(states, sequence.size())){
-      //printf("\nannessi\n");
-      last = 0;
-      if (!found)
-		last = saveLastComma(strbuffer, states, sequence.size(), offsets, offset, lastcomma, footer_annessi_tags,
-			     header_sequence, header_offsets, &notes);
-      else{ // search for pubblicazione
-		last = getFirstMatchingState(states, sequence.size(), footer_annessi_tags); 
-		findPubblicazione(strbuffer, header_sequence, last, header_offsets, offset, meta, root_node, &notes);
-      }
-      found = true;
-      last = saveTags(strbuffer, states, sequence.size(), offsets, offset, last, meta, footer_annessi_tags, tdoc, &notes, conclusione);
-      removeProcessedElements(sequence, last);
-      removeProcessedElements(header_sequence, last);
-      offset += last + 1;
-    }
-    delete[] states;
-  }
-  */
-
+ 
   // if nothing found print default footer
   if(!found)
     defaultFooter(strbuffer, lastcomma);	
@@ -1254,8 +1236,9 @@ bool HeaderParser::structureNode(xmlNodePtr node) const
 	if(tmp==NULL) return false;
 	tmp = tmp->next;
 	while(tmp!=NULL) {
-		if(xmlStrcmp(tmp->name, (const xmlChar *)"text") != 0)
-			printf("\nstructureNode - No text child:%s\n",tmp->name);
+		if(xmlStrcmp(tmp->name, (const xmlChar *)"text") != 0) {
+			//printf("\nstructureNode - No text child:%s\n",tmp->name);
+		}
 		if(!xmlStrcmp(tmp->name, (const xmlChar *)"virgolette"))
 			return true;
 		tmp=tmp->next;
@@ -1292,7 +1275,7 @@ std::string HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastco
   xmlNodePtr last = NULL;
   
   if(structureNode(lastcomma)) {
-  	printf("\nLASTCOMMA has an internal structure...\n");
+  	//printf("\nLASTCOMMA has an internal structure...\n");
   	last = getFooterFromStructureNode(lastcomma);
   	structure = true;
   	if(last!=NULL) {
@@ -1333,7 +1316,7 @@ std::string HeaderParser::saveCommaDefault(std::string footer, xmlNodePtr lastco
 	}
   }
   
-  printf("\nFINE. RET:%d\n",ret);
+  //printf("\nFINE. RET:%d\n",ret);
   
   if(structure) {
   	if(!found)
