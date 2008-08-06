@@ -9,6 +9,21 @@
 ******************************************************************************/
 
 /*
+*** Struttura temporanea per virgolette
+
+<InVirgoDoppie>{ARTICOLORUB}		{
+	if(stacklog) puts("IN VIRGO DOPPIE - IN ARTICOLO");
+	numConv = 1;
+	artpos += artleng;
+	//printf("RUBRICA dopo: artpos=%d, artleng=%d\n", artpos, artleng);
+	commiNN = 1;
+	BEGIN(InPreComma);
+}
+
+PROBLEMA: il controllo sequenza deve essere evitato.
+*/
+
+/*
 *********************************************
 <InLettera,InNumero,InPuntata>{PVACAPO}|{NL}	{ //<--può non esserci il ; alla fine di una lettera!?
 //Il problema è che così viene rilevato questo anche in caso di PTACAPO e salta la sequenza (VERIFICARE!)
@@ -943,7 +958,7 @@ int _ArticolatoLexStart(  char * buf)
 			BEGIN(Disegno);
 		else
 			BEGIN(0);
-		}
+	}
 
 	numConv=0;
 	latConv=0;

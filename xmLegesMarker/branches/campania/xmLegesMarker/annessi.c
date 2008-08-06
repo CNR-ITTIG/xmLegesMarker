@@ -37,7 +37,7 @@ const void AnnessiAnalizza( char *testo, xmlNodePtr pParentNode, tagTipo pTipoPa
 
 		//Chiamata alla funzione LEX
 		NumeroAnnessi = _annessiLexStart(testo);
-		printf("\nNumeroAnnessi: %d\n", NumeroAnnessi);
+		//printf("\nNumeroAnnessi: %d\n", NumeroAnnessi);
 
 		utilPercNumBlockSet(NumeroAnnessi);
 
@@ -111,7 +111,6 @@ void AnnessiCicla(xmlNodePtr pNodoParent){
 	loggerInfo("INIZIO Ciclo Annessi");
 	//Vettore di tutti i nodi con TAG ANNESSO del nodo
 	int numAnnessi=GetAllNodebyTagTipo(&vectAnnessi[0],MAXANNESSI,pNodoParent,BAD_CAST tagTipoToNome(annesso));
-	printf("\nAnnessi: %d\n", numAnnessi);
 	
 	//Ciclo su tutti i nodi "Annessi"
 	for (n=0;n<numAnnessi;n++)
@@ -176,9 +175,17 @@ xmlNodePtr GerStrutturaPreAnnessi(xmlNodePtr pParentNode)
 	
 	//Individua il primo nodo con Tag ERRORE
 	CurrError=GetFirstNodebyTagTipo(pParentNode,BAD_CAST tagTipoToNome(tagerrore));
+	
+	if(CurrError == NULL) {
+		printf("\nWarning! CurrError is null !\n");
+	}
+	
 	//Individua il primo nodo Testo
 	CurrErrorText=GetFirstTextNode(CurrError);
-
+	if(CurrErrorText == NULL) {
+		printf("\nWarning! CurrErrorText is null !\n");
+	}
+	
 	CurrStruttura=NULL;
 
 	if (CurrErrorText) 
@@ -191,15 +198,20 @@ xmlNodePtr GerStrutturaPreAnnessi(xmlNodePtr pParentNode)
 			//Duplicazione del testo contenuto nel nodo
 			//tmpbuff=(char *)strdup((char *)CurrErrorText->content);
 			tmpbuff=(char *)strdup(realContent);
+			//printf("\nTMPBUFF:\n%s\n", tmpbuff);
 				
 			if (tmpbuff)
 			{
+
 				CurrStruttura=StrutturaAnalizza(tmpbuff, principale); //tmpbuff è in UTF-8!!!!!!!!!!!!!1
+				
 				if (CurrStruttura!=NULL){
 					//Se è stata individuata una struttura elimina il nodo ERRORE
 					//e aggancia la STRUTTURA al PARENT
-					////xmlAddChild(pParentNode,CurrStruttura);
+					//xmlAddChild(pParentNode,CurrStruttura); //Viene fatto dopo...
 					utilNodeDelete(CurrError);
+				} else {
+					printf("\nWarning! CurrStruttura is NULL !!\n");
 				}
 				free(tmpbuff);
 			}

@@ -269,13 +269,15 @@ xmlNodePtr domTagOpen(tagTipo ptag,int pindex,int plen)
 	else {
 		//Decorazione non deve andare sotto rubrica (e nemmeno sotto corpo)!
 		if(ptag == decorazione) { // && strcmp(mparent->name,"rubrica") == 0 )  {
-			if(mparent == NULL)
+			if(mparent == NULL) {
 				printf("\ndomAddSequenceWarning() -- nodo is null\n");
-			xmlNodePtr pparent = mparent->parent;
-			//printf("\n>BUF:%s",strbuff);
-			//printf("\n name:%s rubrica:%s parent:%s\n",(char *)mparent->name,
-			//		tagTipoToNome(rubrica),	(char *)pparent->name);
-			xmlAddChild(pparent, currnode);
+			} else {
+				xmlNodePtr pparent = mparent->parent;
+				//printf("\n>BUF:%s",strbuff);
+				//printf("\n name:%s rubrica:%s parent:%s\n",(char *)mparent->name,
+				//		tagTipoToNome(rubrica),	(char *)pparent->name);
+				xmlAddChild(pparent, currnode);
+			}
 		} else
 			xmlAddChild(mparent, currnode); //<-- problema: se c'è una lista nodo/entità
 											//le virgolette non sono messe alla fine della lista
@@ -468,8 +470,8 @@ void domAddSequenceWarning(tagTipo ptag, int num, int lat) {
 	xmlNodePtr nodo=mcurrTagState[(int)ptag];
 	if(nodo==NULL) {
 		//DA FARE:Verificare che quando si arriva qui il msg di warning viene messo comunque e poi togliere questo printf()
-		printf("\ndomAddSequenceWarning() -- nodo is null (tipo:%s num:%d lat:%d)\n", 
-				(char *)tagTipoToNome(ptag), num, lat);
+		//printf("\ndomAddSequenceWarning() -- nodo is null (tipo:%s num:%d lat:%d)\n", 
+		//		(char *)tagTipoToNome(ptag), num, lat);
 		return;
 	}
 	//Se il messaggio è troppo lungo sballa la formattazione (barra di scorrimento orizzontale)

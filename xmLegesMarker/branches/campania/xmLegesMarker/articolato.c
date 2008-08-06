@@ -31,21 +31,11 @@ xmlNodePtr ArticolatoAnalizza(  char *testo) {
 	
 	//printf("\nann:%d\n", flagAnn);
 	//printf("\nTESTO:\n%s\n", testo);
-	
-	//Se il flag è 1 allora ci sono degli annessi, quindi è necessaria la conversione del testo in iso
-	if (flagAnn!=0)
-	{	
-		testoIso = utilConvTextToIso(testo);
-		//Qui alla variabile globale xxxTextBuffer verrà assegnato il testo nel formato originario
-		domInit(articolato,mNodoArticolato,testoIso);
-		ret=_ArticolatoLexStart(testoIso); //IL TESTO CHE VIENE PASSATO E' GIA' IN UTF-8!!!
-	}
-	else 
-	{
-		domInit(articolato,mNodoArticolato,testo);
-		ret=_ArticolatoLexStart(testo); //IL TESTO CHE VIENE PASSATO NON E' UTF-8
-	}
 
+	domInit(articolato,mNodoArticolato,testo);
+	//In base all'encoding di "testo", il programma si arresta o meno all'interno di articolato.lex !!! 	
+	ret=_ArticolatoLexStart(testo);
+	
 	sequenzeClear();	//Inizializzazione di tutte le Sequenze
 	
 	//avvio scansione articolato.lex *************************************************

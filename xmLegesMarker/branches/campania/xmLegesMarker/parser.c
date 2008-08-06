@@ -441,7 +441,7 @@ int main(int argc, char *argv[])
 
 	//SORGENTE XML
 	if (configTipoInput() == xml) {
-		printf("\nAnalyzing XML document...\n\n");
+		//printf("\nAnalyzing XML document...\n\n");
 		
 		//CREAZIONE DELL'HEADER TRAMITE TAG XML
 		//xmlAnalyzeFile(file);
@@ -455,8 +455,6 @@ int main(int argc, char *argv[])
 			printf("\nERROR GETTING XML BODY! Quitting...\n");
 			return 0;
 		}
-		
-		printf("\nDone.\n");
 	}
 	 
 	AnnessiAnalizza(bufferEnd, root, nir);

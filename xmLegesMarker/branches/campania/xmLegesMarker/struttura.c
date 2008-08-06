@@ -309,15 +309,16 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		if (nreda) {
 			MoveNotesInMeta(mnotes, mNodoArticolato, nreda);
 		} else {
-			printf("\nMissing node: \"redazionale\": checking if there are notes...");
+			//printf("\nMissing node: \"redazionale\": checking if there are notes...");
 			//Aggiungi il nodo redazionale solo se sono presenti delle note
 			nnodo=totalGetFirstNodebyTagTipo(mNodoArticolato, BAD_CAST "nota", NULL, 0); // <--controlla il sotto-albero
 			if(nnodo!=NULL) {
-				printf(" found! Adding \"redazionale\"...\n");
+				//printf(" found! Adding \"redazionale\"...\n");
 				nreda = xmlNewChild(nmeta, NULL, BAD_CAST "redazionale", NULL);
 				MoveNotesInMeta(mnotes, mNodoArticolato, nreda);
-			} else
-				printf(" not found!\n");
+			} else {
+				//printf(" not found!\n");
+			}
 		}
 		
 		//Viene individuato il nodo TESTO (ultimo nodo) + a destra nell'albero
