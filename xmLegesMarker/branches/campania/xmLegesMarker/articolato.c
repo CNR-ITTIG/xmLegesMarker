@@ -14,6 +14,11 @@
 /******************************************************** STRUTTURA BUFFER ****/
 /******************************************************************************/
 xmlNodePtr ArticolatoAnalizza(  char *testo) {
+	
+	if(configGetVirgoAnalisys()) {
+		return ArticolatoAnalizzaVirgo(testo);
+	}
+	
 	char *testoIso=NULL;
 	size_t lin,lout;
 	//extern int flagAnnessi;
@@ -79,6 +84,81 @@ xmlNodePtr ArticolatoAnalizza(  char *testo) {
 	return mNodoArticolato;
 }
 
+xmlNodePtr ArticolatoAnalizzaVirgo(  char *testo) {
+	char *testoIso=NULL;
+	size_t lin,lout;
+	//extern int flagAnnessi;
+	int flagAnn=0;
+
+
+	//pAbsoluteIndexStart serve per riposizionare il Pos del Lex nel giusto offset
+	int ret=0;
+	loggerInfo("INIZIO Articolato");
+	
+	//Creazione del nodo ARTICOLATO
+	xmlNodePtr mNodoArticolato=xmlNewNode(NULL, BAD_CAST tagTipoToNome(articolato));
+
+	flagAnn = GetFlagAnnessi();
+	
+	//printf("\nann:%d\n", flagAnn);
+	//printf("\nTESTO:\n%s\n", testo);
+
+	//Save and reset parameters
+	int seq = configSequenzaCheck();
+	configSetSequenzaCheck(0);
+	configSetVirgoMode(1);	
+
+	domInit(articolato,mNodoArticolato,testo);
+	//In base all'encoding di "testo", il programma si arresta o meno all'interno di articolato.lex !!! 	
+	ret=_ArticolatoLexStart(testo);
+	
+	sequenzeClear();	//Inizializzazione di tutte le Sequenze
+	
+	//avvio scansione articolato.lex *************************************************
+	/*puts("-------------------------------------------------------------------");
+	puts(testo);*/
+
+	//testoIso = utilConvTextToIso(testo);
+	
+	/*lin=strlen(testo);
+	lout=lin*2;
+	testoIso=( char *)malloc(lout);
+	memset( testoIso, 0, lout );
+	UTF8Toisolat1(testoIso,lout,testo,lin);*/
+	
+	/*puts("-------------------------In ISO-----------------------------");
+	puts(testoIso);*/
+
+	domClose();
+
+	if (ret)		// ------------------------------------ caso di Documento Articolato
+	{	
+	   loggerInfo("INIZIO cercaCommiVuoti");
+		cercaCommiVuoti(mNodoArticolato);
+		loggerInfo("FINE cercaCommiVuoti");
+
+		loggerInfo("INIZIO cercaArticoliVuoti");
+		cercaArticoliVuoti(mNodoArticolato);
+		loggerInfo("FINE cercaArticoliVuoti");
+	}
+	else			// ------------------------------------ caso di Documento NON Articolato
+	{	
+		utilNodeDelete(mNodoArticolato);
+		mNodoArticolato=NULL;
+	}
+
+	loggerInfo("FINE Articolato");
+	utilPercCalc(4);
+
+	utilPercCalc(2);
+
+
+	//Restore parameters
+	configSetSequenzaCheck(seq);
+	configSetVirgoMode(0);
+	
+	return mNodoArticolato;
+}
 
 /******************************************************************************/
 /**************************************************** CERCA ARTICOLI VUOTI ****/

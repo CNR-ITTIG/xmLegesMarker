@@ -131,6 +131,8 @@ int stacklog=0;
 int countlog=0;
 int maxlog=9999;
 
+int startLineInVirgo=0; //1=considera inizio riga anche in virgolette
+
 /******************************************************************* CHECK ****/
 int check(tagTipo tipo) {
 	int seq;
@@ -138,7 +140,7 @@ int check(tagTipo tipo) {
 	loggerDebug(utilConcatena(9, "CHECK: ", tipoStr, " testo=\"", yytext, "\", num=", utilItoa(numConv), "lat=", utilItoa(latConv)));
 	seq = sequenzaCheck(tipo, numConv, latConv);
 	if (!seq) {
-		//printf("\nCHECK:\"%s\" non in sequenza \"%s\"\n", tipoStr, yytext);
+		if(stacklog) printf("\nCHECK:\"%s\" non in sequenza \"%s\"\n", tipoStr, yytext);
 		loggerWarn(utilConcatena(5, "CHECK:", tipoStr, " non in sequenza \"", yytext, "\""));
 		//Aggiungi un nodo/messaggio di warning?
 		domAddSequenceWarning(tipo, numConv, latConv);
@@ -183,7 +185,10 @@ void save(tagTipo tipo) {
 	register int i;
 	
 	//Se vi è un articolo, il documento è articolato
-	if (tipo==articolo)	isArticolato=1;
+	if ( tipo == articolo || 
+		(configGetVirgoMode()==1 && tipo==comma) )	 {
+			isArticolato=1;
+	}
 	
 	if (firstSave)
 	{
@@ -258,7 +263,8 @@ void saveCommaNN() {
 
 %}
 
-S	([ ])
+/* Aggiunto 'A0' come carattere spaziatore (causa vecchio ddl senato) */
+S	([ ]|[\xa0])
 ST	({S}*)
 PS	({S}*\.{S}*)
 NUM	([0-9]+)
@@ -297,7 +303,7 @@ COMMADEC	([.]?{S}*{DECORAZ}{S}*[.]?{FR})
 ARTBASE		({S}*{NUMARTICOLO}{S}*)
 ARTICOLO	({S}*{NUMARTICOLO}{S}*{DECORAZ}?{FR})
 COMMA1		({S}*(1|0){PS}?{LATINO}?{S}*[).])
-COMMA		({FR}*{S}*{NUM}{PS}?{LATINO}?{S}*[).])
+COMMA			({FR}*{S}*{NUM}{PS}?{LATINO}?{S}*[).])
 COMMANN1	({FR}{1,}{S}*)
 COMMANN2	({FR}*{S}*)
 LETTERA1	({S}*(a){PS}?{LATINO}?[).])
@@ -329,7 +335,9 @@ DUEPTACAPO	([:]{FR}+)
 PTACAPO		(([.]{FR})|({FR}{FR})|([.]{S}*{DECORAZ}{FR}))
 PVACAPO		(([;]{FR})|({FR}{FR})|([;]{S}*{DECORAZ}{FR}))
 
-VIRGO		(["])
+/* Non riconosce \", cioè le riconosce se ArticolatoAnalizzaVirgo()... */
+/* Possibile fix temporaneo: cambiare i \" in @ o altro TOKEN... */
+VIRGO		([\x22]|[@])
 /* 						virgolette sx: win e utf-8 */
 VIRG2A		({S}*[«\x93]|\xe0\x80\x9c|<<|\xab|&#60;&#60;|&lt;&lt;)	
 /* 						virgolette dx: win e utf-8 */
@@ -486,6 +494,14 @@ ROMANO		([ivxl]+{S}*)
 	else REJECT;
 }
 
+^{COMMA} {
+	if (!configGetVirgoMode()) {	REJECT; }
+	save(comma);
+	if(stacklog) puts("VIRGO MODE - IN COMMA");
+	BEGIN(InComma);
+}
+
+
 ^{ARTICOLORUB}/{RUBRICASEP}		{
 	if (configGetRubricaTipo() != adiacente)
 		REJECT;
@@ -499,8 +515,8 @@ ROMANO		([ivxl]+{S}*)
 <InArticoloRubrica>{RUBRICA}	{
 	//printf("RUBRICA: artpos=%d, artleng=%d, yytext='%s'\n", artpos, artleng, yytext);
 	if (configGetRubricaTipo() != adiacente &&
-		configGetRubricaTipo() != deagostini )
-		REJECT;
+		configGetRubricaTipo() != deagostini &&
+		configGetVirgoMode() == 0) { REJECT; 	}
 	numConv = 1;
 	artpos += artleng;
 	//printf("RUBRICA dopo: artpos=%d, artleng=%d\n", artpos, artleng);
@@ -539,6 +555,7 @@ ROMANO		([ivxl]+{S}*)
 	BEGIN(InArticolo);
 }
 
+
 <InArticolo>{DECORAZ}	{
 	if(art_dec==1)
 		REJECT;
@@ -547,13 +564,20 @@ ROMANO		([ivxl]+{S}*)
 	saveDec();
 }
 
-<InArticolo>^{COMMA1}	{
+<InArticolo>{COMMA1}	{
 	if (configTipoCommi() != commiNumerati)
 		REJECT;
 	if (!checkCardinale(comma))
 		REJECT;
 	save(comma);
 	if(stacklog) puts("IN ARTICOLO - IN COMMA 1");
+	BEGIN(InComma);
+}
+
+<InArticolo>{COMMA}	{
+	if (!configGetVirgoMode()) {	REJECT; }
+	save(comma);
+	if(stacklog) puts("VIRGO MODE - IN ARTICOLO - IN COMMA");
 	BEGIN(InComma);
 }
 
@@ -581,10 +605,20 @@ ROMANO		([ivxl]+{S}*)
 }
 
 <InPreComma>^{COMMA}	{
+    if(stacklog) printf("\nInPreComma->Comma\n");
 	if (configTipoCommi() != commiNumerati)
 		REJECT;
 	if (!checkCardinale(comma))
 		REJECT;
+    if(stacklog) printf("\nInPreComma->Comma UNZ\n");
+    save(comma);
+	yy_pop_state();
+	if(stacklog) puts("IN COMMA (FR)");
+	BEGIN(InComma);
+}
+
+<InPreComma>{COMMA}	{
+	if (!configGetVirgoMode()) {	REJECT; }
 	save(comma);
 	yy_pop_state();
 	if(stacklog) puts("IN COMMA (FR)");
@@ -829,7 +863,7 @@ ROMANO		([ivxl]+{S}*)
 <InComma>{PTACAPO}/{PARTIZIONE} {
 	artpos += artleng-1;
 	unput('\n');
-	if(stacklog) puts("PRE COMMA");
+	if(stacklog) puts("PARTIZIONE found, pushing PRE COMMA");
 	yy_push_state(InPreComma);
 }
 
@@ -856,7 +890,7 @@ ROMANO		([ivxl]+{S}*)
 <InCommaDec>{NL}	{
 	artpos += artleng-1;
 	unput('\n');
-	if(stacklog) puts("PRE COMMA");
+	if(stacklog) puts("commaDec - PRE COMMA");
 	yy_push_state(InPreComma);
 }
 
@@ -880,7 +914,7 @@ ROMANO		([ivxl]+{S}*)
 <InComma,InLettera,InNumero>{DUEPTACAPO}?{VIRGO}	{
 	nvirap = 1;	
 	artpos += artleng;
-	//printf("\nVIRGO AP num:%d lat:%d\n",numConv,latConv);
+	if(stacklog) printf("\nVIRGO AP num:%d lat:%d n:%d\n",numConv,latConv,nvirap);
 	sequenzaInc(virgolette);	//Incrementa l'ID Vir
 	domTagOpen(virgolette,artpos,0);
 	domSetID(virgolette,sequenzaGetNum(virgolette),sequenzaGetLat(virgolette));
@@ -890,7 +924,7 @@ ROMANO		([ivxl]+{S}*)
 
 <InVirgolette>{VIRGO}	{
 	nvirap--;	
-	//printf("\nVIRGO CL num:%d lat:%d\n",numConv,latConv);
+	if(stacklog) printf("\nVIRGO CL num:%d lat:%d n:%d\n",numConv,latConv,nvirap);
 	if (nvirap==0) {
 		domAppendTextToLastNode(artpos);
 		domTagCloseFrom(virgolette);

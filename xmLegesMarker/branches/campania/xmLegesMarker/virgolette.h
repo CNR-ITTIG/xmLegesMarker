@@ -18,6 +18,8 @@ extern "C" {
 #include <string.h>
 #include "dom.h"
 #include "tag.h"
+#include "util.h"
+#include "articolato.h"
 #include <libxml/tree.h>
 
 void virgoletteInMod(xmlNodePtr pParentNode);

@@ -22,6 +22,10 @@ int testa(xmlNodePtr pTextNode, xmlNodePtr ptipodoc, xmlNodePtr pmeta,
 		  xmlNodePtr pformulainiziale,
 		  int tdoc) {
 
+	if(configGetDisableHeader()) {
+		return 0;
+	}			
+	
 	loggerInfo("INIZIO Testa");
 	
 	if(configTipoInput() == xml) { // problema per header allegati? -> controllare se ruoloDoc==principale

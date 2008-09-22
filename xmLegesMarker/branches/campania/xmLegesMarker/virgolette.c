@@ -207,6 +207,7 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 		pNodoCorpo->children=newNodoMod; //sostituisce "manualmente" il contenuto di 'corpo'
 		
 		areInMod=1;
+				
 	}
 
 	//Togli il tag 'virgolette' se non si trova all'interno di un 'mod'
@@ -244,13 +245,89 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 		cur=cur->next;
 	}
 	
+	//Try to analyze virgolette content
+	xmlNodePtr modNode = GetFirstNodebyTagTipo(pNodoCorpo, BAD_CAST "mod");
+	if(modNode == NULL) {
+		//printf("\n ERROR ! ModificaVirgolette() - modNode is NULL! name: %s \n", pNodoCorpo->children->name);
+		return;
+	}
+	
+	xmlNodePtr virgoNode = GetFirstNodebyTagTipo(modNode, BAD_CAST "virgolette");
+	if(virgoNode == NULL) {
+		//printf("\n ERROR! ModificaVirgolette() - virgoNode is null! \n");  // <-- caso ABROGATIVA ??
+		return;
+	}
+				
+	//char *virgoContent = (char *) xmlNodeListGetRawString(NULL, virgoNode->children, 1); //Enc sbagliato con Legge080598		
+	char *virgoContent = (char *) xmlNodeListGetString(NULL, virgoNode->children, 0);  //Così è OK con Legge080598...
+	
+	if(strlen(virgoContent) < 64) {
+		//Input too short, that should be a text virgo...
+		return;
+	}
+	
+	xmlNodePtr resNode = ArticolatoAnalizzaVirgo(virgoContent);
+	
+	//xmlNodePtr resNode = virgoNode;
+
+	if(resNode == NULL) {
+		
+			//resNode is null means articolato.lex didn't found any 'articolato' ! <-- Tipo= PAROLA...
+			//printf("\n ModificaVirgolette() - resNode is null! buffer:\n%s\n", virgoContent);
+			
+			xmlNewProp(virgoNode, BAD_CAST "tipo", BAD_CAST "parola");
+	} else {
+		
+		//Articolato found, there can be error tag too
+	
+		//printf("\n ModificaVirgolette() - resNode is NOT NULL! buffer:\n%s\n", virgoContent);
+		
+		xmlNodePtr mFirstError = GetFirstNodebyTagTipo(resNode, BAD_CAST tagTipoToNome(tagerrore));
+		
+		if(mFirstError != NULL) { //Ce ne può essere più di uno di nodi errore?
+			
+			//Check if error is empty, else discard resNode or just warn??
+			char *errContent = (char *) xmlNodeGetContent(mFirstError); 
+			errContent = trim(errContent);
+			if(strlen(errContent) > 0) {
+				printf("\nWARNING!! Non empty error in resNode ! content:\n%s\n", errContent);
+				printf("\nDo Nothing / Skipping...\n");
+				return;	
+			} else {
+				//Delete empty error node
+				xmlUnlinkNode(mFirstError);
+				xmlFreeNode(mFirstError);	
+			}
+
+		} else {
+		
+			//printf("\nNo Error in resNode - name:%s\n", resNode->name);
+		}
+		
+		printf("\nAdding resNode to virgolette - name:%s\n", resNode->name);		
+		//Very ugly and risky operation, unlinks actual childs and replace them with resNode
+		DeleteAllChildren(virgoNode);
+		xmlAddChild(virgoNode, resNode);
+		
+		xmlNewProp(virgoNode, BAD_CAST "tipo", BAD_CAST "struttura");
+		
+		if(IsNode(resNode, articolato)) {
+			MoveAllChildren(resNode, virgoNode);
+			xmlUnlinkNode(resNode);
+			xmlFreeNode(resNode);
+			
+		} else {
+			printf("\nERROR - resNode is not articolato: %s\n", resNode->name);
+		}
+	}	
 }
 
 //RICORSIVA
 void virgoletteInMod(xmlNodePtr pParentNode)
 {
-	if (pParentNode==NULL)return ;
-
+	if (pParentNode==NULL) return ;
+	
+	
 	xmlNodePtr cur= pParentNode->children;	//FirstChild
 
 	while (cur != NULL) {
@@ -263,6 +340,7 @@ void virgoletteInMod(xmlNodePtr pParentNode)
 		}
 		cur = cur->next; //NextChild
 	}
+	
 }
 
 

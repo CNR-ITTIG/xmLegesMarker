@@ -25,7 +25,7 @@
 #include "xml.h"
 #include "prexml.h"
 
-const char *versione = "2.1 [IRE-SUD]";
+const char *versione = "3.0.5";
 int visErrore = 0;
 char *bufferEnd;
 char *namebin = "";
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 	int virgoletteSoppresse = 0;
 
 	opterr = 0;
-	while ((c = getopt (argc, argv, "c:d:e:f:hi:l:m:no:p:r:s:t:v:C:H:L:M:R:T:V")) != -1)
+	while ((c = getopt (argc, argv, "c:d:e:f:hi:l:m:no:p:r:s:t:v:C:H:L:M:R:T:V:ZFY")) != -1)
 		switch (c)
 		{			
 			case 'm': 
@@ -298,6 +298,17 @@ int main(int argc, char *argv[])
 			//	break;
 			case 'V':	/*  ---------------------------------- testo con virgolette soppresse */
 				virgoletteSoppresse = 1;
+				break;
+			case 'Z':	/*  ---------------------------------- no header analisys */
+				configSetDisableHeader(1);
+				break;
+			case 'F':	/*  ---------------------------------- no footer analisys */
+				configSetDisableFooter(1);
+				break;
+			case 'Y':	/*  ---------------------------------- virgolette analisys mode */
+				configSetVirgoAnalisys(1);
+				configSetDisableHeader(1);
+				configSetDisableFooter(1);
 				break;
 			case 'L':	//Disattiva output
 				if (!loggerSetOutputEnabled(optarg))	help();
@@ -537,6 +548,8 @@ void help(void)
 	puts("               cnr=provvedimento CNR       del=delibera");
 	puts("               stc=Statuto Comunale       regc=Regolamento Comunale");
 	puts("               delc=Delibera Consiliare");
+	puts("-I            : disabilita l'analisi dell'intestazione (header)");
+	puts("-F            : disabilita l'analisi del footer");	
 	puts("-T nomeTipo  : nome tipo di atto da analizzare; valido solo per -t nir");
 	puts("-M <dir>     : directory dei modelli per scansione testa e coda");
 	puts("-v           : livello di log: error, warn, info, debug");
