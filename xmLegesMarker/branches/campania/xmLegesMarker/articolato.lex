@@ -335,13 +335,15 @@ DUEPTACAPO	([:]{FR}+)
 PTACAPO		(([.]{FR})|({FR}{FR})|([.]{S}*{DECORAZ}{FR}))
 PVACAPO		(([;]{FR})|({FR}{FR})|([;]{S}*{DECORAZ}{FR}))
 
+VIRGO34	(&#x34;)
 /* Non riconosce \", cioè le riconosce se ArticolatoAnalizzaVirgo()... */
 /* Possibile fix temporaneo: cambiare i \" in @ o altro TOKEN... */
 VIRGO		([\x22]|[@])
-/* 						virgolette sx: win e utf-8 */
-VIRG2A		({S}*[«\x93]|\xe0\x80\x9c|<<|\xab|&#60;&#60;|&lt;&lt;)	
-/* 						virgolette dx: win e utf-8 */
-VIRG2C		([»\x94]|\xe0\x80\x9d|>>|\xbb|&#62;&#62;|&gt;&gt;)	
+
+V2A			(&#x201c;|&#x93;)
+V2C			(&#x201d;|&#x94;)
+VIRG2A		({S}*[«\x93]|\xe0\x80\x9c|<<|\xab|&#60;&#60;|&lt;&lt;|{V2A})	
+VIRG2C		([»\x94]|\xe0\x80\x9d|>>|\xbb|&#62;&#62;|&gt;&gt;|{V2C})	
 
 NOTAVVTESTO1	(n{S}*o{S}*t{S}*[ea])
 NOTAVVTESTO2	(a{S}*v{S}*v{S}*e{S}*r{S}*t{S}*e{S}*n{S}*z{S}*[ea])
@@ -610,10 +612,8 @@ ROMANO		([ivxl]+{S}*)
 		REJECT;
 	if (!checkCardinale(comma))
 		REJECT;
-    if(stacklog) printf("\nInPreComma->Comma UNZ\n");
     save(comma);
 	yy_pop_state();
-	if(stacklog) puts("IN COMMA (FR)");
 	BEGIN(InComma);
 }
 
@@ -935,6 +935,7 @@ ROMANO		([ivxl]+{S}*)
 
 <InComma,InLettera,InNumero>{DUEPTACAPO}?{VIRG2A}	{
 	nvir2ap = 1;
+	if(stacklog) printf("\nVIR2A num:%d lat:%d n:%d\n",numConv,latConv,nvir2ap);	
 	artpos += artleng;
 	sequenzaInc(virgolette);
 	domTagOpen(virgolette,artpos,0);
@@ -950,6 +951,7 @@ ROMANO		([ivxl]+{S}*)
 
 <InVirgoDoppie>{VIRG2C}		{
 	nvir2ap--;	
+	if(stacklog) printf("\nVIR2C num:%d lat:%d n:%d\n",numConv,latConv,nvir2ap);	
 	if (nvir2ap==0) {
 		domAppendTextToLastNode(artpos);
 		domTagCloseFrom(virgolette);
