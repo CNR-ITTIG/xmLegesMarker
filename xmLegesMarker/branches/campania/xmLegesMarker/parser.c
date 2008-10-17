@@ -468,6 +468,8 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	//puts(bufferEnd);
+
 	AnnessiAnalizza(bufferEnd, root, nir);
 
 	//PostProcessing (Inserimento Attributo ID, conversione TagErrore in PI)
@@ -477,18 +479,20 @@ int main(int argc, char *argv[])
 	if(configGetNodeCount())	utilNodeCount(root);
 
 	if (!fileout) fileout = "-";
+
 	xmlSaveFormatFileEnc(fileout, doc, (const char*)configEncoding(), 1);
 
-	/*
+/*
 	//Si può salvare il doc anche tramite xmlDocDump:
 	int msize = 4096;
 	xmlChar *mem;
-	xmlDocDumpFormatMemoryEnc(doc, &mem, &msize, (const char*)configEncoding(), 1);
+	//xmlDocDumpFormatMemoryEnc(doc, &mem, &msize, (const char*)configEncoding(), 1);
+	xmlDocDumpFormatMemory(doc, &mem, &msize, 1);
 	if (fo == NULL)
 		fprintf(stdout,"%s",mem);
 	else
 		fprintf(fo,"%s",mem);
-	*/
+*/
 
 	utilPercCurrSet(100);
 

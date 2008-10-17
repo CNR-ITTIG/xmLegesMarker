@@ -15,19 +15,19 @@
 //extern int flagAnnessi;
 
 const void AnnessiAnalizza( char *testo, xmlNodePtr pParentNode, tagTipo pTipoParentNode){
-	
+
 	//extern int flagAnnessi;
-	
+
 	int NumeroAnnessi=0;
 	xmlNodePtr mNodoAnnessi=NULL, CurrStruttura=NULL;
-	
+
 	if (configIsEnabled(mod_annessi))
 	{
 		loggerInfo("INIZIO Annessi");
 
 		mNodoAnnessi = xmlNewNode(NULL, BAD_CAST tagTipoToNome(annessi));
 
-		//Inserisce il nodo mNodoAnnessi nello stato "annessi", inoltre passa al buffer di testo 
+		//Inserisce il nodo mNodoAnnessi nello stato "annessi", inoltre passa al buffer di testo
 		//l'intero documento
 		domInit(annessi,mNodoAnnessi,testo);
 
@@ -53,7 +53,7 @@ const void AnnessiAnalizza( char *testo, xmlNodePtr pParentNode, tagTipo pTipoPa
 	{
 		SetFlagAnnessi(1);			//Ci sono degli annessi
 		CurrStruttura = GerStrutturaPreAnnessi(mNodoAnnessi);
-		
+
 		AnnessiCicla(mNodoAnnessi);
 		if (CurrStruttura){
 			//Aggancia la STRUTTURA al NIR
@@ -77,7 +77,7 @@ const void AnnessiAnalizza( char *testo, xmlNodePtr pParentNode, tagTipo pTipoPa
 		if (CurrStruttura)
 			xmlAddChild(pParentNode,CurrStruttura);
 	}
-	
+
 
 }
 
@@ -111,7 +111,7 @@ void AnnessiCicla(xmlNodePtr pNodoParent){
 	loggerInfo("INIZIO Ciclo Annessi");
 	//Vettore di tutti i nodi con TAG ANNESSO del nodo
 	int numAnnessi=GetAllNodebyTagTipo(&vectAnnessi[0],MAXANNESSI,pNodoParent,BAD_CAST tagTipoToNome(annesso));
-	
+
 	//Ciclo su tutti i nodi "Annessi"
 	for (n=0;n<numAnnessi;n++)
 	{
@@ -155,7 +155,7 @@ void AnnessiCicla(xmlNodePtr pNodoParent){
 						else						// base: non ammessi allegati
 						{
 							xmlNewChild(currAnnesso, NULL, BAD_CAST "rifesterno", NULL);
-							xmlAddPrevSibling(CurrErrorText, xmlNewText(BAD_CAST "===== DTD BASE/DL: CORPO ALLEGATO NON AMMESSO =====\n\n")); 
+							xmlAddPrevSibling(CurrErrorText, xmlNewText(BAD_CAST "===== DTD BASE/DL: CORPO ALLEGATO NON AMMESSO =====\n\n"));
 						}
 					}
 					free(tmpbuff);
@@ -172,23 +172,23 @@ xmlNodePtr GerStrutturaPreAnnessi(xmlNodePtr pParentNode)
 	xmlNodePtr	CurrError,CurrErrorText,CurrStruttura;
 
 	loggerInfo("INIZIO PreAnnessi");
-	
+
 	//Individua il primo nodo con Tag ERRORE
 	CurrError=GetFirstNodebyTagTipo(pParentNode,BAD_CAST tagTipoToNome(tagerrore));
-	
+
 	if(CurrError == NULL) {
 		printf("\nWarning! CurrError is null !\n");
 	}
-	
+
 	//Individua il primo nodo Testo
 	CurrErrorText=GetFirstTextNode(CurrError);
 	if(CurrErrorText == NULL) {
 		printf("\nWarning! CurrErrorText is null !\n");
 	}
-	
+
 	CurrStruttura=NULL;
 
-	if (CurrErrorText) 
+	if (CurrErrorText)
 	{
 		if (CurrErrorText->content)
 		{
@@ -199,12 +199,12 @@ xmlNodePtr GerStrutturaPreAnnessi(xmlNodePtr pParentNode)
 			//tmpbuff=(char *)strdup((char *)CurrErrorText->content);
 			tmpbuff=(char *)strdup(realContent);
 			//printf("\nTMPBUFF:\n%s\n", tmpbuff);
-				
+
 			if (tmpbuff)
 			{
 
 				CurrStruttura=StrutturaAnalizza(tmpbuff, principale); //tmpbuff è in UTF-8!!!!!!!!!!!!!1
-				
+
 				if (CurrStruttura!=NULL){
 					//Se è stata individuata una struttura elimina il nodo ERRORE
 					//e aggancia la STRUTTURA al PARENT
@@ -230,7 +230,7 @@ void EliminaErrori(xmlNodePtr pParentNode, tagTipo pTipoParentNode)
 	int			tmpNumErrorChild;
 
 	loggerInfo("INIZIO EliminaErrori");
-	
+
 	//Vettore di tutti i nodi con TAG ERRORE del nodo 'pParentNode'
 	tmpNumErrorChild=GetAllNodebyTagTipo(&ErrorChildren[0],1024,pParentNode,BAD_CAST tagTipoToNome(tagerrore));
 	//Ciclo sui nodi Errore '?errore?'
