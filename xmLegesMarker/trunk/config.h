@@ -78,7 +78,8 @@ typedef enum _tipoInput {
 	txt,
 	html,
 	doc,
-	ted
+	ted,
+	xml
 } tipoInput;
 
 typedef enum _tipoCommi {
@@ -163,6 +164,19 @@ void configSetSequenzaCheck(int s);
 
 char *configTestaVuota(tipoDTD tipo);
 char *configCodaVuota(tipoDTD tipo);
+
+int configGetVirgoMode();
+void configSetVirgoMode(int v);
+
+int configGetVirgoAnalisys();
+void configSetVirgoAnalisys(int d);
+
+int configGetDisableHeader();
+void configSetDisableHeader(int d);
+
+int configGetDisableFooter();
+void configSetDisableFooter(int d);
+
 
 #ifdef __cplusplus
 }

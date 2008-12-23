@@ -322,6 +322,26 @@ void MoveAllChildren(xmlNodePtr pFrom,xmlNodePtr pTo)
 	}
 	xmlAddChild(pTo, nlist);  //xmlAddChildList() ??
 }
+
+void DeleteAllChildren(xmlNodePtr pFrom)
+{
+	xmlNodePtr cur = pFrom->children;
+	xmlNodePtr tmp = NULL;
+	if(cur == NULL) return;
+	
+	//Unlink e FreeNode a partire dall'ultimo nodo della lista:
+	while (cur != NULL) {
+		tmp = cur;
+		cur = cur->next;
+	}
+	while (tmp != NULL) {
+		cur = tmp;
+		tmp = tmp->prev;
+		xmlUnlinkNode(cur);
+		xmlFreeNode(cur);
+	}
+}
+
 /* </sostituzione> */
 
 //NON RICORSIVA
@@ -663,6 +683,39 @@ void sostStr(char *stringa, char *old, char *new) {
 	} /* fine if */
 
 } /* fine sostStr */
+
+char *trim_right( char *szSource )
+{
+char *pszEOS = 0;
+
+// Set pointer to character before terminating NULL
+pszEOS = szSource + strlen( szSource ) - 1;
+
+// iterate backwards until non '_' is found
+while( (pszEOS >= szSource) && (*pszEOS == '_') )
+*pszEOS-- = '\0';
+
+return szSource;
+}
+char *trim_left( char *szSource )
+{
+char *pszBOS = 0;
+
+// Set pointer to character before terminating NULL
+//pszEOS = szSource + strlen( szSource ) - 1;
+pszBOS = szSource;
+
+// iterate backwards until non '_' is found
+while(*pszBOS == '_')
+*pszBOS++;
+
+return pszBOS;
+}
+char *trim( char *szSource )
+{
+return trim_left(trim_right(trim_left(szSource)));
+}
+
 
 /*
 //Converti il numero nella lettera corrispondente

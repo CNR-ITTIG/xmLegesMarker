@@ -17,7 +17,7 @@
 #include "tag.h"
 #include "util.h"
 #include "dom.h"
-//#include "annessi.h"
+#include "config.h"
 
 
 #include <libxml/tree.h>
@@ -28,7 +28,8 @@ extern "C" {
 #endif
 
 //#include "tag.h"
-xmlNodePtr ArticolatoAnalizza(  char *testo);
+xmlNodePtr ArticolatoAnalizza(char *testo);
+xmlNodePtr ArticolatoAnalizzaVirgo(char *testo);
 void cercaArticoliVuoti(xmlNodePtr pArticolato);
 void cercaCommiVuoti(xmlNodePtr pNodo);
 

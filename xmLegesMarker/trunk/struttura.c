@@ -8,6 +8,7 @@
 ******************************************************************************/
 #include "struttura.h"
 #include "disposto.h"
+#include "xml.h"
 
 //RICORSIVA
 // ------------------------------------------------- Scorre l'albero restituendo il nodo + a destra che è testo
@@ -26,17 +27,17 @@ xmlNodePtr GetLastRightTextNode(xmlNodePtr pParentNode)
 }
 */
 
-//Find last right partition (usually a "corpo" of a "comma"), 
+//Find last right partition (usually a "corpo" of a "comma"),
 //returns his text (avoid "nota" and "ndr" problems)
 xmlNodePtr GetLastRightTextNode(xmlNodePtr pParentNode)
 {
 	if (pParentNode==NULL) return NULL;
 	xmlNodePtr cur = pParentNode, child = NULL;
-	
+
 	while(cur!=NULL) {
 		child = cur->children; //child not null ?! yes, if there is an error tag at the end...
 		if(child==NULL) {
-			printf("\n>>WARNING<< - GetLastRightTextNode() - child is null (tag:%s)\n", (char *)cur->name);
+			//printf("\n>>WARNING<< - GetLastRightTextNode() - child is null (tag:%s)\n", (char *)cur->name);
 			return NULL;
 		}
 		if(child->children == NULL) //child is the last right partition
@@ -50,7 +51,7 @@ xmlNodePtr GetLastRightTextNode(xmlNodePtr pParentNode)
 //(improvements: manage multiple text node in "next" list, and eventual NodeList (...+text+entity+...)
 xmlNodePtr getPartitionTextNode(xmlNodePtr node) {
 	if(node==NULL) return NULL;
-		
+
 	while(node!=NULL) {
 		if(xmlNodeIsText(node))
 			return node;
@@ -64,11 +65,11 @@ void checkEmptyRubrica(xmlNodePtr node) {
 	int rubsize = 1024; //troppo? troppo poco?
 	xmlNodePtr rubriche[rubsize];
 	int i;
-	
+
 	//init rubriche
 	for(i=0;i<rubsize;i++)
 		rubriche[i]=NULL;
-	
+
 	//fill rubriche
 	totalGetFirstNodebyTagTipo(node, BAD_CAST tagTipoToNome(rubrica), rubriche, rubsize);
 
@@ -99,7 +100,7 @@ int isEmptyRubrica(xmlNodePtr node) {
 }
 
 //Returns 1 if str (trimmed) is an empty string ( something like: str.trim().length() > 0)
-//>>>>MIGLIORARE QUESTA FUNZIONE<<< 
+//>>>>MIGLIORARE QUESTA FUNZIONE<<<
 int isEmptyText(char *str) {
 	int i;
 	int len = strlen(str); //str must be null-terminated !
@@ -121,7 +122,7 @@ xmlNodePtr CreateNdr(xmlChar *mid)
 	return mndr;
 }
 
-//RICORSIVA 
+//RICORSIVA
 //(Scandisce a partire da pParentNode: ricorsiva in profondità (->children), while interno in larghezza (->next) )
 // ------------------------------------------------- muove ndr in meta
 void MoveNotesInMeta(int IDStartFrom,xmlNodePtr pParentNode,xmlNodePtr predazionale)
@@ -138,26 +139,26 @@ void MoveNotesInMeta(int IDStartFrom,xmlNodePtr pParentNode,xmlNodePtr predazion
 			xmlChar *mid=xmlGetProp(cur,BAD_CAST (ATTRIB_ID));
 			curID=atoi((char *)mid);
 			//printf("\nMovesNotes: %s\n", (char *)mid);
-			
+
 			if (curID>=1000)
 			{
 				curID = curID - 1000 + IDStartFrom;
 				mid=BAD_CAST utilConcatena(2,tagTipoToNomeID(nota),utilItoa(curID));
 				xmlSetProp(cur, BAD_CAST (ATTRIB_ID),mid); //il primo id,"n1" non viene assegnato qui
 			}
-			
+
 			mndr=CreateNdr(BAD_CAST mid);
 
 			//sostituita:
 			//tmpnodo=xmlReplaceNode(cur,mndr);//tmpnodo contiene la vecchia nota
 			tmpnodo = replaceNodeWithChildren(cur,mndr,cur->prev);
-			
+
 			//aggancia la NOTA al REDAZIONALE
 			xmlAddChild(predazionale,tmpnodo);
-			
+
 			//Ma si dovrebbe tenere conto del fatto che la nota può essere in un annesso!?
 			//L'id di ndr dovrebbe essere qualcosa tipo "ann1-n1" e non soltanto "n1"
-			//Qui sia l'id di nota che quello di ndr sono del tipo "n1". 
+			//Qui sia l'id di nota che quello di ndr sono del tipo "n1".
 			//Quando viene aggiunto "ann1-" ? <-- vedi domAttributeIDUpdate() che viene richiamata
 			//alla fine da parser.c
 			cur=mndr;
@@ -181,7 +182,7 @@ void Corpo2Alinea(xmlNodePtr pParentNode) {
 
 	xmlNodePtr cur=pParentNode->children; //FirstChild
 	xmlNodePtr PrevNodoCorpo=NULL;
-	
+
 	while (cur != NULL) {
 
 		if ( (IsNode(cur,lettera)) || (IsNode(cur,numero)) || (IsNode(cur,puntata)) )	{
@@ -198,7 +199,7 @@ void Corpo2Alinea(xmlNodePtr pParentNode) {
 
 		} else if(!IsNode(cur,tagerrore)) //ignora eventuali nodi errore
 			PrevNodoCorpo=NULL;
-			
+
 		Corpo2Alinea(cur);
 		cur = cur->next; //next fratello
 	}
@@ -209,7 +210,7 @@ void Corpo2Alinea(xmlNodePtr pParentNode) {
 //	note: 1) se dtd base, ruolo non è allegato; 2) buffer non è vuoto
 // ==========================================================================
 
-xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo) 
+xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 {
 	char* disposto=NULL; char* prima=NULL; char* ntext=NULL;
 	int mnotes=0;
@@ -217,7 +218,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		   ncontenitore=NULL, nformulafinale=NULL, nconclusione=NULL;
 	xmlNodePtr mNodoTipoDocumento=NULL, mNodoArticolato=NULL, mFirstError=NULL, mFirstErrorText= NULL;
 	xmlNodePtr nnodo= NULL;
-	
+
 	loggerInfo("INIZIO Struttura");
 
 	//Creazione del Nodo TIPODOCUMENTO
@@ -228,10 +229,10 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		if (ruolo == principale)	// doc. principale
 		{
 			xmlNodeSetName(mNodoTipoDocumento, BAD_CAST configGetDocTestoString());
-			
+
 			if ((configGetDocTestoTipo() == documentoNIR || configGetDocTestoTipo() == provCNR)
 						&& configGetDTDTipo() != base)
-				xmlNewProp(mNodoTipoDocumento, BAD_CAST "nome", BAD_CAST configGetDocNome()); 
+				xmlNewProp(mNodoTipoDocumento, BAD_CAST "nome", BAD_CAST configGetDocNome());
 		}
 		else {			// allegati
 			xmlNodeSetName(mNodoTipoDocumento, BAD_CAST "DocumentoNIR");
@@ -245,25 +246,35 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		tdoc=1;
 	if(configGetDocTestoTipo() == provCNR) // && ruolo == principale) //<- doc.non valido se DDL+DecretoLegge
 		tdoc=2;
-	if(!strcmp(configGetDocNome(),"Regolamento Regionale")) 
+	if(!strcmp(configGetDocNome(),"Regolamento Regionale"))
 		tdoc=3;
-	if(!strcmp(configGetDocNome(),"Delibera Consiliare")) 
+	if(!strcmp(configGetDocNome(),"Delibera Consiliare"))
 		tdoc=4;
-	if(!strcmp(configGetDocNome(),"Regolamento Comunale")) 
+	if(!strcmp(configGetDocNome(),"Regolamento Comunale"))
 		tdoc=5;
 
 	// inserisco nodi di testa
-	nmeta = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "meta", NULL);
-	ndescrittori = xmlNewChild(nmeta, NULL, BAD_CAST "descrittori", NULL);
-	nintestazione = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "intestazione", NULL);
-	if(tdoc!=1) {
-		nformulainiziale = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "formulainiziale", NULL);
-		//nnodo = xmlNewChild(nformulainiziale, NULL, BAD_CAST tagTipoToNome(h_p), NULL);  	
-		//xmlNewChild(nformulainiziale, NULL, BAD_CAST tagTipoToNome(h_p), NULL); // base: vuole almeno un h:p //vedi sotto
+	if(configTipoInput() == xml && ruolo == principale) {
+		xmlAdjustHeader(mNodoTipoDocumento);
+		nmeta = xmlGetMeta();
+		ndescrittori = xmlGetDescrittori();
+		nintestazione = xmlGetIntestazione();
+	} else {
+		nmeta = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "meta", NULL);
+		ndescrittori = xmlNewChild(nmeta, NULL, BAD_CAST "descrittori", NULL);
+		nintestazione = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "intestazione", NULL);
 	}
-	
+
+	if(tdoc!=1) {
+		if(configTipoInput() == xml && ruolo == principale) {
+			nformulainiziale = xmlGetFormulaIniziale();
+		} else {
+			nformulainiziale = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "formulainiziale", NULL);
+		}
+	}
+
 	mNodoArticolato = ArticolatoAnalizza(buffer); 	//Analisi di un eventuale ARTICOLATO
-	
+
 	if (mNodoArticolato) /* ------------------------------------------------------------------------------------------------ trovato l'articolato*/
 	{
 		xmlAddChild(mNodoTipoDocumento,mNodoArticolato);	//<-- Aggancia il nodo dell'ARTICOLATO
@@ -276,9 +287,9 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 
 		//Viene individuato il primo ERRORE presente nel nodo ARTICOLATO e viene passato all'HeaderParser
 		mFirstError=GetFirstNodebyTagTipo(mNodoArticolato, BAD_CAST tagTipoToNome(tagerrore));
-		
+
 		mFirstErrorText=GetFirstTextNode(mFirstError);
-		
+
 		mnotes=testa(mFirstErrorText,mNodoTipoDocumento,nmeta,ndescrittori,nintestazione,nformulainiziale,tdoc);
 
 		//Sgancia il nodo TAGERRORE e lo libera
@@ -298,27 +309,28 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		if (nreda) {
 			MoveNotesInMeta(mnotes, mNodoArticolato, nreda);
 		} else {
-			printf("\nMissing node: \"redazionale\": checking if there are notes...");
+			//printf("\nMissing node: \"redazionale\": checking if there are notes...");
 			//Aggiungi il nodo redazionale solo se sono presenti delle note
 			nnodo=totalGetFirstNodebyTagTipo(mNodoArticolato, BAD_CAST "nota", NULL, 0); // <--controlla il sotto-albero
 			if(nnodo!=NULL) {
-				printf(" found! Adding \"redazionale\"...\n");
+				//printf(" found! Adding \"redazionale\"...\n");
 				nreda = xmlNewChild(nmeta, NULL, BAD_CAST "redazionale", NULL);
 				MoveNotesInMeta(mnotes, mNodoArticolato, nreda);
-			} else
-				printf(" not found!\n");
+			} else {
+				//printf(" not found!\n");
+			}
 		}
-		
+
 		//Viene individuato il nodo TESTO (ultimo nodo) + a destra nell'albero
 		//PROBLEMA: Se sono presenti delle note alla fine del testo, mFirstErrorText non è ciò che ci si aspetta.
 		//--> correggere la funzione GetLastRightTextNode()
 		mFirstErrorText=GetLastRightTextNode(mNodoArticolato);
 		mnotes=coda(mnotes,mNodoTipoDocumento,mFirstErrorText,nmeta,ndescrittori,nformulafinale,nconclusione,tdoc);
-				
+
 	}
 	else 			/* ---------------------------------------------------------------------------------------- NON trovato l'articolato */
 	{
-		
+
 		//printf("\n------ BUFFER1:%s\n",(char *)buffer);
 		if (ruolo == principale)
 			buffer = utilConvertiText(buffer);		// converto in UTF-8
@@ -329,22 +341,22 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		prima = (char *) malloc(sizeof(char) * nnl);
 		*prima=0;
 
-		//Sostituisci eventuali caratteri > e < tramite sstring()				
+		//Sostituisci eventuali caratteri > e < tramite sstring()
 		dispostoAnalizza(ruolo, sstring(buffer), &disposto, &prima, nnl);	// cerco disposto e prima del disposto
-								
+
 		nnl = strlen(prima);
-		if (disposto && strlen(disposto) > nnl)	
+		if (disposto && strlen(disposto) > nnl)
 			nnl = strlen(disposto);
 		ntext = (char*) malloc(sizeof(char) * (nnl + 100));
-		
+
 		if (ruolo == principale && configGetDocStruttura() == docarticolato)	// minimo x articolato
 		{
 			narticolato = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "articolato", NULL);
-			InsertXmlFile(configArticolatoVuoto(), narticolato);			
+			InsertXmlFile(configArticolatoVuoto(), narticolato);
 			narticolo = GetFirstNodebyTagTipo(narticolato, BAD_CAST tagTipoToNome(articolo)); // punto articolo
 		}
 		//Aggiunto questo if per non inserire tag vuoti e se poi si richiama comunque testa()
-		if(!disposto)		
+		if(!disposto)
 			InsertXmlFile(configDescrittoriVuoto(), ndescrittori);	// togliere se si chiama la funzione testa
 		//------------------------------------------------------------------------------------- PRIMA
 		if (disposto)
@@ -356,7 +368,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 			mnotes=testa(nnodo,mNodoTipoDocumento,nmeta,ndescrittori,nintestazione,nformulainiziale,tdoc);
 			utilNodeDelete(nnodo);
 			// coda?
-		}	
+		}
 		else if (ruolo == principale && configGetDocStruttura() == docarticolato)		// prima in error
 		{
 			nnodo = xmlNewChild(narticolo, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);
@@ -381,7 +393,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		if (disposto)
 		{
 			if (ruolo == principale && configGetDocStruttura() == docarticolato)
-			{	
+			{
 				// $$$$$ dopo spostare dopo il primo articolo $$$$$
 				nnodo = xmlNewChild(nformulainiziale, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);	// disposto in error
 				xmlAddChild(nnodo,xmlNewText(BAD_CAST "===== IL DISPOSTO DEL PROVVEDIMENTO NON E' ARTICOLATO =====\n\n"));
@@ -401,7 +413,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 				InsertXmlFile(ntext, ncontenitore);
 			}
 		}
-		
+
 		if (configGetDTDTipo() != base)
 		{
 			nformulafinale = xmlNewChild(mNodoTipoDocumento, NULL, BAD_CAST "formulafinale", NULL);
@@ -414,11 +426,11 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		nnodo = GetFirstNodebyTagTipo(ndescrittori, BAD_CAST "vigenza");  // descrittori  //VIGENZA NON ESISTE PIU' !!
 		if(nnodo!=NULL)
 			xmlSetProp (nnodo, BAD_CAST "inizio", BAD_CAST "");
-		
+
 		//dtd base: formulainiziale deve avere almeno un blocco tra i figli
 		if(nformulainiziale!=NULL && nformulainiziale->children==NULL)
-			xmlNewChild(nformulainiziale, NULL, BAD_CAST tagTipoToNome(h_p), NULL);	
-		
+			xmlNewChild(nformulainiziale, NULL, BAD_CAST tagTipoToNome(h_p), NULL);
+
 		if (configGetDocStruttura() == docarticolato)
 		{
 			nnodo = xmlNewChild(nformulafinale, NULL, BAD_CAST tagTipoToNome(h_p), NULL);	// formula finale
@@ -429,43 +441,43 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 		{
 			if (!narticolato)
 				narticolato=mNodoArticolato;
-			
+
 			//Trattare il testo come una lista testo/entità:
 			//xmlChar* contNodo = xmlNodeGetContent(nformulainiziale);// formula iniziale
 			xmlChar* contNodo = xmlNodeListGetString(NULL, nformulainiziale, 0);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)
-			
-			
+
+
 			if (contNodo) {
 				nnodo = xmlNewChild(nintestazione, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);
 				xmlAddChild(nnodo, xmlNewText(BAD_CAST "===== DTD BASE: FORMULA INIZIALE NON AMMESSA =====\n\n"));
 				xmlAddChild(nnodo, xmlNewText(contNodo));
 			}
 			utilNodeDelete(nformulainiziale);
-			
+
 			//Trattare il testo come una lista testo/entità:
 			//contNodo = xmlNodeGetContent(nformulafinale);	// formula finale
 			contNodo = xmlNodeListGetString(NULL, nformulafinale, 0);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
-			//(può dare problemi in fase di visualizzazione...)			
-			
+			//(può dare problemi in fase di visualizzazione...)
+
 			if (contNodo) {
 				nnodo = xmlNewChild(narticolato, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);
 				xmlAddChild(nnodo, xmlNewText(BAD_CAST "===== DTD BASE: CORPO ALLEGATO NON AMMESSO =====\n\n"));
 				xmlAddChild(nnodo, xmlNewText(contNodo));
 			}
 			utilNodeDelete(nformulafinale);
-			
+
 			//Trattare il testo come una lista testo/entità:
 			//contNodo = xmlNodeGetContent(nconclusione);	// conclusione
 			contNodo = xmlNodeListGetString(NULL, nconclusione, 0);
 			//Con la precedente riga si perdono le entità per avere un unico nodo di testo
 			//(può dare problemi in fase di visualizzazione...)
-			
+
 			if (contNodo) {
 				nnodo = xmlNewChild(narticolato, NULL, BAD_CAST tagTipoToNome(tagerrore), NULL);
-				xmlAddChild(nnodo, xmlNewText(BAD_CAST "===== DTD BASE: CONCLUSIONE NON AMMESSA =====\n\n")); 
+				xmlAddChild(nnodo, xmlNewText(BAD_CAST "===== DTD BASE: CONCLUSIONE NON AMMESSA =====\n\n"));
 				xmlAddChild(nnodo,xmlNewText(BAD_CAST contNodo));
 			}
 			utilNodeDelete(nconclusione);
@@ -491,7 +503,7 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 	loggerInfo("INIZIO TAG ALINEE");
 	Corpo2Alinea(mNodoTipoDocumento);
 	loggerInfo("FINE TAG ALINEE");
-	
+
 	utilPercCalc(2);
 
 	return mNodoTipoDocumento;

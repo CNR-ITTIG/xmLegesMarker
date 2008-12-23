@@ -23,8 +23,8 @@ int virgoletteInCorpo(xmlNodePtr corpo) {
 	while(cur!=NULL) {
 		if(IsNode(cur, virgolette))
 			return 1;
-		cur=cur->next;	
-	}	
+		cur=cur->next;
+	}
 	return 0;
 }
 
@@ -36,7 +36,7 @@ void replaceNode(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p) {
 
 	//xmlNodePtr prev=NULL;
 	xmlNodePtr next=NULL, parent=NULL, children=NULL, last=NULL;
-	
+
 	if(a==NULL || b==NULL) return;
 //	if(a->prev!=NULL) //vedi nota sopra.
 //		prev=a->prev;
@@ -48,7 +48,7 @@ void replaceNode(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p) {
 		children=a->children;
 	if(a->last!=NULL)
 		last=a->children;
-		
+
 	b->parent=parent;
 	b->next=next;
 	b->children=children;
@@ -59,17 +59,17 @@ void replaceNode(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p) {
 	//	parent->children=b;
 	if(parent!=NULL && parent->children==a)
 		parent->children=b;
-	
+
 	//si deve anche considerare l'a->next->prev...
 	if(next!=NULL && next->prev!=NULL)
 		next->prev=b;
 
 	//parent->children->last
 	if(parent !=NULL && parent->children!=NULL
-		&& parent->children->last!=NULL 
+		&& parent->children->last!=NULL
 		&& parent->children->last==a)
 		parent->children->last=b;
-		
+
 	//children->parent ?
 	if(children!=NULL && children->parent==a)
 		children->parent=b;
@@ -79,7 +79,7 @@ void replaceNode(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p) {
 xmlNodePtr replaceNodeWithChildren(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p) {
 
 	xmlNodePtr next=NULL, parent=NULL, last=NULL;
-	
+
 	if(a==NULL || b==NULL) return NULL;
 	if(a->next!=NULL)
 		next=a->next;
@@ -87,7 +87,7 @@ xmlNodePtr replaceNodeWithChildren(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p) {
 		parent=a->parent;
 	if(a->last!=NULL)
 		last=a->last;
-		
+
 	b->parent=parent;
 	b->next=next;
 	b->last=last;
@@ -103,24 +103,24 @@ xmlNodePtr replaceNodeWithChildren(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p) {
 		next->prev=b;
 
 	//parent->children->last
-	if(parent!=NULL && parent->children!=NULL 
+	if(parent!=NULL && parent->children!=NULL
 		&& parent->children->last!=NULL
 		&& parent->children->last==a)
 		parent->children->last=b;
-		
+
 	//Ritorna a
 	a->next=NULL;
 	a->prev=NULL;
 	a->parent=NULL;
 	a->last=NULL;
-	return a;	
+	return a;
 }
 
 /*
  * <sostituzione> (03/03/06)
  * --> true anche se non contiene nodi di tipo 'virgolette' solo
  *  nel caso - abrogazione/soppressione -
- */ 
+ */
 /*
 int checkCommaMod(char *txt) {
 	int ret = 0;
@@ -147,15 +147,15 @@ int checkCommaMod(char *txt, xmlNodePtr corpo) {
 	 * elemento VIRGOLETTE.
 	 */
 	if (txt==NULL) return 0;
-	
+
 	//Compara con caratteri minuscoli!
 	utilStringToLower(txt);
-	
+
 	//if (strstr(txt, "soppress") || strstr(txt, "abrogat") ) <-- "soppressione" solitamente non indica una mod...
 	if (strstr(txt, "soppresso") || strstr(txt, "soppressa") || strstr(txt, "abrogat") ||
 			strstr(txt, "soppressi") || strstr(txt, "soppresse") )
 		return 1;
-		
+
 	//Devono anche essere presenti delle virgolette nel corpo
 	if ( (strstr(txt, "sostituit") || strstr(txt, "aggiunt") ||
 			strstr(txt, "modificat") ||	strstr(txt, "inserit") ) &&
@@ -173,40 +173,41 @@ void Virgolette2Errore(xmlNodePtr pParentNode){
 	if (pParentNode==NULL)return;
 
 	xmlNodePtr cur=pParentNode->children; //FirstChild
-	
+
 	while (cur != NULL) {
 		if (IsNode(cur,virgolette)){
 				xmlNodeSetName(cur,BAD_CAST tagTipoToNome(tagerrore));
 		}
 		cur = cur->next; //next fratello
 	}
-	
+
 }
 
 void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 {
-	xmlNodePtr cur=pNodoCorpo->children;//firstVirgo=GetFirstNodebyTagTipo(pNodoCorpo,BAD_CAST tagTipoToNome(virgolette));	
-	
+	xmlNodePtr cur=pNodoCorpo->children;//firstVirgo=GetFirstNodebyTagTipo(pNodoCorpo,BAD_CAST tagTipoToNome(virgolette));
+
 	int areInMod=0;
 	//char *desc=(char *)xmlNodeListGetRawString(NULL,pNodoCorpo->children,0);
 	char *desc=(char *)xmlNodeListGetRawString(NULL,cur,0);
-	
+
 	//printf("\nPossibile MOD:\n%s\n", desc);
-	
+
 	if(checkCommaMod(desc,pNodoCorpo))
 	{
 		IDMOD++;
 		xmlNodePtr newNodoMod = xmlNewNode(NULL, BAD_CAST tagTipoToNome(mod));
 		domSetIDtoNode(newNodoMod,mod,IDMOD,0,NULL);
-		
+
 		//Sposta tutti i figli del CORPO nel nuovo nodo MOD
 		MoveAllChildren(pNodoCorpo,newNodoMod);
-				
+
 		//Aggancia il MOD al CORPO
 		//xmlAddChild(pNodoCorpo,newNodoMod); //<--??rimangono eventuali nodi (uno solo?) di testo già presenti sotto 'corpo'
 		pNodoCorpo->children=newNodoMod; //sostituisce "manualmente" il contenuto di 'corpo'
-		
+
 		areInMod=1;
+
 	}
 
 	//Togli il tag 'virgolette' se non si trova all'interno di un 'mod'
@@ -222,34 +223,111 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 			//xmlNodePtr newNodoErrPre=xmlNewNode(NULL, BAD_CAST tagTipoToNome(tagerrore));
 			//xmlAddChild(newNodoErrPre,xmlNewText("--- Partizione con virgolette: controllare se modificativa ---"));
 			//xmlNodePtr newNodoErrAfter=xmlNewNode(NULL, BAD_CAST tagTipoToNome(tagerrore));
-			
+
 			xmlChar *allText=xmlNodeListGetRawString(NULL,cur->children,1);
 			//La riga precedente potrebbe aver trasformato entità in caratteri non validi (> <), esegui sstring():
 			//xmlNodePtr newNodoTxt=xmlNewText(sstring((char *)allText));
 			xmlNodePtr newNodoTxt=xmlNewText(allText);
-			
+
 			//xmlReplaceNode(cur,newNodoTxt);
 			replaceNode(cur,newNodoTxt,prevnode);
-			
+
 			//--- Messaggio di verifica temporaneamente tolto: ---
 			//xmlAddPrevSibling(newNodoTxt,newNodoErrPre);
 			//xmlAddNextSibling(newNodoTxt,newNodoErrAfter);
-			
+
 			cur=newNodoTxt;
 			//DA FARE : rimuovere il vecchio nodo VIRGOLETTE  // <--ok
-			
+
 			//Virgolette2Errore(pNodoCorpo);
 			}
 		prevnode = cur;
 		cur=cur->next;
 	}
-	
+
+	//Try to analyze virgolette content
+	xmlNodePtr modNode = GetFirstNodebyTagTipo(pNodoCorpo, BAD_CAST "mod");
+	if(modNode == NULL) {
+		//printf("\n ERROR ! ModificaVirgolette() - modNode is NULL! name: %s \n", pNodoCorpo->children->name);
+		return;
+	}
+
+	xmlNodePtr virgoNode = GetFirstNodebyTagTipo(modNode, BAD_CAST "virgolette");
+	if(virgoNode == NULL) {
+		//printf("\n ERROR! ModificaVirgolette() - virgoNode is null! \n");  // <-- caso ABROGATIVA ??
+		return;
+	}
+
+	//char *virgoContent = (char *) xmlNodeListGetRawString(NULL, virgoNode->children, 1); //Enc sbagliato con Legge080598
+	char *virgoContent = (char *) xmlNodeListGetString(NULL, virgoNode->children, 0);  //Così è OK con Legge080598...
+
+	if(strlen(virgoContent) < 64) {
+		//Input too short, that should be a text virgo...
+		return;
+	}
+
+	xmlNodePtr resNode = ArticolatoAnalizzaVirgo(virgoContent);
+
+	//xmlNodePtr resNode = virgoNode;
+
+	if(resNode == NULL) {
+
+			//resNode is null means articolato.lex didn't found any 'articolato' ! <-- Tipo= PAROLA...
+			//printf("\n ModificaVirgolette() - resNode is null! buffer:\n%s\n", virgoContent);
+
+			xmlNewProp(virgoNode, BAD_CAST "tipo", BAD_CAST "parola");
+	} else {
+
+		//Articolato found, there can be error tag too
+
+		//printf("\n ModificaVirgolette() - resNode is NOT NULL! buffer:\n%s\n", virgoContent);
+
+		xmlNodePtr mFirstError = GetFirstNodebyTagTipo(resNode, BAD_CAST tagTipoToNome(tagerrore));
+
+		if(mFirstError != NULL) { //Ce ne può essere più di uno di nodi errore?
+
+			//Check if error is empty, else discard resNode or just warn??
+			char *errContent = (char *) xmlNodeGetContent(mFirstError);
+			errContent = trim(errContent);
+			if(strlen(errContent) > 0) {
+				printf("\nWARNING!! Non empty error in resNode ! content:\n%s\n", errContent);
+				printf("\nDo Nothing / Skipping...\n");
+				return;
+			} else {
+				//Delete empty error node
+				xmlUnlinkNode(mFirstError);
+				xmlFreeNode(mFirstError);
+			}
+
+		} else {
+
+			//printf("\nNo Error in resNode - name:%s\n", resNode->name);
+		}
+
+		//printf("\nAdding resNode to virgolette - name:%s\n", resNode->name);
+
+		//Very ugly and dangerous operation, unlinks actual childs and replace them with resNode
+		DeleteAllChildren(virgoNode);
+		xmlAddChild(virgoNode, resNode);
+
+		xmlNewProp(virgoNode, BAD_CAST "tipo", BAD_CAST "struttura");
+
+		if(IsNode(resNode, articolato)) {
+			MoveAllChildren(resNode, virgoNode);
+			xmlUnlinkNode(resNode);
+			xmlFreeNode(resNode);
+
+		} else {
+			printf("\nERROR - resNode is not articolato: %s\n", resNode->name);
+		}
+	}
 }
 
 //RICORSIVA
 void virgoletteInMod(xmlNodePtr pParentNode)
 {
-	if (pParentNode==NULL)return ;
+	if (pParentNode==NULL) return ;
+
 
 	xmlNodePtr cur= pParentNode->children;	//FirstChild
 
@@ -263,6 +341,7 @@ void virgoletteInMod(xmlNodePtr pParentNode)
 		}
 		cur = cur->next; //NextChild
 	}
+
 }
 
 

@@ -55,7 +55,7 @@ static void
 parsePair(char * name, const xmlChar * value) {
 	
 	if( !strcmp(name, "REGIONE")) {
-		if(	!xmlStrcmp(value, (const xmlChar *) "CM")) {
+		if(	!xmlStrcmp(value, (const xmlChar *) "CM") || !xmlStrcmp(value, (const xmlChar *) "CAMPANIA"))  {
 			xmlNewChild(nIntestazione, NULL, BAD_CAST "emanante", BAD_CAST "Regione Campania");
 		} else {
 			printf("\nparsePair() PAIR NOT FOUND! name: %s value: %s \n", name, value);
@@ -201,7 +201,7 @@ void xmlAnalyzeHeader(char *buffer, xmlNodePtr pRootNode) {
 	xmlNewProp(nRedazione, BAD_CAST "norm", BAD_CAST "20080501");
 	xmlNewProp(nRedazione, BAD_CAST "url", BAD_CAST "http://www.regione.campania.it");
 	
-	printf("\nxmlAnalyzeHeader() buffer size: %d\n", strlen(buffer));
+	//printf("\nxmlAnalyzeHeader() buffer size: %d\n", strlen(buffer));
 	
     streamHeader(buffer);
 
@@ -220,7 +220,7 @@ void xmlAnalyzeHeader(char *buffer, xmlNodePtr pRootNode) {
 char * xmlGetBody(char *buffer) {
 	
  	//streamBody(buffer);
- 	printf("\nxmlGetBody() buffer size: %d\n", strlen(buffer));
+ 	//printf("\nxmlGetBody() buffer size: %d\n", strlen(buffer));
  	getTagContent(buffer, "ARTICOLATO");
 	return body;
 }
@@ -273,10 +273,10 @@ void setPremessa(const xmlChar * value) {
 		while(split != NULL) {
 
 			splitLen = strlen(split);
-			printf("\nSIZE: %d SPLIT:%s\n", splitLen, split); 
+			//printf("\nSIZE: %d SPLIT:%s\n", splitLen, split); 
 			if(splitLen == splitterLen) {
 				//skip last empty match
-				printf("\nSkipping last empty match...\n");
+				//printf("\nSkipping last empty match...\n");
 				break;
 			}
 			
@@ -295,7 +295,7 @@ void setPremessa(const xmlChar * value) {
 			actualLine[lineLen + 2 - offset] = '\0';
 			
 			//strncpy(actualLine, prevSplit, lineLen + 1);
-			printf("\nSIZE: %d ActualLine:%s\n", lineLen + 1, actualLine);
+			//printf("\nSIZE: %d ActualLine:%s\n", lineLen + 1, actualLine);
 			
 			xmlNewChild(nFormulaIniziale, NULL, BAD_CAST "h:p", BAD_CAST actualLine);
 							
@@ -306,7 +306,7 @@ void setPremessa(const xmlChar * value) {
 			for(i = 0; i < splitLen - splitterLen; i++) {
 				newSplit[i] = split[i+splitterLen];
 			}
-			printf("\nSIZE: %d NewSplit:%s\n", splitLen - splitterLen, newSplit); 
+			//printf("\nSIZE: %d NewSplit:%s\n", splitLen - splitterLen, newSplit); 
 			
 			prevLen = strlen(split);
 			split = strstr((char *) newSplit, splitter);
@@ -364,6 +364,9 @@ char * getData(char *value) {
 	char *anno = (char *) malloc(sizeof(char) * 5);
 	char *mese = (char *) malloc(sizeof(char) * 3);
 	char *gg = (char *) malloc(sizeof(char) * 3);
+	anno[4] = '\0';
+	mese[2] = '\0';
+	gg[2] = '\0';
 	
 	char *data = (char *) malloc(sizeof(char) * 81);
 	

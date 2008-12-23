@@ -33,7 +33,7 @@ extern "C" {
 	void		domSetID2(tagTipo ptag,char *pnomeattr,int pnumConv,int platConv);
 	void		domSetIDtoNode(xmlNodePtr	pnodo, tagTipo ptag,int pnumConv,int platConv,char *pnomeattr);
 	void		domSetIDLettera(char *current_lettera,int latConv);
-	
+
 	char		*domExtractStringBeforeIndex(int pindex);
 	void		domAppendTextToLastNode(int pIndex);
 
@@ -41,6 +41,7 @@ extern "C" {
 	void		domClose(void);
 
 	void		domTagAdd3(tagTipo ptag,int pindex,int plen,int pnumConv,int platConv);
+	void		domNumOpen(tagTipo ptag);
 	xmlNodePtr	domTagOpen(tagTipo ptag,int pindex,int plen);
 	void		domTagInsertEmpty(tagTipo tparent,tagTipo tcur,int pindex);
 	void		domTagClose(tagTipo t);

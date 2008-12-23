@@ -54,9 +54,9 @@ char		*utilCreaBuffer(int size);
 char		*utilGetPartialText(char *ptesto,int pindexstart, int plen);
 int			IsNode(xmlNodePtr pNodo,tagTipo ptipo);
 void		MoveAllChildren(xmlNodePtr pFrom,xmlNodePtr pTo);
-xmlNodePtr	GetFirstTextNode(xmlNodePtr pNodoParent);
-xmlNodePtr	GetFirstNodebyTagTipo(xmlNodePtr pNodoParent, xmlChar *pnomeTag);
-xmlNodePtr	totalGetFirstNodebyTagTipo(xmlNodePtr pNodoParent, xmlChar *pnomeTag, xmlNodePtr *savebuf, int savesize);
+xmlNodePtr GetFirstTextNode(xmlNodePtr pNodoParent);
+xmlNodePtr GetFirstNodebyTagTipo(xmlNodePtr pNodoParent, xmlChar *pnomeTag);
+xmlNodePtr totalGetFirstNodebyTagTipo(xmlNodePtr pNodoParent, xmlChar *pnomeTag, xmlNodePtr *savebuf, int savesize);
 void		addNodeInBuffer(xmlNodePtr *buffer, xmlNodePtr node, int *size);
 void		adjustBuffer(xmlNodePtr *buffer, int *size);
 int			GetAllNodebyTagTipo(xmlNodePtr *bufdest, int size, xmlNodePtr pNodoParent , xmlChar *pnomeTag);
@@ -79,6 +79,10 @@ int contaChar(char *s, char);
 
 int latinToArabic(char *s);
 char * arabicToLatin(int n);
+
+char *trim_right( char *szSource );
+char *trim_left( char *szSource );
+char *trim( char *szSource );
 
 #ifdef __cplusplus
 }

@@ -20,11 +20,12 @@
 #include "normalizza.h"
 #include "pre.h"
 #include "prehtml.h"
-
-#include "annessi.h"	
+#include "annessi.h"
 #include "tag.h"
+#include "xml.h"
+#include "prexml.h"
 
-const char *versione = "2.1";
+const char *versione = "3.12.23";
 int visErrore = 0;
 char *bufferEnd;
 char *namebin = "";
@@ -39,9 +40,9 @@ xmlNodePtr buildEmptyDocMeta(void);
 void help(void);
 void unknown_init(void);
 
-int main(int argc, char *argv[]) 
+int main(int argc, char *argv[])
 {
-	
+
 	register int i;
 	int c;
 	int lo = 0;
@@ -49,7 +50,7 @@ int main(int argc, char *argv[])
 	//static int flagAnnessi = 1;
 	//tipoUscita uscita = doc;
 	//tipoDTD dtd = completo;
-	
+
 	tipoTesto mtesto = legge;
 	configSetDocTesto(mtesto);
 
@@ -67,24 +68,24 @@ int main(int argc, char *argv[])
 	int virgoletteSoppresse = 0;
 
 	opterr = 0;
-	while ((c = getopt (argc, argv, "c:d:e:f:hi:l:m:no:p:r:s:t:v:C:H:L:M:R:T:V")) != -1)
+	while ((c = getopt (argc, argv, "c:d:e:f:hi:l:m:no:p:r:s:t:v:C:H:L:M:R:T:V:ZFY")) != -1)
 		switch (c)
-		{			
-			case 'm': 
-				{ 
-					char *tmp=strdup(optarg);					
+		{
+			case 'm':
+				{
+					char *tmp=strdup(optarg);
 					if (strstr(tmp,"t"))		configSetDisable(mod_tabelle);
 					if (strstr(tmp,"a"))		configSetDisable(mod_annessi);
 					free(tmp);
 				}
 				break;
-			case 'p': 
-				{ 
+			case 'p':
+				{
 				//char *tmp=strdup(optarg);
 				}
 				break;
 			case 'l':	/* ---------------------------------- Visualizza l'intermezzo! */
-				{ 
+				{
 					char *tmp=strdup(optarg);
 					if (strstr(tmp,"long")) lo = 1;
 					free(tmp);
@@ -94,7 +95,7 @@ int main(int argc, char *argv[])
 					configSetNodeCount(1);
 				break;
 			case 'c':	/* ---------------------------------- file di configurazione */
-				{ 
+				{
 				char *fc = (char *)strdup(optarg);
 				if (!configLeggi(fc))
 					fprintf(stderr, "Errore file di configurazione: %s\nUtilizzati parametri di default.\n", fc);
@@ -107,8 +108,8 @@ int main(int argc, char *argv[])
 					else if (!strcmp(tmp, "completo"))		configSetDTDTipo(completo);
 					else if (!strcmp(tmp, "flessibile"))	configSetDTDTipo(flessibile);
 					else if (!strcmp(tmp, "dl"))	configSetDTDTipo(dl);
-					//else if (!strcmp(tmp, "cnr"))	configSetDTDTipo(cnr);					
-					else 
+					//else if (!strcmp(tmp, "cnr"))	configSetDTDTipo(cnr);
+					else
 					{
 						fprintf(stderr, "Errore tipo di dtd: %s\n", tmp);
 						help();
@@ -127,7 +128,7 @@ int main(int argc, char *argv[])
 						configSetEncoding("UTF-8");
 						SetFlagUTF8(1);
 					}
-					else	
+					else
 						configSetEncoding(tmp);
 					free(tmp);
 				}
@@ -158,7 +159,8 @@ int main(int argc, char *argv[])
 					else if (!strcmp(tmp, "html"))		configSetTipoInput(html);
 					else if (!strcmp(tmp, "doc"))		configSetTipoInput(doc);
 					else if (!strcmp(tmp, "ted"))		configSetTipoInput(ted);
-					else 
+					else if (!strcmp(tmp, "xml"))		configSetTipoInput(xml);
+					else
 					{
 						fprintf(stderr, "Errore tipo di input: %s\n", tmp);
 						help();
@@ -194,10 +196,10 @@ int main(int argc, char *argv[])
 				else if (!strcmp(tmp, "circ"))	{configSetDocTesto(documentoNIR); configSetDocNome("Circolare"); }
 				else if (!strcmp(tmp, "prov"))	{configSetDocTesto(documentoNIR); configSetDocNome("Provvedimento"); }
 				else if (!strcmp(tmp, "rreg"))	{configSetDocTesto(documentoNIR); configSetDocNome("Regolamento Regionale"); }
-				else if (!strcmp(tmp, "del"))	{configSetDocTesto(documentoNIR); configSetDocNome("Delibera"); } 
-				else if (!strcmp(tmp, "stc"))	{configSetDocTesto(documentoNIR); configSetDocNome("Statuto Comunale"); } 
-				else if (!strcmp(tmp, "regc"))	{configSetDocTesto(documentoNIR); configSetDocNome("Regolamento Comunale"); } 
-				else if (!strcmp(tmp, "delc"))	{configSetDocTesto(documentoNIR); configSetDocNome("Delibera Consiliare"); } 
+				else if (!strcmp(tmp, "del"))	{configSetDocTesto(documentoNIR); configSetDocNome("Delibera"); }
+				else if (!strcmp(tmp, "stc"))	{configSetDocTesto(documentoNIR); configSetDocNome("Statuto Comunale"); }
+				else if (!strcmp(tmp, "regc"))	{configSetDocTesto(documentoNIR); configSetDocNome("Regolamento Comunale"); }
+				else if (!strcmp(tmp, "delc"))	{configSetDocTesto(documentoNIR); configSetDocNome("Delibera Consiliare"); }
 				// Parametro per individuare automaticamente il tipo di documento:
 				else if(!strcmp(tmp,"unknown")) { unknown_init(); configSetDocTesto(unknown); }
 				//
@@ -221,11 +223,11 @@ int main(int argc, char *argv[])
 				if (!loggerInit(optarg))	help();
 				break;
 			case 's':	/* ---------------------------------- controllo sequenza */
-				{ 
+				{
 					int l = atoi(optarg);
 					if (l == 0 || l == 1)
 						configSetSequenzaCheck(l);
-					else 
+					else
 					{
 						help();
 						exit(1);
@@ -233,9 +235,9 @@ int main(int argc, char *argv[])
 				}
 				break;
 			case 'C':	/* ---------------------------------- tipo di commi (numerati o non) */
-				{ 
+				{
 					int l = atoi(optarg);
-					switch (l) 
+					switch (l)
 					{
 						case 0: configSetTipoCommi(commiNumerati); break;
 						case 1: configSetTipoCommi(commiNNLineeVuote); break;
@@ -270,8 +272,8 @@ int main(int argc, char *argv[])
 				}
 				else if (!strcmp(tmp, "9"))  // Non c'è rubrica (usato solo nel caso di commi nn)
 					configSetRubriche(0);
-				
-				else 
+
+				else
 				{
 					help();
 					exit(1);
@@ -279,14 +281,14 @@ int main(int argc, char *argv[])
 				free(tmp);
 				}
 				break;
-			//case 'R': 
+			//case 'R':
 			//	{ /* presenza o meno della rubrica */
 			//		char *t = (char *)strdup(optarg);
 			//		if (!strcmp(t, "s"))
 			//			configSetRubriche(1);
 			//		else if (!strcmp(t, "n"))  //Non c'è rubrica
 			//			configSetRubriche(0);
-			//		else 
+			//		else
 			//		{
 			//			help();
 			//			exit(1);
@@ -296,6 +298,17 @@ int main(int argc, char *argv[])
 			//	break;
 			case 'V':	/*  ---------------------------------- testo con virgolette soppresse */
 				virgoletteSoppresse = 1;
+				break;
+			case 'Z':	/*  ---------------------------------- no header analisys */
+				configSetDisableHeader(1);
+				break;
+			case 'F':	/*  ---------------------------------- no footer analisys */
+				configSetDisableFooter(1);
+				break;
+			case 'Y':	/*  ---------------------------------- virgolette analisys mode */
+				configSetVirgoAnalisys(1);
+				configSetDisableHeader(1);
+				configSetDisableFooter(1);
 				break;
 			case 'L':	//Disattiva output
 				if (!loggerSetOutputEnabled(optarg))	help();
@@ -324,7 +337,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Conflitto fra DTD (%s) e tipo Documento (%s).\nElaborazione interrotta.\n", configGetDTDTipoStringa(), configGetDocTestoString());
 		exit(1);
 	}
-		
+
 	if (configTipoInput() == doc)		/* ---------------------------------- conversione da DOC a TXT */
 	{
 		char *awcommand;
@@ -334,7 +347,7 @@ int main(int argc, char *argv[])
 		sprintf(awcommand, "antiword %s > antiword.out", file);
 		system(awcommand);
 		free(awcommand);
-		
+
 		file = (char *)strdup("antiword.out");
 			if (!(fp = fopen(file, "r")))
 				{
@@ -343,7 +356,7 @@ int main(int argc, char *argv[])
 				}
 		configSetTipoInput(txt);
 	}
-	
+
 	if (file)
 		loggerInfo(utilConcatena(2, "ANALISI FILE ", file));
 	else
@@ -353,7 +366,7 @@ int main(int argc, char *argv[])
 	buffer = (char *) malloc(sizeof(char) * bufferSize);	/* --------------------------------- lettura input */
 	for (i = 0; !feof(fp); i++)
 	{
-		if (i == bufferSize) 
+		if (i == bufferSize)
 		{
 			bufferSize += bufferInc;
 			buffer = (char *) realloc(buffer, sizeof(char) * bufferSize);
@@ -364,36 +377,42 @@ int main(int argc, char *argv[])
 	}
 	buffer[i] = 0;
 	fclose(fp);
-	bufferSize = i;		
+	bufferSize = i;
 
 	bufferNor = normalizza(buffer);		/* ---- tratta: \n, \r, &, paragrafo (Aggiunta: "<" ">") */
-	
-	if (configTipoInput() == html)		/* ---------------------------------- input html */
+
+	if (configTipoInput() == xml) {
+		//Avoid bufferNor...
+		//printf("\nPreXML...\n");
+		//bufferToPre = prexmlAnalizza(buffer);
+		bufferToPre = strdup(buffer);
+
+	} else if (configTipoInput() == html)		/* ---------------------------------- input html */
 	{
 		bufferToPre = prehtmlAnalizza(bufferNor);
+		//bufferToPre = prehtmlAnalizza(buffer);  // <--- problemi con gli HTML (ddl)
 
 		if (lo == 1)
 		{
 			puts("------------------------------ INIZIO bufferToPre -----------------------------------\n");
-			puts(bufferToPre); 
+			//puts(bufferToPre);
 			puts("------------------------------ FINE bufferToPre -------------------------------------\n");
 		}
-	}
-	else	
+	} else
 		bufferToPre = bufferNor;
 
-	//bufferNor = normalizza(bufferToNorm);   
-	
+	//bufferNor = normalizza(bufferToNorm);
+
 	if (configTipoInput() == ted)		/* ---------------------------------- input ted */
 		bufferPre = preAnalizza(bufferToPre);
-	else 
+	else
 		bufferPre = bufferToPre;
-	
+
 //	bufferPre = preAnalizza(bufferToPre);
-	
+
 	if (virgoletteSoppresse)
 	{
-		puts(bufferPre);
+		//puts(bufferPre);
 		return 0;
 	}
 
@@ -406,11 +425,11 @@ int main(int argc, char *argv[])
 
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root = NULL;
-	
+
 	doc = xmlNewDoc(BAD_CAST "1.0");
 
 	xmlCreateIntSubset(doc, BAD_CAST "NIR", NULL, BAD_CAST configGetDTDTipoStringa());
-	
+
 	root = xmlNewNode(NULL, BAD_CAST "NIR");
 
 	/* Imposta tutti gli attributi del tag <NIR> */
@@ -427,9 +446,29 @@ int main(int argc, char *argv[])
 
 	xmlDocSetRootElement(doc, root);
 
-//			puts("------------------------------ INIZIO bufferEnd -----------------------------------\n");
-	//		printf("\n%s\n",bufferEnd); 
+		//puts("------------------------------ INIZIO bufferEnd -----------------------------------\n");
+		//printf("\nbufferEnd: %s\n",bufferEnd);
 		//	puts("------------------------------ FINE bufferEnd -------------------------------------\n");
+
+	//SORGENTE XML
+	if (configTipoInput() == xml) {
+		//printf("\nAnalyzing XML document...\n\n");
+
+		//CREAZIONE DELL'HEADER TRAMITE TAG XML
+		//xmlAnalyzeFile(file);
+		xmlAnalyzeHeader(bufferEnd, root);
+
+		//ESTRAZIONE DEL RESTO DEL DOCUMENTO
+		bufferEnd = xmlGetBody(bufferEnd);
+		//printf("\nBODY:\n%s", bufferEnd);
+
+		if(bufferEnd == NULL) {
+			printf("\nERROR GETTING XML BODY! Quitting...\n");
+			return 0;
+		}
+	}
+
+	//puts(bufferEnd);
 
 	AnnessiAnalizza(bufferEnd, root, nir);
 
@@ -440,21 +479,23 @@ int main(int argc, char *argv[])
 	if(configGetNodeCount())	utilNodeCount(root);
 
 	if (!fileout) fileout = "-";
+
 	xmlSaveFormatFileEnc(fileout, doc, (const char*)configEncoding(), 1);
 
-	/*
+/*
 	//Si può salvare il doc anche tramite xmlDocDump:
 	int msize = 4096;
 	xmlChar *mem;
-	xmlDocDumpFormatMemoryEnc(doc, &mem, &msize, (const char*)configEncoding(), 1);
+	//xmlDocDumpFormatMemoryEnc(doc, &mem, &msize, (const char*)configEncoding(), 1);
+	xmlDocDumpFormatMemory(doc, &mem, &msize, 1);
 	if (fo == NULL)
 		fprintf(stdout,"%s",mem);
 	else
 		fprintf(fo,"%s",mem);
-	*/
-		
+*/
+
 	utilPercCurrSet(100);
-	
+
 	xmlFreeDoc(doc);
 
 	return 0;
@@ -464,7 +505,7 @@ int main(int argc, char *argv[])
 /******************************************************************** HELP ****/
 /******************************************************************************/
 
-void help(void) 
+void help(void)
 {
 	printf("\n%s [opzioni] -f file\n", namebin);
 	puts("");
@@ -490,7 +531,7 @@ void help(void)
 	puts("-r n         : tipo rubriche (0/1/9)");
 	puts("               0=rubrica a capo");
 	puts("               1=rubrica adiacente (con separatore : [ -(])");
-	puts("               2=rubrica adiacente senza \"Art.\" (con separatore : [ -(])");	
+	puts("               2=rubrica adiacente senza \"Art.\" (con separatore : [ -(])");
 	puts("               9=testo senza rubrica (nel caso di commi non numerati)");
 	puts("-p []        : disattiva i patterns indicati");
 	puts("-m [at]      : disattiva i moduli indicati (a = annessi, t =tabella)");
@@ -511,6 +552,8 @@ void help(void)
 	puts("               cnr=provvedimento CNR       del=delibera");
 	puts("               stc=Statuto Comunale       regc=Regolamento Comunale");
 	puts("               delc=Delibera Consiliare");
+	puts("-I            : disabilita l'analisi dell'intestazione (header)");
+	puts("-F            : disabilita l'analisi del footer");
 	puts("-T nomeTipo  : nome tipo di atto da analizzare; valido solo per -t nir");
 	puts("-M <dir>     : directory dei modelli per scansione testa e coda");
 	puts("-v           : livello di log: error, warn, info, debug");
@@ -532,5 +575,5 @@ void unknown_init(void) {
 		fprintf(stderr,"Errore apertura file \"temp/unknown_type.tmp\"\n");
 		exit(1);
 	}
-	fclose(fo);	
+	fclose(fo);
 }

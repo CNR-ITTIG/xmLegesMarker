@@ -16,7 +16,7 @@ LEXFLADEB= -i -8 -d
 
 
 #LIBS=-L$(LIBDIR) -littig-1.0 -lFeatureExtractor -lHeaderParser -lhmm -llexer -lstem `xml2-config --libs`
-LIBS=-L$(LIBDIR) -littig-1.0 -lFeatureExtractor -lHeaderParser -lhmm -llexer -lstem -L/usr/local/lib -lxml2 -lz -lm -lpthread -liconv
+LIBS=-L$(LIBDIR) -littig-1.0 -lFeatureExtractor -lHeaderParser -lhmm -llexer -lstem -L/usr/local/lib -lxml2 -lm -lpthread -liconv
 #LIBS=-L$(LIBDIR) -littig-1.0 -lFeatureExtractor -lHeaderParser -lhmm -llexer -lstem -L/usr/local/lib -lxml2 -lz -lm -lpthread
 #MAKELIB = ar rvs
 
@@ -32,7 +32,9 @@ OBJS = parser.o util.o tag.o config.o sequenze.o \
 	tabelle.o tabelle.lex.yy.o\
 	dom.o\
 	disposto.o disposto.lex.yy.o\
-	disegni.lex.yy.o		
+	disegni.lex.yy.o\
+	prexml.o prexml.lex.yy.o\
+	xml.o
 	
 	
 all: $(TARGETBIN)
@@ -123,7 +125,13 @@ coda.o: coda.c coda.h config.h
 virgolette.o: virgolette.c virgolette.h tag.h
 	$(CC) -c $(CFLAGS) virgolette.c
 
+prexml.lex.yy.o: prexml.c prexml.lex
+	flex $(LEXFLAGS) -Pprexml -oprexml.lex.yy.c prexml.lex
+	$(CC) -c $(CFLAGS) prexml.lex.yy.c
 
+xml.o: xml.c xml.h
+	$(CXX) -c $(CFLAGS) xml.c
+	
 
 test: all
 	cd test && $(MAKE) test

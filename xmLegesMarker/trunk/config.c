@@ -82,6 +82,12 @@ int _rubriche = 1;
 
 int _disegni=0;
 
+int _virgoMode=0;
+
+int _virgoAnalisys = 0;
+int _disableHeader=0;
+int _disableFooter=0;
+
 //MODULI ==========================================================================
 
 void	configSetDisable(tipoModulo pmodulo)
@@ -519,5 +525,34 @@ char *configEncoding() {
 void configSetEncoding(char *enc) {
 	strncpy(_configEncoding, enc, MAXSTRINGA);
 	_configEncoding[MAXSTRINGA] = 0;
+}
+
+int configGetVirgoMode() {
+	return _virgoMode;
+}
+
+void configSetVirgoMode(int v) {
+	_virgoMode = v;
+}
+
+int configGetVirgoAnalisys() {
+	return _virgoAnalisys;
+}
+void configSetVirgoAnalisys(int d) {
+	_virgoAnalisys = d;
+}
+
+int configGetDisableHeader() {
+	return _disableHeader;
+}
+void configSetDisableHeader(int d) {
+	_disableHeader = d;
+}
+
+int configGetDisableFooter() {
+	return _disableFooter;
+}
+void configSetDisableFooter(int d) {
+	_disableFooter = d;
 }
 

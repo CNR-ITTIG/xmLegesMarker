@@ -28,6 +28,11 @@
 
 int coda( int pnotes,xmlNodePtr ptipodoc, xmlNodePtr pCorpo,xmlNodePtr pmeta,xmlNodePtr pdescrittori,
 			xmlNodePtr pformulafinale,xmlNodePtr pconclusione, int tdoc) {
+				
+	
+	if(configGetDisableFooter()) {
+		return pnotes;
+	}			
 	
 	loggerInfo("INIZIO Coda");
 	

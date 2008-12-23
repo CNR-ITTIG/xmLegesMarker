@@ -37,7 +37,7 @@ xmlNodePtr getLastSibling(xmlNodePtr node) {
 //Aggiunta: aggiunge un nodo (una lista di nodi) nella lista 'children' di pnode
 //Nel caso di testi html aggancia il nodo "manualmente" (non usare xmlAddChild, xmlAddSibling, ecc...)
 void addSibling(xmlNodePtr pnode, xmlNodePtr cnode) {
-	
+
 	if(configTipoInput()!=html) {
 		xmlAddChild(pnode, cnode);
 		return;
@@ -48,7 +48,7 @@ void addSibling(xmlNodePtr pnode, xmlNodePtr cnode) {
 
 		//xmlAddSibling(last, cnode);	// <-- NON FUNZIONA !!
 										// Se sotto 'virgolette' è già presente una lista testo/entità ed almeno
-										// un nodo 'h:br', la prossima lista nodo/entità non viene attaccata 
+										// un nodo 'h:br', la prossima lista nodo/entità non viene attaccata
 										//correttamente: viene messo solo il primo nodo di testo!
 		last->next=cnode;		//<-- facendo "a mano" va tutto come dovrebbe!
 								//    (i nodi successivi nella lista sono già attaccati tramite next ma usando
@@ -79,7 +79,7 @@ void domSetCurrentTagState(tagTipo ptag,xmlNodePtr pnode)
 	mcurrTagState[(int)ptag]=pnode;
 }
 
-//Inserisce il nodo pRoot nello stato tRoot, inoltre setta la variabile globale 
+//Inserisce il nodo pRoot nello stato tRoot, inoltre setta la variabile globale
 //domTextBuffer a ptext
 void domInit(tagTipo tRoot,xmlNodePtr pRoot, char *ptext)
 {
@@ -93,16 +93,16 @@ void domInit(tagTipo tRoot,xmlNodePtr pRoot, char *ptext)
 	{
 		mcurrTagState[n]=NULL;
 	}
-	
+
 	//Inserisce il nodo nello stato
 	domSetCurrentTagState(tRoot,pRoot);
 }
 
 xmlNodePtr domGetLastNodeParent(tagTipo ptag)
-{	
+{
 	xmlNodePtr tmp=NULL;
 	int n;
-	
+
 	//inizia a controllare dal tag con enumerazione minore
 	for(n=((int)ptag)-1;(n>=0) && (mcurrTagState[n]==NULL); n--);
 		if (n>=0)
@@ -130,7 +130,7 @@ char * domExtractStringBeforeIndex(int pindex)
 {
 	char *tmpbufferPRE=NULL;
 	char *tmpbufferAFTER=NULL;
-	
+
 	int	tempbufferlen = pindex-domTextBufferIndex;
 	if (tempbufferlen>0){
 		//crea il buffer e lo riempie
@@ -139,21 +139,21 @@ char * domExtractStringBeforeIndex(int pindex)
 		/*puts("----------------------BUFFERPRE---------------------------------------\n");
 		puts(tmpbufferPRE);*/
 		int sbufpre ;
-		sbufpre = strlen(tmpbufferPRE);;		
+		sbufpre = strlen(tmpbufferPRE);;
 
 		//Conversione del testo strappato nel formato UTF-8
 		tmpbufferAFTER=utilConvertiText(tmpbufferPRE);
 		int sbufaft ;
 		sbufaft = strlen(tmpbufferAFTER);
 
-		/*int sbufpre = strlen(tmpbufferPRE);		
-		tmpbufferAFTER =strdup(tmpbufferPRE);		
+		/*int sbufpre = strlen(tmpbufferPRE);
+		tmpbufferAFTER =strdup(tmpbufferPRE);
 		int sbufaft = strlen(tmpbufferAFTER);*/
 
 		/*puts("----------------------BUFFERAFTER---------------------------------------\n");
 		puts(tmpbufferAFTER);
 		puts("------------------FINE CONV---------------------------------\n");*/
-		
+
 		//if (tmpbufferPRE!=NULL)free(tmpbufferPRE);
 		//aggiorna domTextBufferIndex per sapere fino a dove è stato estratto l'ultimo testo
 		domTextBufferIndex=pindex;
@@ -176,7 +176,7 @@ xmlNodePtr domGetLastChild(void)
 void domClose(void)
 {
 	//xmlNodePtr mtext;
-	
+
 	int slen=0;
 	char *strbuff;
 
@@ -190,7 +190,7 @@ void domClose(void)
 		slen = strlen(strbuff);
 		//mtext=xmlNewText(BAD_CAST strbuff);
 		//xmlAddChild(lastChild,mtext);
-		
+
 		//Attacca una lista testo/entità piuttosto che un nodo di testo:
 		//xmlAddChild(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
 		addSibling(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
@@ -209,20 +209,30 @@ void domTagAdd3(tagTipo ptag,int pindex,int plen,int pnumConv,int platConv)
 void domAppendTextToLastNode(int pIndex)
 {
 	xmlNodePtr lastChild=domGetLastChild();
-	
+
  	//Se vi è testo non assegnato a nessun TAG
 	char *strbuff=domExtractStringBeforeIndex(pIndex);
 	if (strbuff)
 	{
 		//xmlNodePtr mtext=xmlNewText(BAD_CAST strbuff);
 		//xmlAddChild(lastChild,mtext);
-		
+
 		//Attacca una lista testo/entità piuttosto che un nodo di testo:
 		//xmlAddChild(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
 		addSibling(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));  //<--attacca la lista "a mano"...
-		
+
 		free(strbuff);
 	}
+}
+
+void domNumOpen(tagTipo ptag) {
+
+	xmlNodePtr lastChild = domGetLastChild();
+	xmlNodePtr mparent = domGetLastNodeParent(ptag);
+	xmlNodePtr currnode = xmlNewChild(mparent, NULL, BAD_CAST tagTipoToNome(num), BAD_CAST " ");
+
+	lastChild = currnode;
+
 }
 
 //Apertura di un nodo PTAG
@@ -231,62 +241,67 @@ xmlNodePtr domTagOpen(tagTipo ptag,int pindex,int plen)
 {
 	//xmlNodePtr mtext;
 	xmlNodePtr currnode, mparent, lastChild;
-	char *strbuff;
+	char *strbuff = NULL;
 	int n;
 
 	mparent=domGetLastNodeParent(ptag);
 	lastChild=domGetLastChild();
 
- 	//Se vi è testo non assegnato a nessun TAG
+	//if(!xmlStrcmp(lastChild->name, (const xmlChar *)"virgolette"))
+	//if(ptag == virgolette)
+	//printf("\ndomTagOpen --- ptag:%s pindex:%d plen:%d lastchild:%s mparent:%s\n", tagTipoToNome(ptag), pindex, plen, lastChild->name, mparent->name);
+
+	//Se vi è testo non assegnato a nessun TAG
 	strbuff=domExtractStringBeforeIndex(pindex);
+	//printf("\nAdding text...");
 	if (strbuff)
 	{
-		//mtext=xmlNewText(BAD_CAST strbuff);
-		//xmlAddChild(lastChild,mtext);
-		
-		//xmlNodePtr nlist = xmlStringGetNodeList(NULL, BAD_CAST strbuff);
-		//Attacca una lista testo/entità piuttosto che un nodo di testo:
-		//xmlAddChild(lastChild, nlist);
-		//xmlNewChild(lastChild,NULL, nlist, BAD_CAST strbuff);
+		//printf("\nAggiungo testo non assegnato a lastChild:%s - BUFFER:\n%s\n", lastChild->name, strbuff);
 		addSibling(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
 	}
 
 	//elimina dallo STATOBUFFER tutti i nodi con enumerazione maggiore
 	for(n=(int)ptag;n<TAGTIPODIM;n++)
 		domTagClose(n);
-	
+
 	//if(ptag==decorazione)
 		//printf("\n name:%s\n",(char *)mparent->name);
-		
+
 	//creazione del nodo di tipo PTAG
 	currnode = xmlNewNode(NULL, BAD_CAST tagTipoToNome(ptag));
 
-	//xmlNewChild(mparent, NULL, BAD_CAST tagTipoToNome(ptag), NULL);
-	//currnode = xmlGetLastChild(mparent);
+	//Se la rubrica era già stata aperta non crearne una nuova
+	if(ptag==rubrica) {
+		if(!xmlStrcmp(lastChild->name, (const xmlChar *)"rubrica")) {
+			currnode = lastChild;
+		}
+	}
 
 	if(ptag == virgolette)
 		addSibling(mparent,currnode);
 	else {
 		//Decorazione non deve andare sotto rubrica (e nemmeno sotto corpo)!
 		if(ptag == decorazione) { // && strcmp(mparent->name,"rubrica") == 0 )  {
-			if(mparent == NULL)
+			if(mparent == NULL) {
 				printf("\ndomAddSequenceWarning() -- nodo is null\n");
-			xmlNodePtr pparent = mparent->parent;
-			//printf("\n>BUF:%s",strbuff);
-			//printf("\n name:%s rubrica:%s parent:%s\n",(char *)mparent->name,
-			//		tagTipoToNome(rubrica),	(char *)pparent->name);
-			xmlAddChild(pparent, currnode);
+			} else {
+				xmlNodePtr pparent = mparent->parent;
+				//printf("\n>BUF:%s",strbuff);
+				//printf("\n name:%s rubrica:%s parent:%s\n",(char *)mparent->name,
+				//		tagTipoToNome(rubrica),	(char *)pparent->name);
+				xmlAddChild(pparent, currnode);
+			}
 		} else
 			xmlAddChild(mparent, currnode); //<-- problema: se c'è una lista nodo/entità
 											//le virgolette non sono messe alla fine della lista
 											//ma subito dopo il primo nodo di testo
 	}
-		
+
 	domTextBufferIndex=pindex;
 
 	if(plen>0) {
+
 		strbuff=utilGetPartialText(domTextBuffer,pindex,plen);
-		
 		char *t=utilConvertiText(strbuff);
 
 		//'decorazione' deve avere 'rango' (L/R/LR):
@@ -297,8 +312,8 @@ xmlNodePtr domTagOpen(tagTipo ptag,int pindex,int plen)
 		xmlAddChild(currnode, xmlStringGetNodeList(NULL, BAD_CAST t));
 
 		domTextBufferIndex=pindex + plen;
-		
-	} else {		
+
+	} else {
 		domSetCurrentTagState(ptag,currnode);
 	}
 	free(strbuff);
@@ -344,7 +359,7 @@ void domSetID(tagTipo ptag,int numConv,int latConv)
 	xmlNodePtr nodo;
 	if(ptag == puntata) return;  //In caso di elemento 'ep' non deve essere settato l'attributo ID
 	nodo=mcurrTagState[(int)ptag];
-	
+
 	domSetIDtoNode(nodo,ptag,numConv,latConv,NULL);
 }
 
@@ -353,19 +368,19 @@ void domSetID2(tagTipo ptag,char *pnomeattr,int pnumConv,int platConv)
 {
 	xmlNodePtr nodo;
 	nodo=mcurrTagState[(int)ptag];
-	
+
 	if (nodo!=NULL)
 		{
 			xmlAttrPtr	newattr;
 			newattr = xmlNewProp (nodo, pnomeattr, BAD_CAST domNum2String(pnumConv,platConv));
 		}
 }
-//Lettera 
+//Lettera
 void domSetIDLettera(char *current_lettera,int latConv)
 {
 	xmlNodePtr nodo;
 	nodo=mcurrTagState[(int)lettera];
-			
+
 	if(nodo!=NULL)
 		xmlNewProp(nodo, ATTRIB_ID, BAD_CAST utilConcatena(2,tagTipoToNomeID(lettera),
 			utilConcatena(2, current_lettera, arabicToLatin(latConv))));
@@ -375,10 +390,10 @@ void domAttributeIDUpdate(xmlNodePtr node,char * pParentID, char * pAnnessoParen
 {
 	xmlNodePtr cur;
 	cur = node->xmlChildrenNode;
-	
+
 	if (cur==NULL)return;
 	char *idval=NULL, *newid=NULL, *numval=NULL;
-	
+
 	while (cur != NULL) {
 		idval=xmlGetProp(cur,ATTRIB_ID);
 
@@ -387,11 +402,11 @@ void domAttributeIDUpdate(xmlNodePtr node,char * pParentID, char * pAnnessoParen
 			numval=xmlGetProp(cur, BAD_CAST "num"); //'NDR' usa 'num', non 'id'
 			//cur è un 'NDR', se siamo in un annesso il valore di 'num' deve essere aggiornato
 			if(pAnnessoParentID)
-				xmlSetProp(cur, BAD_CAST "num", 
+				xmlSetProp(cur, BAD_CAST "num",
 					BAD_CAST (char *)utilConcatena(3,pAnnessoParentID,ATTRIB_ID_SEP,numval));
 		}
 
-	
+
 		if (idval) { // Se il nodo ha impostato l'attributo ID
 			//Se si tratta di un ANNESSO
 			if (!xmlStrcmp(cur->name, tagTipoToNome(annesso)))	{
@@ -437,9 +452,9 @@ void domAddRango(xmlNodePtr node, char *t) {
 	else
 		if(r!=NULL)
 			str="R";
-	
+
 	xmlNodePtr rango = xmlNewChild(node,NULL,BAD_CAST tagTipoToNome(tiporango),NULL);
-	if(str!=NULL) 
+	if(str!=NULL)
 		xmlNewProp(rango, BAD_CAST "tipo", BAD_CAST str);
 	else //Aggiungi un tipo con valore arbitrario oppure non aggiungere tipo??
 		xmlNewProp(rango, BAD_CAST "tipo", BAD_CAST "L");
@@ -449,7 +464,7 @@ void domAddRango(xmlNodePtr node, char *t) {
 //(non è detto che sia il root del documento...)
 xmlNodePtr domGetFirstNode(xmlNodePtr node) {
 	xmlNodePtr prev=NULL, tmp=NULL, root=NULL;
-	
+
 	while(node!=NULL) {
 		root=node;
 		tmp=node;
@@ -458,7 +473,7 @@ xmlNodePtr domGetFirstNode(xmlNodePtr node) {
 			tmp=prev;
 			prev=tmp->prev;
 		}
-		node=tmp->parent;	
+		node=tmp->parent;
 	}
 	return root;
 }
@@ -468,22 +483,22 @@ void domAddSequenceWarning(tagTipo ptag, int num, int lat) {
 	xmlNodePtr nodo=mcurrTagState[(int)ptag];
 	if(nodo==NULL) {
 		//DA FARE:Verificare che quando si arriva qui il msg di warning viene messo comunque e poi togliere questo printf()
-		printf("\ndomAddSequenceWarning() -- nodo is null (tipo:%s num:%d lat:%d)\n", 
-				(char *)tagTipoToNome(ptag), num, lat);
+		//printf("\ndomAddSequenceWarning() -- nodo is null (tipo:%s num:%d lat:%d)\n",
+		//		(char *)tagTipoToNome(ptag), num, lat);
 		return;
 	}
 	//Se il messaggio è troppo lungo sballa la formattazione (barra di scorrimento orizzontale)
-	xmlNodePtr pi=xmlNewPI(BAD_CAST tagTipoToNome(tagerrore), BAD_CAST 
+	xmlNodePtr pi=xmlNewPI(BAD_CAST tagTipoToNome(tagerrore), BAD_CAST
 	"--VERIFICARE SEQUENZA--");
 	//"--VERIFICARE SEQUENZA (caratteri \";\" e \".\", lista numerica senza dtd flessibile... - ignorare partizioni modificative?)"); //-- [Tipo:%s]",tagTipoToNome(ptag));
-	
+
 	//Controlla che non sia già stato messo un nodo error
 	if(domPIAdded(nodo)) return;
 	//printf("\n ----------SEQUENZA NON RISPETTATA ? -----------\n");
-	
+
 	//Aggiungi come sibling del corpo
 	xmlAddChild(nodo,pi);
-	
+
 	//Aggiungi come figlio del corpo.
 	//Il problema è che il testo viene messo dopo! (quando c'è il tagclose)
 	/*
@@ -494,16 +509,16 @@ void domAddSequenceWarning(tagTipo ptag, int num, int lat) {
 			break;
 		child=child->next;
 	}
-	
+
 	if(child==NULL) {
 		printf("\n Sequenza non rispettata -- CHILD NULL !!!\n");
 		return;
 	}
-	
+
 	addSibling(child,pi);
 	*/
 }
-		
+
 //Ritorna 1 se nella lista children c'è un nodo error
 int domPIAdded(xmlNodePtr node) {
 	xmlNodePtr child=NULL;
@@ -517,7 +532,7 @@ int domPIAdded(xmlNodePtr node) {
 	}
 	return 0;
 }
-		
+
 //Init mcurrTagState[]
 void domInitStates()
 {
@@ -526,4 +541,4 @@ void domInitStates()
 		mcurrTagState[n]=NULL;
 }
 
-			
+

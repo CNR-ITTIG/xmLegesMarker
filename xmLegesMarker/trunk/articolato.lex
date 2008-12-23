@@ -9,6 +9,18 @@
 ******************************************************************************/
 
 /*
+ENCODING:
+ISO
+i caratteri windows sono trattati come entità numeriche nella tabella ISO.
+Es.:
+DASH - (ascii: 151 nella win1252): &#x96;
+
+Quando il testo è veramente WIN ci sono i codici del win1252:
+Esempio: &#x2019; (apostrofo)
+
+*/
+
+/*
 *********************************************
 <InLettera,InNumero,InPuntata>{PVACAPO}|{NL}	{ //<--può non esserci il ; alla fine di una lettera!?
 //Il problema è che così viene rilevato questo anche in caso di PTACAPO e salta la sequenza (VERIFICARE!)
@@ -101,8 +113,9 @@ long artpos = 0;
 static int numConv;
 static int latConv;
 char *current_lettera = NULL;
-int nvirap = 1;
-int nvir2ap = 1;
+int nvirap = 0;
+int nvir2ap = 0;
+int tipovir = 0;
 int commiNN = 1;
 int firstSave;
 int isArticolato;
@@ -116,6 +129,8 @@ int stacklog=0;
 int countlog=0;
 int maxlog=9999;
 
+int startLineInVirgo=0; //1=considera inizio riga anche in virgolette
+
 /******************************************************************* CHECK ****/
 int check(tagTipo tipo) {
 	int seq;
@@ -123,7 +138,7 @@ int check(tagTipo tipo) {
 	loggerDebug(utilConcatena(9, "CHECK: ", tipoStr, " testo=\"", yytext, "\", num=", utilItoa(numConv), "lat=", utilItoa(latConv)));
 	seq = sequenzaCheck(tipo, numConv, latConv);
 	if (!seq) {
-		//printf("\nCHECK:\"%s\" non in sequenza \"%s\"\n", tipoStr, yytext);
+		if(stacklog) printf("\nCHECK:\"%s\" non in sequenza \"%s\"\n", tipoStr, yytext);
 		loggerWarn(utilConcatena(5, "CHECK:", tipoStr, " non in sequenza \"", yytext, "\""));
 		//Aggiungi un nodo/messaggio di warning?
 		domAddSequenceWarning(tipo, numConv, latConv);
@@ -164,11 +179,14 @@ int checkLettera(tagTipo tipo) {
 
 /******************************************************************** SAVE ****/
 void save(tagTipo tipo) {
-	
+
 	register int i;
 	
 	//Se vi è un articolo, il documento è articolato
-	if (tipo==articolo)	isArticolato=1;
+	if ( tipo == articolo || 
+		(configGetVirgoMode()==1 && tipo==comma) )	 {
+			isArticolato=1;
+	}
 	
 	if (firstSave)
 	{
@@ -188,17 +206,22 @@ void save(tagTipo tipo) {
 		if(tipo==lettera) {
 			//printf("\nLETTERA num:%d lat:%d current_lettera:%s\n",numConv,latConv,current_lettera);
 			domSetIDLettera(current_lettera,latConv);
-		} else
+		} else {
 			domSetID(tipo,numConv,latConv);
-		domTagOpen(num,artpos,artleng);
+		}
+			
+	domTagOpen(num,artpos,artleng);
 
 	if (tipo <= articolo)
 	{
-		if (configGetRubriche()!=0)
+		if (configGetRubriche()!=0) {
 			domTagOpen(rubrica,artpos+artleng,0);
+		}
 	}
-	else
+	else {
+		//printf("\nsave(%s) - open corpo\n", tagTipoToNome(tipo));
 		domTagOpen(corpo,artpos+artleng,0);
+	}
 		
 	for (i=tipo+1; i<=numero; i++)
 		if (i != articolo)sequenzaInit(i);
@@ -215,12 +238,21 @@ void saveDec() {
 	artpos += artleng;
 }
 
+void saveRub() {
+	domTagOpen(rubrica,artpos,artleng);
+	artpos+=artleng;
+	artleng=0;
+}
+
 /*********************************************************** SAVE COMMA NN ****/
 void saveCommaNN() {
 	loggerDebug("INIZIO saveCommaNN");
+
+	if(stacklog) printf("\nsaveCommaNN() - artpos:%d artlen:%d\n", artpos, artleng);
 	domTagOpen(comma,artpos,0);
 	domSetID(comma,commiNN,-1);
-	domTagOpen(num,artpos,artleng);
+	//domTagOpen(num,artpos,artleng);
+	domNumOpen(num);
 	domTagOpen(corpo,artpos+artleng,0);
 
 	int i;
@@ -238,9 +270,21 @@ void saveCommaNN() {
 
 // Da 1 a 3 lettere, non da 1 a 2, può essere anche aaa)
 
+void openVirgCommon() {
+
+	if(stacklog) printf("\nVIR2A num:%d lat:%d n:%d\n",numConv,latConv,nvir2ap);	
+	artpos += artleng;
+	if(nvir2ap == 0) {
+		sequenzaInc(virgolette);
+		domTagOpen(virgolette,artpos,0);
+		domSetID(virgolette,sequenzaGetNum(virgolette),sequenzaGetLat(virgolette));
+	}
+}
+
 %}
 
-S	([ ])
+/* Aggiunto 'A0' come carattere spaziatore (causa vecchio ddl senato) */
+S	([ ]|[\xa0])
 ST	({S}*)
 PS	({S}*\.{S}*)
 NUM	([0-9]+)
@@ -278,8 +322,10 @@ SEZIONE		({S}*{NUMSEZIONE})
 COMMADEC	([.]?{S}*{DECORAZ}{S}*[.]?{FR})
 ARTBASE		({S}*{NUMARTICOLO}{S}*)
 ARTICOLO	({S}*{NUMARTICOLO}{S}*{DECORAZ}?{FR})
-COMMA1		({S}*(1|0){PS}?{LATINO}?{S}*[).])
+/* COMMA1		({S}*(1|0){PS}?{LATINO}?{S}*[).]) */
+COMMA1		((({NL}1)|({S}+1)){PS}?{LATINO}?{S}*[).])
 COMMA		({FR}*{S}*{NUM}{PS}?{LATINO}?{S}*[).])
+COMMANN		({FR}{S}*)
 COMMANN1	({FR}{1,}{S}*)
 COMMANN2	({FR}*{S}*)
 LETTERA1	({S}*(a){PS}?{LATINO}?[).])
@@ -290,32 +336,49 @@ PUNTATASIM	(\-|\*|\x95|\x96|\x97|\xAD)
 PUNTATA		({S}*{PUNTATASIM}{PS}?)
 
 PARTIZIONE_1 ({LIBRO}|{PARTE}|{PARTE2}|{TITOLO}|{CAPO}|{SEZIONE})
-PARTIZIONE_2 ({COMMA}|{ARTICOLORUB}|{ARTBASE}|{ARTICOLO})
+PARTIZIONE_2 ({COMMA}|{ARTBASE})
 PARTIZIONE ({PARTIZIONE_1}|{PARTIZIONE_2})
 
-ARTICOLORUB	({S}*{NUMARTICOLO}{S}*{DECORAZ}?)
-ARTICOLOAGO	({S}*{NUM}{PS}?{LATINO}?{PS}?{S}*{DECORAZ}?)
-GINO	 	({S}*[.]?{S}*\(.*\)\.?({S}*-)?)
+DASH		(-|\x2D|&#x2d;|\x20\x13|&#x2013;|&#x96;|\x20\x14|&#x2014;|&#x97;)
+OPENBRAC	(\()
+CLOSEBRAC	(\))
+ROPEN		(-|\x2D|&#x2d;|\x20\x13|&#x2013;|&#x96;|\x20\x14|&#x2014;|&#x97;|[(])
+RCLOSE		(-|\x2D|&#x2d;|\x20\x13|&#x2013;|&#x96;|\x20\x14|&#x2014;|&#x97;|[)])
 RUBRICASEP	([ \-(])
-RUBRICA 	({S}*[^10].*{FR})
+RUBRICALIGHT 	({S}*[^10][a-z]+.*{FR})
+/* RUBRICASTRICT 	({FR}*{S}*{ROPEN}.*{RCLOSE}{S}*{FR}*) */
+ENDR1		({CLOSEBRAC}{S}*{DASH})
+ENDR2		({CLOSEBRAC})
+ENDR3		({DASH})
+RSTRICT1 	({FR}*{S}*{DASH}{S}*{OPENBRAC}([^{ENDR1}])*{ENDR1}{S}*{FR}*)
+RSTRICT2 	({FR}*{S}*{OPENBRAC}([^{ENDR2}])*{ENDR2}{S}*{FR}*)
+RSTRICT3 	({FR}*{S}*{DASH}([^{ENDR3}])*{ENDR3}{S}*{FR}*)
+RUBRICASTRICT 	({RSTRICT1}|{RSTRICT2}|{RSTRICT3})
 
 /* Evitare il "Dangerous trailing context" warning del flex (dovuto agli {S}*):  */
 /* PTACAPODEC	(([.]{FR})|({NL}{FR})) */
 PTACAPODEC	(([.]{FR})|{NL})
-DUEPTACAPO	([:]{FR}+)
+DUEPT		([:])
+DUEPTACAPO	([:]{FR}*)
 
 /* PTACAPO e PVACAPO anche se due FR consecutivi e *non* c'è il carattere ':' prima */
-/* Alla fine di una lettera/numero può esserci una decorazione (dopo il ; o il .) */
+/* Alla fine di una lettera/numero può esserci una ione (dopo il ; o il .) */
 /* PTACAPO		(([.]{FR})|({FR}{FR})) */
 /* PVACAPO		(([;]{FR})|({FR}{FR})) */
+PUNTO		(([.])|([.]{S}*{DECORAZ}{FR}))
+PUNTOVIR	(([;])|([;]{S}*{DECORAZ}{FR}))
 PTACAPO		(([.]{FR})|({FR}{FR})|([.]{S}*{DECORAZ}{FR}))
 PVACAPO		(([;]{FR})|({FR}{FR})|([;]{S}*{DECORAZ}{FR}))
 
-VIRGO		(["])
-/* 						virgolette sx: win e utf-8 */
-VIRG2A		({S}*[«\x93]|\xe0\x80\x9c|<<|\xab)	
-/* 						virgolette dx: win e utf-8 */
-VIRG2C		([»\x94]|\xe0\x80\x9d|>>|\xbb)	
+VIRGO		([\"]|\x22|&#x34;)
+V2A1		([«]|\xAB|&#xAB;)
+V2C1		([»]|\xBB|&#xBB;)
+V2A2		(<<|&lt;&lt;|&#x3c;&#x3c;|&#60;&#60;)
+V2C2		(>>|&gt;&gt;|&#x3e;&#x3e;|&#62;&#62;)
+V2A3		(&#x201c;|&#x93;)
+V2C3		(&#x201d;|&#x94;)
+/* VIRG2A		([«]|\xAB|\xe0\x80\x9c|<<|&#60;&#60;|&lt;&lt;|&#x201c;|&#x93;|&#xAB;) */
+/* VIRG2C		([»]|\xe0\x80\x9d|>>|\xBB|&#62;&#62;|&gt;&gt;|&#x201d;|&#x94;|&#xBB;) */
 
 NOTAVVTESTO1	(n{S}*o{S}*t{S}*[ea])
 NOTAVVTESTO2	(a{S}*v{S}*v{S}*e{S}*r{S}*t{S}*e{S}*n{S}*z{S}*[ea])
@@ -333,13 +396,14 @@ ORD			({ORDNOSEX}[oa])
 ROMANO		([ivxl]+{S}*)
 
 
-%s InCapo InArticolo InArticoloRubrica
-%s InPreComma InComma InCommaAlinea InCommaDec
-%s InLettera InNumero InPuntata
-%s InLetteraAlinea InNumeroAlinea InPuntataAlinea
-%s InPreLet InPreNum InPrePunt
-%s InNota
+%s InCapo InArticolo
 %x InVirgolette InVirgoDoppie
+%s InPreComma InComma InCommaDec
+%s InLettera InNumero InPuntata
+%s InCommaAlinea InLetteraAlinea InNumeroAlinea InPuntataAlinea
+%s InPreLet InPreNum InPrePunt
+%s InArtRubNum InArtRubNN
+%s InNota
 %x Disegno
 
 %option stack
@@ -468,38 +532,6 @@ ROMANO		([ivxl]+{S}*)
 	else REJECT;
 }
 
-^{ARTICOLORUB}/{RUBRICASEP}		{
-	if (configGetRubricaTipo() != adiacente)
-		REJECT;
-	if (!checkCardinale(articolo))
-		REJECT;
-	//printf("ARTICOLORUB: artpos=%d, artleng=%d, yytext='%s'\n", artpos, artleng, yytext);
-	save(articolo);
-	BEGIN(InArticoloRubrica);
-}
-
-<InArticoloRubrica>{RUBRICA}	{
-	//printf("RUBRICA: artpos=%d, artleng=%d, yytext='%s'\n", artpos, artleng, yytext);
-	if (configGetRubricaTipo() != adiacente &&
-		configGetRubricaTipo() != deagostini )
-		REJECT;
-	numConv = 1;
-	artpos += artleng;
-	//printf("RUBRICA dopo: artpos=%d, artleng=%d\n", artpos, artleng);
-	commiNN = 1;
-	BEGIN(InArticolo);
-}
-
-^{ARTICOLOAGO}/{RUBRICASEP}		{
-	if (configGetRubricaTipo() != deagostini)
-		REJECT;
-	if (!checkCardinale(articolo))
-		REJECT;
-	//printf("ARTICOLORUB: artpos=%d, artleng=%d, yytext='%s'\n", artpos, artleng, yytext);
-	save(articolo);
-	BEGIN(InArticoloRubrica);
-}
-
 ^{NUMARTICOLOUNICO}		{
 	//sequenzaSet(articolo,1); // se attivata identifica eventuali Articolo 2, Articolo 3
 	numConv = 1;
@@ -507,63 +539,130 @@ ROMANO		([ivxl]+{S}*)
 	save(articolo);
 	numConv = 1;
 	commiNN = 1;		
-	BEGIN(InArticolo);
+
+	if(configTipoCommi() == commiNumerati) {
+		BEGIN(InArtRubNum);
+	} else {
+		BEGIN(InArtRubNN);
+	}
 }
 
 ^{ARTBASE}	{
-	//printf("Articolo -%s-\n",yytext);
+	if(configGetVirgoMode()) { REJECT; }
+	if(stacklog) printf("\nArticolo -%s-",yytext);
 	if (!checkCardinale(articolo))
 		REJECT;
 	save(articolo);
 	numConv = 1;
 	commiNN = 1;
 	art_dec = 0;
-	BEGIN(InArticolo);
+	
+	if(configTipoCommi() == commiNumerati) {
+		BEGIN(InArtRubNum);
+	} else {
+		BEGIN(InArtRubNN);
+	}
 }
 
-<InArticolo>{DECORAZ}	{
-	if(art_dec==1)
-		REJECT;
-	//printf("\nHERE ART DEC pos:%d len:%d txt:%s\n",artpos,artleng,yytext);
-	art_dec=1;
-	saveDec();
+^{ARTBASE}		{
+	if(!configGetVirgoMode()) { REJECT; }
+	if(stacklog) printf("\n--- ARTICOLOVIRGO --\n");	
+	save(articolo);
+
+	if(configTipoCommi() == commiNumerati) {
+		BEGIN(InArtRubNum);
+	} else {
+		BEGIN(InArtRubNN);
+	}
 }
 
-<InArticolo>^{COMMA1}	{
+^{COMMA} {
+	if (!configGetVirgoMode()) { REJECT; }
+	int state = yy_top_state();
+	if(stacklog) printf("TOP_STATE:%d.\n", state);
+	//Non rilevare nuovi commi se stai analizzando liste
+	if( state > 7 && state < 20) { REJECT; }
+	save(comma);
+	if(stacklog) puts("VIRGO MODE - IN COMMA");
+	BEGIN(InComma);
+}
+
+<InArtRubNum>{RUBRICASTRICT}	{
+	if(stacklog) printf("RubNum - RUBRICASTRICT - leng:%d\n", artleng);
+	artpos+=artleng;
+}
+
+<InArtRubNum>{COMMA1}	{
+
 	if (configTipoCommi() != commiNumerati)
 		REJECT;
 	if (!checkCardinale(comma))
 		REJECT;
+
+	if(stacklog) printf("RUBRICA dopo: artpos=%d, artleng=%d\n", artpos, artleng);
 	save(comma);
 	if(stacklog) puts("IN ARTICOLO - IN COMMA 1");
 	BEGIN(InComma);
 }
 
-<InArticolo>{COMMANN1}/[a-z]	{
-	if (configTipoCommi() != commiNNLineeVuote) 
+
+<InArtRubNum>{DECORAZ}	{
+	if(art_dec==1)
 		REJECT;
-	//printf("COMMA NN 1: artpos='%d' yytext='%s'", artpos, yytext);
+	if(stacklog) printf("\nHERE ART DEC pos:%d len:%d txt:%s\n",artpos,artleng,yytext);
+	art_dec=1;
+	saveDec();
+}
+
+<InArtRubNum>{COMMA}	{
+	//Se si è nelle virgolette, ma c'è un articolo, deve necessariamente esserci il comma1
+	//non un generico comma (dà problemi con rubriche)
+	REJECT;
+	if (!configGetVirgoMode()) { REJECT; }
+	save(comma);
+	if(stacklog) puts("VIRGO MODE - IN ARTICOLO - IN COMMA");
+	BEGIN(InComma);
+}
+
+<InArtRubNN>{RUBRICALIGHT}	{
+	if(stacklog) printf("\nRubNN - RUBRICALIGHT");
+	saveRub();
 	saveCommaNN();
 	commiNN++;
 	BEGIN(InComma);
 }
 
-<InArticolo>{COMMANN2}/[a-z]	{
-	if (configGetRubriche() != 0)
-		REJECT;
-	if (configTipoCommi() != commiNNLineeVuote) 
-		REJECT;
-	//printf("COMMA NN 1: artpos='%d' yytext='%s'", artpos, yytext);
+<InArtRubNN>{RUBRICASTRICT}	{
+	if(stacklog) printf("\nRubNN - RUBRICASTRICT");
+	saveRub();
 	saveCommaNN();
+	commiNN++;
+	BEGIN(InComma);
+}
+
+<InArtRubNN>{COMMANN}	{
+	if (stacklog) puts("\nCOMMANN rilevato.\n");
+	if (configTipoCommi() == commiNumerati) 
+		REJECT;
+	saveCommaNN();
+	if(stacklog) puts("IN ARTICOLO - IN COMMA NN");
 	commiNN++;
 	BEGIN(InComma);
 }
 
 <InPreComma>^{COMMA}	{
+    if(stacklog) printf("\nInPreComma->Comma\n");
 	if (configTipoCommi() != commiNumerati)
 		REJECT;
 	if (!checkCardinale(comma))
 		REJECT;
+    save(comma);
+	yy_pop_state();
+	BEGIN(InComma);
+}
+
+<InPreComma>{COMMA}	{
+	if (!configGetVirgoMode()) {	REJECT; }
 	save(comma);
 	yy_pop_state();
 	if(stacklog) puts("IN COMMA (FR)");
@@ -581,9 +680,7 @@ ROMANO		([ivxl]+{S}*)
 }
 
 <InPreComma>{COMMANN2}/[a-z]	{
-	if (configGetRubriche() != 0)
-		REJECT;
-	if (configTipoCommi() != commiNNLineeVuote)
+	if (configTipoCommi() != commiNNSenzaLinea)
 		REJECT;
 	saveCommaNN();
 	commiNN++;
@@ -608,7 +705,7 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InCommaAlinea);
 }
 
-<InCommaAlinea>^{LETTERA1}	{
+<InCommaAlinea>{LETTERA1}	{
 	if (!checkLettera(lettera))
 		REJECT;
 	if(stacklog) puts("LETTERA1");
@@ -616,7 +713,7 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InLettera);
 }
 
-<InCommaAlinea>^{NUMERO1}	{
+<InCommaAlinea>{NUMERO1}	{
 	//Nella flessibile le liste possono essere subito numeriche
 	if(configGetDTDTipo() != flessibile)
 		REJECT;
@@ -627,32 +724,44 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InNumero);
 }
 
-<InCommaAlinea>^{PUNTATA} {
+<InCommaAlinea>{PUNTATA} {
 	if(configGetDTDTipo() != flessibile)
 		REJECT;
 	save(puntata);
 	yy_push_state(InPuntata);
 }
 
-<InLettera>{DUEPTACAPO}	{
+<InLettera>{DUEPT}/{NUMERO} {
 	artpos += artleng;
 	if(stacklog) puts("IN LETTERA ALINEA");
 	yy_push_state(InLetteraAlinea);
 }
 
-<InNumero>{DUEPTACAPO} {
+<InLettera>{DUEPT}/{PUNTATA} {
+	artpos += artleng;
+	if(stacklog) puts("IN LETTERA ALINEA");
+	yy_push_state(InLetteraAlinea);
+}
+
+<InNumero>{DUEPT}/{LETTERA} {
 	artpos += artleng;
 	if(stacklog) puts("IN NUMERO ALINEA");
 	yy_push_state(InNumeroAlinea);
 }
 
-<InPuntata>{DUEPTACAPO} {
+<InNumero>{DUEPT}/{PUNTATA} {
+	artpos += artleng;
+	if(stacklog) puts("IN NUMERO ALINEA");
+	yy_push_state(InNumeroAlinea);
+}
+
+<InPuntata>{DUEPT} {
 	artpos += artleng;
 	if(stacklog) puts("IN PUNTATA ALINEA");
 	yy_push_state(InPuntataAlinea);
 }
 
-<InLetteraAlinea>^{NUMERO1}	{
+<InLetteraAlinea>{NUMERO1}	{
 	if (!checkCardinale(numero))
 		REJECT;
 	if(stacklog) puts("NUMERO 1");
@@ -660,7 +769,7 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InNumero);
 }
 
-<InLetteraAlinea>^{LETTERA}	 {
+<InLetteraAlinea>{LETTERA}	 {
 	if(!checkLettera(lettera))
 		REJECT;
 	//Senza controllo sequenza potrebbe scambiare anche "Art." per una lettera (vedi modifica in util.c)
@@ -669,13 +778,13 @@ ROMANO		([ivxl]+{S}*)
 	yy_pop_state();
 }
 
-<InLetteraAlinea>^{PUNTATA}	{
+<InLetteraAlinea>{PUNTATA}	{
 	if(stacklog) puts("PUNTATA 1");
 	save(puntata);
 	yy_push_state(InPuntata);
 }
 
-<InNumeroAlinea>^{LETTERA1}	{
+<InNumeroAlinea>{LETTERA1}	{
 	if (!checkLettera(lettera))
 		REJECT;
 	if(stacklog) puts("LETTERA 1");
@@ -683,7 +792,7 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InLettera);
 }
 
-<InNumeroAlinea>^{NUMERO} {
+<InNumeroAlinea>{NUMERO} {
 	if(!checkCardinale(numero))
 		REJECT;
 	save(numero);
@@ -691,13 +800,13 @@ ROMANO		([ivxl]+{S}*)
 	yy_pop_state();
 }
 
-<InNumeroAlinea>^{PUNTATA}	{
+<InNumeroAlinea>{PUNTATA}	{
 	if(stacklog) puts("PUNTATA 1");
 	save(puntata);
 	yy_push_state(InPuntata);
 }
 
-<InPuntataAlinea>^{LETTERA1}	{
+<InPuntataAlinea>{LETTERA1}	{
 	if (!checkLettera(lettera))
 		REJECT;
 	if(stacklog) puts("LETTERA 1");
@@ -705,7 +814,7 @@ ROMANO		([ivxl]+{S}*)
 	yy_push_state(InLettera);
 }
 
-<InPuntataAlinea>^{NUMERO} {
+<InPuntataAlinea>{NUMERO} {
 	if(!checkCardinale(numero))
 		REJECT;
 	save(numero);
@@ -713,41 +822,40 @@ ROMANO		([ivxl]+{S}*)
 	yy_pop_state();
 }
 
-<InPuntataAlinea>^{PUNTATA}	{
+<InPuntataAlinea>{PUNTATA}	{
 	if(stacklog) puts("PUNTATA 1");
 	save(puntata);
 	yy_push_state(InPuntata);
 }
 
-<InLettera>{PVACAPO}/{LETTERA} {
-	artpos += artleng-1;
-	unput('\n');
+<InLettera>{PUNTOVIR}/{LETTERA} {
+	artpos += artleng;
 	if(stacklog) puts("IN PRELET");
 	yy_push_state(InPreLet);
 }
 
-<InNumero>{PVACAPO}/{NUMERO}	{
-	artpos += artleng-1;
-	unput('\n');
+<InNumero>{PUNTOVIR}/{NUMERO}	{
+	artpos += artleng;
 	if(stacklog) puts("IN PRENUM");
 	yy_push_state(InPreNum);
 }
 
-<InNumero>{PVACAPO}/{LETTERA}	{
-	artpos += artleng-1;
-	unput('\n');
-	if(stacklog) puts("IN PRELET");
-	yy_push_state(InPreLet);
+<InNumero>{PUNTOVIR}/{LETTERA}	{
+	artpos += artleng;
+	//if(stacklog) puts("IN PRELET");
+	//yy_push_state(InPreLet);
+	if(stacklog) puts("In Num: PUNTOVIR - Popping to Lettera anyway!");
+	yy_pop_state();
 }
 
-<InPuntata>{PVACAPO}/{PUNTATA}	{
+<InPuntata>{PUNTOVIR}/{PUNTATA}	{
 	artpos += artleng-1;
 	unput('\n');
 	if(stacklog) puts("IN PREPUNT");
 	yy_push_state(InPrePunt);
 }
 
-<InPreLet>^{LETTERA}	{
+<InPreLet>{LETTERA}	{
 	if (!checkLettera(lettera))
 		REJECT;
 	save(lettera);
@@ -755,7 +863,7 @@ ROMANO		([ivxl]+{S}*)
 	yy_pop_state();
 }
 
-<InPreNum>^{NUMERO}	{
+<InPreNum>{NUMERO}	{
 	if (!checkCardinale(numero))
 		REJECT;
 	save(numero);
@@ -763,7 +871,7 @@ ROMANO		([ivxl]+{S}*)
 	yy_pop_state();
 }
 
-<InPrePunt>^{PUNTATA}	{
+<InPrePunt>{PUNTATA}	{
 	save(puntata);
 	if(stacklog) puts("pop_InPrePunt");
 	yy_pop_state();
@@ -772,14 +880,14 @@ ROMANO		([ivxl]+{S}*)
 <InNumero>{PTACAPO}/{LETTERA} {
 	artpos += artleng-1;
 	unput('\n');
-	if(stacklog) puts("pop_PTACAPO (lettera found)");
+	if(stacklog) puts("pop_PUNTO (lettera found)");
 	yy_pop_state();
 }
 
 <InPuntata>{PTACAPO}/{LETTERA} {
 	artpos += artleng-1;
 	unput('\n');
-	if(stacklog) puts("pop_PTACAPO (lettera found)");
+	if(stacklog) puts("pop_PUNTO (lettera found)");
 	yy_pop_state();
 }
 
@@ -794,7 +902,7 @@ ROMANO		([ivxl]+{S}*)
 }
 
 <InLettera,InNumero,InPuntata>{PTACAPO} {
-	if( configTipoCommi() != commiNNLineeVuote ) {
+	if( configTipoCommi() == commiNumerati ) {
 		REJECT;
 	}	
 	artpos += artleng-1;
@@ -808,24 +916,34 @@ ROMANO		([ivxl]+{S}*)
 <InComma>{PTACAPO}/{PARTIZIONE} {
 	artpos += artleng-1;
 	unput('\n');
-	if(stacklog) puts("PRE COMMA");
+	if(stacklog) puts("PARTIZIONE found, pushing PRE COMMA");
 	yy_push_state(InPreComma);
 }
 
-<InComma>{PTACAPO} {
+<InComma>{PTACAPO}/{COMMANN1} {
 	if( configTipoCommi() != commiNNLineeVuote ) {
 		REJECT;
 	}	
 	artpos += artleng-1;
 	unput('\n');
-	if(stacklog) puts("PRE COMMA");
+	if(stacklog) puts("PRE COMMA nn1");
+	yy_push_state(InPreComma);
+}
+
+<InComma>{PTACAPO}/{COMMANN2} {
+	if( configTipoCommi() != commiNNSenzaLinea ) {
+		REJECT;
+	}	
+	artpos += artleng-1;
+	unput('\n');
+	if(stacklog) puts("PRE COMMA nn2");
 	yy_push_state(InPreComma);
 }
 
 <InCommaDec>{NL}	{
 	artpos += artleng-1;
 	unput('\n');
-	if(stacklog) puts("PRE COMMA");
+	if(stacklog) puts("commaDec - PRE COMMA");
 	yy_push_state(InPreComma);
 }
 
@@ -846,10 +964,11 @@ ROMANO		([ivxl]+{S}*)
 	BEGIN(InNota);
 }
 
-<InComma,InLettera,InNumero>{DUEPTACAPO}?{VIRGO}	{
+<InComma,InLettera,InNumero>{DUEPT}?{VIRGO}	{
+	if(configGetVirgoMode()) { REJECT; }
 	nvirap = 1;	
 	artpos += artleng;
-	//printf("\nVIRGO AP num:%d lat:%d\n",numConv,latConv);
+	if(stacklog) printf("\nVIRGO AP num:%d lat:%d n:%d\n",numConv,latConv,nvirap);
 	sequenzaInc(virgolette);	//Incrementa l'ID Vir
 	domTagOpen(virgolette,artpos,0);
 	domSetID(virgolette,sequenzaGetNum(virgolette),sequenzaGetLat(virgolette));
@@ -859,7 +978,7 @@ ROMANO		([ivxl]+{S}*)
 
 <InVirgolette>{VIRGO}	{
 	nvirap--;	
-	//printf("\nVIRGO CL num:%d lat:%d\n",numConv,latConv);
+	if(stacklog) printf("\nVIRGO CL num:%d lat:%d n:%d\n",numConv,latConv,nvirap);
 	if (nvirap==0) {
 		domAppendTextToLastNode(artpos);
 		domTagCloseFrom(virgolette);
@@ -868,24 +987,78 @@ ROMANO		([ivxl]+{S}*)
 	artpos+=artleng;
 }
 
-<InComma,InLettera,InNumero>{DUEPTACAPO}?{VIRG2A}	{
-	nvir2ap = 1;
-	artpos += artleng;
-	sequenzaInc(virgolette);
-	domTagOpen(virgolette,artpos,0);
-	domSetID(virgolette,sequenzaGetNum(virgolette),sequenzaGetLat(virgolette));
-	yy_push_state(YYSTATE);
-	BEGIN(InVirgoDoppie);
+<InComma,InLettera,InNumero>{DUEPT}?{V2A1}	{
+	if(configGetVirgoMode()) { REJECT; }
+	openVirgCommon();
+	if(nvir2ap == 0) {
+		if(stacklog) puts("V2A1");
+		nvir2ap = 1;
+		tipovir = 1;
+		yy_push_state(YYSTATE);
+		BEGIN(InVirgoDoppie);
+	}
+}
+<InComma,InLettera,InNumero>{DUEPT}?{V2A2}	{
+	if(configGetVirgoMode()) { REJECT; }
+	openVirgCommon();
+	if(nvir2ap == 0) {
+		if(stacklog) puts("V2A2");
+		nvir2ap = 1;
+		tipovir = 2;
+		yy_push_state(YYSTATE);
+		BEGIN(InVirgoDoppie);
+	}
+}
+<InComma,InLettera,InNumero>{DUEPT}?{V2A3}	{
+	if(configGetVirgoMode()) { REJECT; }
+	openVirgCommon();
+	if(nvir2ap == 0) {
+		if(stacklog) puts("V2A3");
+		nvir2ap = 1;
+		tipovir = 3;
+		yy_push_state(YYSTATE);
+		BEGIN(InVirgoDoppie);
+	}
 }
 
-<InVirgoDoppie>{VIRG2A}		{
-	nvir2ap++;
+<InVirgoDoppie>{V2A1}		{
+	if(tipovir == 1) nvir2ap++;
+	artpos+=artleng;
+}
+<InVirgoDoppie>{V2A2}		{
+	if(tipovir == 2) nvir2ap++;
+	artpos+=artleng;
+}
+<InVirgoDoppie>{V2A3}		{
+	if(tipovir == 3) nvir2ap++;
 	artpos+=artleng;
 }
 
-<InVirgoDoppie>{VIRG2C}		{
-	nvir2ap--;	
-	if (nvir2ap==0) {
+<InVirgoDoppie>{V2C1}		{
+	if(tipovir == 1) nvir2ap--;
+	if(stacklog) printf("\nVIR2C1 num:%d lat:%d n:%d\n",numConv,latConv,nvir2ap);	
+	if (nvir2ap == 0) {
+		domAppendTextToLastNode(artpos);
+		domTagCloseFrom(virgolette);
+		yy_pop_state();
+	}
+	artpos+=artleng;
+
+}
+<InVirgoDoppie>{V2C2}		{
+	if(tipovir == 2) nvir2ap--;
+	if(stacklog) printf("\nVIR2C2 num:%d lat:%d n:%d\n",numConv,latConv,nvir2ap);	
+	if (nvir2ap == 0) {
+		domAppendTextToLastNode(artpos);
+		domTagCloseFrom(virgolette);
+		yy_pop_state();
+	}
+	artpos+=artleng;
+}
+<InVirgoDoppie>{V2C3}		{
+	if(tipovir == 3) nvir2ap--;
+	if(stacklog) printf("\nVIR2C3 num:%d lat:%d n:%d\n",numConv,latConv,nvir2ap);	
+	if (nvir2ap == 0) {
 		domAppendTextToLastNode(artpos);
 		domTagCloseFrom(virgolette);
 		yy_pop_state();
@@ -919,6 +1092,7 @@ int artwrap() {
 //Avvia la scansione del Buffer e ritorna "1" se ha individuato almeno un ARTICOLO 
 int _ArticolatoLexStart(  char * buf)
 {
+	//printf("\nBUFFER:\n%s", buf);
 	BEGIN(0);
 	if(configGetDocTestoTipo() == disegnolegge)	{
 		numtes=configDdlTestate();
@@ -927,11 +1101,12 @@ int _ArticolatoLexStart(  char * buf)
 			BEGIN(Disegno);
 		else
 			BEGIN(0);
-		}
+	}
 
 	numConv=0;
 	latConv=0;
-	nvir2ap = 1;
+	nvir2ap = 0;
+	tipovir = 0;
 	commiNN = 1;
 	firstSave=1;
 	isArticolato=0;
@@ -941,6 +1116,8 @@ int _ArticolatoLexStart(  char * buf)
 	yy_init = 1;
 	
 	sequenzaSet(nota,999);	//Imposta l'inizio della sequenza ad un valore Elevato
+	
+	if(stacklog) printf("\n STARTING ------------------------------------\n");
 	
 	art_scan_string(buf);
 	artlex();
