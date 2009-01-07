@@ -18,6 +18,7 @@
 #include "costanti.h"
 #include "HeaderParser.h"
 
+#include "coda.h"
 #include "util.h"
 
 #include <IttigLogger.h>
@@ -28,14 +29,29 @@
 
 int coda( int pnotes,xmlNodePtr ptipodoc, xmlNodePtr pCorpo,xmlNodePtr pmeta,xmlNodePtr pdescrittori,
 			xmlNodePtr pformulafinale,xmlNodePtr pconclusione, int tdoc) {
-				
-	
+
 	if(configGetDisableFooter()) {
 		return pnotes;
-	}			
-	
+	}
+
+	//FIX: Salva un eventuale PI/error msg e lo riaggiunge in seguito
+	//L'HeaderParser lo elimina durante l'analisi del footer
+	if(pCorpo == NULL) {
+		//printf("\ncoda() warning! pCorpo is null! Skipping footer analysis..\n");
+		return 0;
+	}
+
+	char *piContent = NULL;
+	xmlNodePtr corpoNode = pCorpo->parent;
+	xmlNodePtr cnode = corpoNode->children;
+	//printf("\nUNZ corpoNode:%s cnode:%s\n", corpoNode->name, cnode->name);
+	if( cnode != NULL && !xmlStrcmp(cnode->name, BAD_CAST "error") ) {
+		piContent = strdup((char *) xmlNodeGetContent(cnode));
+		//printf("\npi:%s\n", piContent);
+	}
+
 	loggerInfo("INIZIO Coda");
-	
+
 	//xmlNodePtr lastcomma_node = xmlNewChild(articolato_node, NULL, BAD_CAST "corpo", BAD_CAST text.c_str()); // prova
     // if (pCorpo==NULL)printf("ELEMENTO VUOTO");
 	//else {
@@ -52,34 +68,30 @@ int coda( int pnotes,xmlNodePtr ptipodoc, xmlNodePtr pCorpo,xmlNodePtr pmeta,xml
 	if(configGetDocTestoTipo() == provCNR)
 		tdoc=2;
 	*/
-		
+
 	pnotes=parser.parseFooter(pCorpo, pmeta, pdescrittori, pformulafinale, pconclusione, tdoc, pnotes);
 	loggerInfo("FINE Coda");
-	
+
+	//Inserisce di nuovo l'error msg
+	if(piContent != NULL && !domPIAdded(corpoNode) ) {
+		xmlNodePtr piNode = xmlNewPI(BAD_CAST tagTipoToNome(tagerrore), BAD_CAST piContent);
+		xmlAddChild(corpoNode, piNode);
+	}
+
 	utilPercCalc(43);
 	return pnotes ;
 }
 
-/*
-const char * coda(char *testo, int *p_notes) {
-	tag *t;
-	register int i;
-
-	for (i=tagN()-1, t=tagNumero(i); i>=0 && t->tipo != corpo; i--, t=tagNumero(i))
-		;
-
-	std::ostringstream out;
-	assert(out.good());
-	std::ostringstream footer;
-	for (i = t->inizio; testo[i]; i++)
-		footer << (unsigned char) testo[i];
-	HeaderParser parser(configHeaderParserModels());
-	std::istringstream in(footer.str());
-	*p_notes = parser.parseFooter(in, out, *p_notes);
-	return strdup(out.str().c_str());
+//Ritorna 1 se nella lista children c'è un nodo error
+int domPIAdded(xmlNodePtr node) {
+	xmlNodePtr child=NULL;
+	child = node->children;
+	//printf("\ndomPIAdded()");
+	while(child!=NULL) {
+		//printf("\n name:%s\n", (char *)child->name);
+		if(!xmlStrcmp(child->name, BAD_CAST "error"))
+			return 1;
+		child=child->next;
+	}
+	return 0;
 }
-
-
-*/
-
-

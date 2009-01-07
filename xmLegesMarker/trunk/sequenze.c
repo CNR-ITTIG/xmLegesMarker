@@ -31,7 +31,7 @@ int sequenzaGetLat(tagTipo tipo)
 /******************************************************** SEQUENZA INC ********/
 /******************************************************************************/
 void sequenzaInc(tagTipo tipo) {
-	seq[tipo].num++;	
+	seq[tipo].num++;
 }
 
 /******************************************************************************/
@@ -68,6 +68,8 @@ int ii;
 		return 1;
 	}
 	loggerDebug(utilConcatena(8, "sequenzaCheck(tipo,num,lat):arg=", utilItoa(num), ",", utilItoa(lat), ",seq=", utilItoa(seq[tipo].num), ",", utilItoa(seq[tipo].lat)));
+	//if(tipo == titolo)
+	//printf(utilConcatena(8, "sequenzaCheck(tipo,num,lat):arg=", utilItoa(num), ",", utilItoa(lat), ",seq=", utilItoa(seq[tipo].num), ",", utilItoa(seq[tipo].lat)));
 		// ??? RIVEDERE CON CONDIZIONI PER LATINI
 
 	//printf("sequenza numero %d\n",seq[tipo].num);
@@ -89,7 +91,7 @@ int ii;
 			seq[tipo].lat = lat;
 			return 1;
 		}
-	
+
 
 	if (seq[tipo].num + 1 == num) {
 		seq[tipo].num = num;

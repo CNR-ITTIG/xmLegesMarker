@@ -125,6 +125,9 @@ int numdis=0;
 int numtes=0;
 int art_dec=0;
 
+int flagArt=0;
+int flagCom=0;
+
 int stacklog=0;
 int countlog=0;
 int maxlog=9999;
@@ -137,16 +140,32 @@ int check(tagTipo tipo) {
 	char *tipoStr = strdup(tagTipoToNome(tipo));
 	loggerDebug(utilConcatena(9, "CHECK: ", tipoStr, " testo=\"", yytext, "\", num=", utilItoa(numConv), "lat=", utilItoa(latConv)));
 	seq = sequenzaCheck(tipo, numConv, latConv);
-	if (!seq) {
-		if(stacklog) printf("\nCHECK:\"%s\" non in sequenza \"%s\"\n", tipoStr, yytext);
+	if (!seq && tipo != titolo) {	//Titolo fa due controlli: ord e rom. Se uno fallisce e l'altro è ok aggiungerebbe comunque lo warning...
+		
+		//printf("\nCHECK:\"%s\" non in sequenza \"%s\"\n", tipoStr, yytext);
 		loggerWarn(utilConcatena(5, "CHECK:", tipoStr, " non in sequenza \"", yytext, "\""));
+		
 		//Aggiungi un nodo/messaggio di warning?
-		domAddSequenceWarning(tipo, numConv, latConv);
+		char *msg = (char *)malloc(sizeof(char)*1024);
+		sprintf(msg, "Generic sequence warning (tipo:%s num:%d lat:%d)", 
+						tagTipoToNome(tipo), numConv, latConv);
+		int lastnum = sequenzaGetNum(tipo);
+		
+		if(tipo == comma) {
+			sprintf(msg, "Marker Warning 101 (last comma:%d next:%d)", lastnum, numConv); 
+		} else if(tipo == lettera) {
+			sprintf(msg, "Marker Warning 102 (last lettera:%d next:%d)", lastnum, numConv); 		
+		} else if(tipo == articolo) {
+			sprintf(msg, "Marker Warning 103 (last articolo:%d next:%d)", lastnum, numConv); 		
+		} else {
+			printf("\nCHECK:\"%s\" non in sequenza \"%s\"\n", tipoStr, yytext);
+		}
+		domAddSequenceWarningMsg(tipo, numConv, latConv, msg);
 	}
 	return seq;
 }
 
-/************************************************************ CHECK ROMANO ****/
+/************************************************************ CHECK ORDINALE ****/
 int checkOrd(tagTipo tipo) {
 	numConv = utilOrdToArabic(cercaSpazio(utilCercaCarattere(yytext)));
 	latConv = 0;//latinToArabic(yytext);
@@ -184,7 +203,7 @@ void save(tagTipo tipo) {
 	
 	//Se vi è un articolo, il documento è articolato
 	if ( tipo == articolo || 
-		(configGetVirgoMode()==1 && tipo==comma) )	 {
+		(configGetVirgoMode()==1 && ( tipo==comma || tipo == lettera) ) )	 {
 			isArticolato=1;
 	}
 	
@@ -281,6 +300,27 @@ void openVirgCommon() {
 	}
 }
 
+void addLetNumWarning() {
+
+	//if(stacklog) puts("WARNING 107!");
+	char *msg = strdup("Marker Warning 107");
+	domAddSequenceWarningMsg(corpo, numConv, latConv, msg);
+}
+
+void addCommaNumWarning() {
+
+	//if(stacklog) puts("WARNING 108!");
+	char *msg = strdup("Marker Warning 108");
+	domAddSequenceWarningMsg(corpo, numConv, latConv, msg);
+}
+
+void addArtNoCommaWarning() {
+
+	//if(stacklog) puts("WARNING 108!");
+	char *msg = strdup("Marker Warning 109");
+	domAddSequenceWarningMsg(articolo, numConv, latConv, msg);
+}
+
 %}
 
 /* Aggiunto 'A0' come carattere spaziatore (causa vecchio ddl senato) */
@@ -306,7 +346,6 @@ NUMLIBRO	({TESTOLIBRO}{S}+{ROMANO}{PS}*{LATINO}?{PS}?)
 NUMPARTE	({TESTOPARTE}{S}+{ROMANO}{PS}*{LATINO}?{PS}?)
 NUMPARTE2	({TESTOPARTE}{S}+{ORD}{PS}?)
 NUMTITOLO	({TESTOTITOLO}{S}+({ORD}|{ROMANO}){PS}*{LATINO}?{PS}?)
-NUMTITOLOOLD	({TESTOTITOLO}{S}+{ROMANO}{PS}*{LATINO}?{PS}?)
 NUMCAPO		({TESTOCAPO}{S}+{ROMANO}{PS}*{LATINO}?{PS}?)
 NUMSEZIONE	({TESTOSEZIONE}{S}+{ROMANO}{PS}*{LATINO}?{PS}?)
 NUMARTICOLO	({TESTOARTICOLO}{S}*{NUM}{PS}*{LATINO}?{PS}?)
@@ -398,9 +437,9 @@ ROMANO		([ivxl]+{S}*)
 
 %s InCapo InArticolo
 %x InVirgolette InVirgoDoppie
-%s InPreComma InComma InCommaDec
+%s InPreComma InComma InCommaAlinea InCommaDec
 %s InLettera InNumero InPuntata
-%s InCommaAlinea InLetteraAlinea InNumeroAlinea InPuntataAlinea
+%s InLetteraAlinea InNumeroAlinea InPuntataAlinea
 %s InPreLet InPreNum InPrePunt
 %s InArtRubNum InArtRubNN
 %s InNota
@@ -412,7 +451,7 @@ ROMANO		([ivxl]+{S}*)
 
 <Disegno>^({S}*{DISEGNO}{S}*)$	{
 									numdis++;
-									printf("\nDisegno numdis:%d numtes:%d\n", numdis, numtes);
+									if(stacklog) printf("\nDisegno numdis:%d numtes:%d\n", numdis, numtes);
 									if (numdis==numtes) {
 										BEGIN(0);
 										//configSetDdlTestate(0); //Altrimenti disturba eventuali allegati...
@@ -483,6 +522,7 @@ ROMANO		([ivxl]+{S}*)
 		cr=checkRomano(titolo);
 		if (!(co || cr))
 			REJECT;
+		if(stacklog) printf("\nTITOLO num:%d lat:%d\n",numConv,latConv);
 		save(titolo);
 		BEGIN(0);
 }
@@ -552,7 +592,15 @@ ROMANO		([ivxl]+{S}*)
 	if(stacklog) printf("\nArticolo -%s-",yytext);
 	if (!checkCardinale(articolo))
 		REJECT;
+		
 	save(articolo);
+
+	if( flagArt && !flagCom) {
+		addArtNoCommaWarning();
+	}
+	flagArt = 1;
+	flagCom = 0;
+	
 	numConv = 1;
 	commiNN = 1;
 	art_dec = 0;
@@ -567,7 +615,13 @@ ROMANO		([ivxl]+{S}*)
 ^{ARTBASE}		{
 	if(!configGetVirgoMode()) { REJECT; }
 	if(stacklog) printf("\n--- ARTICOLOVIRGO --\n");	
+
 	save(articolo);
+	if( flagArt && !flagCom) {
+		addArtNoCommaWarning();
+	}
+	flagArt = 1;
+	flagCom = 0;
 
 	if(configTipoCommi() == commiNumerati) {
 		BEGIN(InArtRubNum);
@@ -578,13 +632,24 @@ ROMANO		([ivxl]+{S}*)
 
 ^{COMMA} {
 	if (!configGetVirgoMode()) { REJECT; }
-	int state = yy_top_state();
-	if(stacklog) printf("TOP_STATE:%d.\n", state);
+	
+	//int state = yy_top_state();
+	//if(stacklog) printf("TOP_STATE:%d.\n", state);
 	//Non rilevare nuovi commi se stai analizzando liste
-	if( state > 7 && state < 20) { REJECT; }
+	//if( state > 8 && state < 20) { REJECT; }
+	
+	if(artpos != 0) { REJECT; }
 	save(comma);
 	if(stacklog) puts("VIRGO MODE - IN COMMA");
 	BEGIN(InComma);
+}
+
+^{LETTERA} {
+	if (!configGetVirgoMode()) { REJECT; }
+	if(artpos != 0) { REJECT; }
+	save(lettera);
+	if(stacklog) puts("VIRGO MODE - IN LETTERA START");
+	BEGIN(InLettera);
 }
 
 <InArtRubNum>{RUBRICASTRICT}	{
@@ -600,6 +665,7 @@ ROMANO		([ivxl]+{S}*)
 		REJECT;
 
 	if(stacklog) printf("RUBRICA dopo: artpos=%d, artleng=%d\n", artpos, artleng);
+	flagCom = 1;
 	save(comma);
 	if(stacklog) puts("IN ARTICOLO - IN COMMA 1");
 	BEGIN(InComma);
@@ -614,19 +680,10 @@ ROMANO		([ivxl]+{S}*)
 	saveDec();
 }
 
-<InArtRubNum>{COMMA}	{
-	//Se si è nelle virgolette, ma c'è un articolo, deve necessariamente esserci il comma1
-	//non un generico comma (dà problemi con rubriche)
-	REJECT;
-	if (!configGetVirgoMode()) { REJECT; }
-	save(comma);
-	if(stacklog) puts("VIRGO MODE - IN ARTICOLO - IN COMMA");
-	BEGIN(InComma);
-}
-
 <InArtRubNN>{RUBRICALIGHT}	{
 	if(stacklog) printf("\nRubNN - RUBRICALIGHT");
 	saveRub();
+	flagCom = 1;
 	saveCommaNN();
 	commiNN++;
 	BEGIN(InComma);
@@ -635,6 +692,7 @@ ROMANO		([ivxl]+{S}*)
 <InArtRubNN>{RUBRICASTRICT}	{
 	if(stacklog) printf("\nRubNN - RUBRICASTRICT");
 	saveRub();
+	flagCom = 1;
 	saveCommaNN();
 	commiNN++;
 	BEGIN(InComma);
@@ -644,6 +702,7 @@ ROMANO		([ivxl]+{S}*)
 	if (stacklog) puts("\nCOMMANN rilevato.\n");
 	if (configTipoCommi() == commiNumerati) 
 		REJECT;
+	flagCom = 1;
 	saveCommaNN();
 	if(stacklog) puts("IN ARTICOLO - IN COMMA NN");
 	commiNN++;
@@ -715,8 +774,10 @@ ROMANO		([ivxl]+{S}*)
 
 <InCommaAlinea>{NUMERO1}	{
 	//Nella flessibile le liste possono essere subito numeriche
-	if(configGetDTDTipo() != flessibile)
+	if(configGetDTDTipo() != flessibile) {
+		addCommaNumWarning();
 		REJECT;
+	}
 	if (!checkCardinale(numero))
 		REJECT;
 	if(stacklog) puts("NUMERO 1");
@@ -745,8 +806,13 @@ ROMANO		([ivxl]+{S}*)
 
 <InNumero>{DUEPT}/{LETTERA} {
 	artpos += artleng;
-	if(stacklog) puts("IN NUMERO ALINEA");
-	yy_push_state(InNumeroAlinea);
+	if(configGetDTDTipo() == flessibile) {
+		if(stacklog) puts("IN NUMERO ALINEA");
+		yy_push_state(InNumeroAlinea);
+	} else {
+		addLetNumWarning();
+		if(stacklog) puts("Avoiding LETTERA inside NUMERO (dtd non flessibile)");
+	}
 }
 
 <InNumero>{DUEPT}/{PUNTATA} {
@@ -1094,9 +1160,9 @@ int _ArticolatoLexStart(  char * buf)
 {
 	//printf("\nBUFFER:\n%s", buf);
 	BEGIN(0);
-	if(configGetDocTestoTipo() == disegnolegge)	{
+	if(configGetDocTestoTipo() == disegnolegge && !configGetVirgoMode() )	{
 		numtes=configDdlTestate();
-		printf("\nDis numdis:%d numtes:%d\n", numdis, numtes);
+		if(stacklog) printf("\nDis numdis:%d numtes:%d\n", numdis, numtes);
 		if (numtes)	
 			BEGIN(Disegno);
 		else
@@ -1111,17 +1177,22 @@ int _ArticolatoLexStart(  char * buf)
 	firstSave=1;
 	isArticolato=0;
 	artpos=0;
+	flagArt = 0;
+	flagCom = 0;
 	//domInitStates();
 	
 	yy_init = 1;
 	
 	sequenzaSet(nota,999);	//Imposta l'inizio della sequenza ad un valore Elevato
 	
-	if(stacklog) printf("\n STARTING ------------------------------------\n");
+	if(stacklog) printf("\n STARTING len:%d ------------------------------------\n", strlen(buf));
+	//printf("\nBUFFER:\n%s\n", buf);
 	
 	art_scan_string(buf);
 	artlex();
 
+	if(stacklog) printf("\n ENDING ------------------------------------\n");
+	
 	return isArticolato;
 }
 

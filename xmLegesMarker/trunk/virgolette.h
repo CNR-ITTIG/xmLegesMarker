@@ -26,6 +26,7 @@ void virgoletteInMod(xmlNodePtr pParentNode);
 int checkCommaMod(char *txt, xmlNodePtr corpo);
 void replaceNode(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p);
 xmlNodePtr replaceNodeWithChildren(xmlNodePtr a, xmlNodePtr b, xmlNodePtr p);
+void virgoletteStructure(xmlNodePtr virgoNode);
 
 #ifdef __cplusplus
 }

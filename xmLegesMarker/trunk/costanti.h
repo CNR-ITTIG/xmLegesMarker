@@ -13,7 +13,7 @@
 extern "C" {
 #endif
 
-#define MAXANNESSI	40
+#define MAXANNESSI	128
 //#define MAXTAG		100000
 #define MAXFILENAME	1024
 #define MAXLINE		512

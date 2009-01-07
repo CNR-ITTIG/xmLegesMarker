@@ -25,7 +25,7 @@
 #include "xml.h"
 #include "prexml.h"
 
-const char *versione = "3.12.23";
+const char *versione = "4.01.01";
 int visErrore = 0;
 char *bufferEnd;
 char *namebin = "";

@@ -156,9 +156,10 @@ int checkCommaMod(char *txt, xmlNodePtr corpo) {
 			strstr(txt, "soppressi") || strstr(txt, "soppresse") )
 		return 1;
 
+	//Aggiunto caso: "sono premessi i seguenti..." DDL 3328 art.34
 	//Devono anche essere presenti delle virgolette nel corpo
 	if ( (strstr(txt, "sostituit") || strstr(txt, "aggiunt") ||
-			strstr(txt, "modificat") ||	strstr(txt, "inserit") ) &&
+			strstr(txt, "modificat") ||	strstr(txt, "inserit")  ||	strstr(txt, "premess") ) &&
 				virgoletteInCorpo(corpo) )
 		return 1;
 
@@ -195,6 +196,7 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 
 	if(checkCommaMod(desc,pNodoCorpo))
 	{
+		//printf("\nIdentified MOD:\n%s\n", desc);
 		IDMOD++;
 		xmlNodePtr newNodoMod = xmlNewNode(NULL, BAD_CAST tagTipoToNome(mod));
 		domSetIDtoNode(newNodoMod,mod,IDMOD,0,NULL);
@@ -246,13 +248,48 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 	}
 
 	//Try to analyze virgolette content
-	xmlNodePtr modNode = GetFirstNodebyTagTipo(pNodoCorpo, BAD_CAST "mod");
+	xmlNodePtr modNode = GetFirstNodebyTagTipo(pNodoCorpo, BAD_CAST "mod"); //Può esserci soltanto un mod per comma!?
 	if(modNode == NULL) {
 		//printf("\n ERROR ! ModificaVirgolette() - modNode is NULL! name: %s \n", pNodoCorpo->children->name);
 		return;
 	}
 
-	xmlNodePtr virgoNode = GetFirstNodebyTagTipo(modNode, BAD_CAST "virgolette");
+	//xmlNodePtr virgoNode = GetFirstNodebyTagTipo(modNode, BAD_CAST "virgolette"); //possono esserci più virgo nello stesso mod
+
+	xmlNodePtr cNode = modNode->children;
+	while (cNode != NULL) {
+		if (!xmlStrcmp(cNode->name, BAD_CAST "virgolette")) {
+			//Analizza struttura interna di queste virgolette
+			virgoletteStructure(cNode);
+		}
+		cNode = cNode->next;
+	}
+
+}
+
+//RICORSIVA
+void virgoletteInMod(xmlNodePtr pParentNode)
+{
+	if (pParentNode==NULL) return ;
+
+
+	xmlNodePtr cur= pParentNode->children;	//FirstChild
+
+	while (cur != NULL) {
+		//Se il nodo corrente è una CORPO, cerca di individuare le VIRGOLETTE al suo interno e vi inserisce un MOD
+		if (IsNode(cur,corpo)){
+			ModificaVirgolette(cur);
+		} else {
+			//prosegue la ricorsione solo se non è un CORPO
+			virgoletteInMod(cur);
+		}
+		cur = cur->next; //NextChild
+	}
+
+}
+
+void virgoletteStructure(xmlNodePtr virgoNode) {
+
 	if(virgoNode == NULL) {
 		//printf("\n ERROR! ModificaVirgolette() - virgoNode is null! \n");  // <-- caso ABROGATIVA ??
 		return;
@@ -284,15 +321,17 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 
 		xmlNodePtr mFirstError = GetFirstNodebyTagTipo(resNode, BAD_CAST tagTipoToNome(tagerrore));
 
+		int fullMarked = 1;
 		if(mFirstError != NULL) { //Ce ne può essere più di uno di nodi errore?
 
 			//Check if error is empty, else discard resNode or just warn??
 			char *errContent = (char *) xmlNodeGetContent(mFirstError);
 			errContent = trim(errContent);
 			if(strlen(errContent) > 0) {
-				printf("\nWARNING!! Non empty error in resNode ! content:\n%s\n", errContent);
-				printf("\nDo Nothing / Skipping...\n");
-				return;
+				//printf("\nWARNING!! Non empty error in resNode ! \nvirgoContent:%s\n errorContent:\n%s\n", virgoContent, errContent);
+				//printf("\nDo Nothing / Skipping...\n");
+				fullMarked = 0;
+				//return;
 			} else {
 				//Delete empty error node
 				xmlUnlinkNode(mFirstError);
@@ -310,6 +349,11 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 		DeleteAllChildren(virgoNode);
 		xmlAddChild(virgoNode, resNode);
 
+		if(!fullMarked) {
+			xmlNodePtr warning = xmlNewPI(BAD_CAST tagTipoToNome(tagerrore), BAD_CAST "Marker Warning 106");
+			xmlAddSibling(virgoNode, warning);
+		}
+
 		xmlNewProp(virgoNode, BAD_CAST "tipo", BAD_CAST "struttura");
 
 		if(IsNode(resNode, articolato)) {
@@ -322,26 +366,4 @@ void ModificaVirgolette(xmlNodePtr pNodoCorpo)
 		}
 	}
 }
-
-//RICORSIVA
-void virgoletteInMod(xmlNodePtr pParentNode)
-{
-	if (pParentNode==NULL) return ;
-
-
-	xmlNodePtr cur= pParentNode->children;	//FirstChild
-
-	while (cur != NULL) {
-		//Se il nodo corrente è una CORPO, cerca di individuare le VIRGOLETTE al suo interno e vi inserisce un MOD
-		if (IsNode(cur,corpo)){
-			ModificaVirgolette(cur);
-		} else {
-			//prosegue la ricorsione solo se non è un CORPO
-			virgoletteInMod(cur);
-		}
-		cur = cur->next; //NextChild
-	}
-
-}
-
 

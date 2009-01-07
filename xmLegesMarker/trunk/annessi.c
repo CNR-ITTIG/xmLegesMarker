@@ -112,9 +112,12 @@ void AnnessiCicla(xmlNodePtr pNodoParent){
 	//Vettore di tutti i nodi con TAG ANNESSO del nodo
 	int numAnnessi=GetAllNodebyTagTipo(&vectAnnessi[0],MAXANNESSI,pNodoParent,BAD_CAST tagTipoToNome(annesso));
 
+	configSetDocTesto(documentoNIR); //Annessi trattati tutti come documenti nir generici
+
 	//Ciclo su tutti i nodi "Annessi"
 	for (n=0;n<numAnnessi;n++)
 	{
+
 		currAnnesso=vectAnnessi[n];
 		//Vettore di tutti i nodi con TAG ERRORE del nodo
 		tmpNumErrorChild=GetAllNodebyTagTipo(&ErrorChildren[0],1024,currAnnesso,BAD_CAST tagTipoToNome(tagerrore));

@@ -53,6 +53,7 @@ xmlNodePtr getPartitionTextNode(xmlNodePtr node) {
 	if(node==NULL) return NULL;
 
 	while(node!=NULL) {
+		//printf("\n-%s", node->name);
 		if(xmlNodeIsText(node))
 			return node;
 		node=node->next;
@@ -242,9 +243,9 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 
 	//Aggiunta -- Si deve differenziare doc.generici, disegni di legge, prov.cnr, ecc...
 	int tdoc = 0; //variabile che tiene conto del tipo di documento
-	if(configGetDocTestoTipo() == disegnolegge) // && ruolo == principale) //<- doc.non valido se DDL+DecretoLegge
+	if(configGetDocTestoTipo() == disegnolegge && ruolo == principale) //<- doc.non valido se DDL+DecretoLegge
 		tdoc=1;
-	if(configGetDocTestoTipo() == provCNR) // && ruolo == principale) //<- doc.non valido se DDL+DecretoLegge
+	if(configGetDocTestoTipo() == provCNR && ruolo == principale) //<- doc.non valido se DDL+DecretoLegge
 		tdoc=2;
 	if(!strcmp(configGetDocNome(),"Regolamento Regionale"))
 		tdoc=3;

@@ -38,12 +38,15 @@ xmlNodePtr getLastSibling(xmlNodePtr node) {
 //Nel caso di testi html aggancia il nodo "manualmente" (non usare xmlAddChild, xmlAddSibling, ecc...)
 void addSibling(xmlNodePtr pnode, xmlNodePtr cnode) {
 
+	//TODO Verificare se con HTML è sufficiente comunque xmlAddChild()
+
 	if(configTipoInput()!=html) {
 		xmlAddChild(pnode, cnode);
 		return;
 	}
 
 	if(pnode->children!=NULL) {
+
 		xmlNodePtr last = getLastSibling(pnode->children);
 
 		//xmlAddSibling(last, cnode);	// <-- NON FUNZIONA !!
@@ -54,10 +57,11 @@ void addSibling(xmlNodePtr pnode, xmlNodePtr cnode) {
 								//    (i nodi successivi nella lista sono già attaccati tramite next ma usando
 								//    xmlAddSibling vengono ignorati. (Approfondire...)
 	}
-	else
+	else {
 		xmlAddChild(pnode, cnode);	// <-- xmlAddChild : se era già presente una lista nodo/entità
 									//     in pnode->children allora cnode viene attaccato non alla fine della
 									//     lista ma dopo il primo nodo (di testo?)  -- (Approfondire...)
+	}
 }
 
 xmlNodePtr domGetLastTag(tagTipo ptag)
@@ -175,7 +179,6 @@ xmlNodePtr domGetLastChild(void)
 // Se vi è del testo non assegnato, viene aggiunto all'ultimo TAG (quello con enumerazione + alta)
 void domClose(void)
 {
-	//xmlNodePtr mtext;
 
 	int slen=0;
 	char *strbuff;
@@ -188,12 +191,27 @@ void domClose(void)
 	if (strbuff)
 	{
 		slen = strlen(strbuff);
-		//mtext=xmlNewText(BAD_CAST strbuff);
-		//xmlAddChild(lastChild,mtext);
 
 		//Attacca una lista testo/entità piuttosto che un nodo di testo:
 		//xmlAddChild(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
 		addSibling(lastChild, xmlStringGetNodeList(NULL, BAD_CAST strbuff));
+
+		//printf("\ndomClose() - aggiungo testo di lunghezza:%d al nodo:%s \n", slen, lastChild->name);
+		//printf("\nBUFFER:%s\n", strbuff);
+
+		if( !xmlStrcmp(lastChild->name, tagTipoToNome(virgolette)) ) {
+			//printf("\nAdding 105 warning...");
+			char *msg = strdup("Marker Warning 105");
+			domAddSequenceWarningMsg(virgolette, 0, 0, msg);
+		}
+
+		if( !xmlStrcmp(lastChild->name, tagTipoToNome(rubrica)) ) {
+			//Rubrica aperta, warning 109 ?
+			char *msg = strdup("Marker Warning 109");
+			domAddSequenceWarningMsgClose(rubrica, 0, 0, msg, 1);
+		}
+
+
 	}
 }
 
@@ -248,8 +266,8 @@ xmlNodePtr domTagOpen(tagTipo ptag,int pindex,int plen)
 	lastChild=domGetLastChild();
 
 	//if(!xmlStrcmp(lastChild->name, (const xmlChar *)"virgolette"))
-	//if(ptag == virgolette)
-	//printf("\ndomTagOpen --- ptag:%s pindex:%d plen:%d lastchild:%s mparent:%s\n", tagTipoToNome(ptag), pindex, plen, lastChild->name, mparent->name);
+	//if(ptag == titolo)
+	//	printf("\ndomTagOpen --- ptag:%s pindex:%d plen:%d lastchild:%s mparent:%s\n", tagTipoToNome(ptag), pindex, plen, lastChild->name, mparent->name);
 
 	//Se vi è testo non assegnato a nessun TAG
 	strbuff=domExtractStringBeforeIndex(pindex);
@@ -283,7 +301,7 @@ xmlNodePtr domTagOpen(tagTipo ptag,int pindex,int plen)
 		//Decorazione non deve andare sotto rubrica (e nemmeno sotto corpo)!
 		if(ptag == decorazione) { // && strcmp(mparent->name,"rubrica") == 0 )  {
 			if(mparent == NULL) {
-				printf("\ndomAddSequenceWarning() -- nodo is null\n");
+				printf("\ndomTagOpen() -- mparent is null\n");
 			} else {
 				xmlNodePtr pparent = mparent->parent;
 				//printf("\n>BUF:%s",strbuff);
@@ -478,45 +496,87 @@ xmlNodePtr domGetFirstNode(xmlNodePtr node) {
 	return root;
 }
 
-//Aggiunge un messaggio di warning in un nodo error se una sequenza non è rispettata
+
 void domAddSequenceWarning(tagTipo ptag, int num, int lat) {
+
+	domAddSequenceWarningMsgClose(ptag, num, lat, NULL, 0);
+}
+
+//Aggiunge un messaggio di warning in un nodo error se una sequenza non è rispettata
+void domAddSequenceWarningMsg(tagTipo ptag, int num, int lat, char *msg) {
+
+	domAddSequenceWarningMsgClose(ptag, num, lat, msg, 0);
+}
+
+void domAddSequenceWarningMsgClose(tagTipo ptag, int num, int lat, char *msg, int closing) {
+
 	xmlNodePtr nodo=mcurrTagState[(int)ptag];
+	xmlNodePtr mparent=domGetLastNodeParent(ptag);
+	xmlNodePtr lastChild=domGetLastChild();
+
+	char *warning = (char *)malloc(sizeof(char)*1024);
+
 	if(nodo==NULL) {
 		//DA FARE:Verificare che quando si arriva qui il msg di warning viene messo comunque e poi togliere questo printf()
-		//printf("\ndomAddSequenceWarning() -- nodo is null (tipo:%s num:%d lat:%d)\n",
-		//		(char *)tagTipoToNome(ptag), num, lat);
+		printf("\ndomAddSequenceWarning() -- nodo is null (tipo:%s num:%d lat:%d mparent:%s lastchild:%s)\n",
+				(char *)tagTipoToNome(ptag), num, lat, mparent->name, lastChild->name);
 		return;
 	}
+
+	if(msg != NULL) {
+		//printf("Verificare sequenza! MSG:%s [tipo:%s nodo:%s mparent:%s lastchild:%s] num:%d lat:%d ",
+			//	msg, (char *)tagTipoToNome(ptag), nodo->name, mparent->name, lastChild->name, num, lat);
+	} else {
+		//printf("Verificare sequenza! [tipo:%s nodo:%s mparent:%s lastchild:%s] num:%d lat:%d ",
+		//		(char *)tagTipoToNome(ptag), nodo->name, mparent->name, lastChild->name, num, lat);
+	}
+
+	xmlNodePtr pi = NULL;
 	//Se il messaggio è troppo lungo sballa la formattazione (barra di scorrimento orizzontale)
-	xmlNodePtr pi=xmlNewPI(BAD_CAST tagTipoToNome(tagerrore), BAD_CAST
-	"--VERIFICARE SEQUENZA--");
-	//"--VERIFICARE SEQUENZA (caratteri \";\" e \".\", lista numerica senza dtd flessibile... - ignorare partizioni modificative?)"); //-- [Tipo:%s]",tagTipoToNome(ptag));
+	if(msg != NULL) {
+		//sprintf(warning, "Verificare sequenza!\n (msg:%s)\n [tipo:%s nodo:%s mparent:%s lastchild:%s] num:%d lat:%d ",
+		//		msg, (char *)tagTipoToNome(ptag), nodo->name, mparent->name, lastChild->name, num, lat);
+		pi=xmlNewPI(BAD_CAST tagTipoToNome(tagerrore), BAD_CAST msg);
+	} else {
+		sprintf(warning, "Verificare sequenza!\n (msg:No Message!)\n [tipo:%s nodo:%s mparent:%s lastchild:%s] num:%d lat:%d ",
+				(char *)tagTipoToNome(ptag), nodo->name, mparent->name, lastChild->name, num, lat);
+		pi=xmlNewPI(BAD_CAST tagTipoToNome(tagerrore), BAD_CAST warning);
+	}
 
 	//Controlla che non sia già stato messo un nodo error
-	if(domPIAdded(nodo)) return;
-	//printf("\n ----------SEQUENZA NON RISPETTATA ? -----------\n");
-
-	//Aggiungi come sibling del corpo
-	xmlAddChild(nodo,pi);
-
-	//Aggiungi come figlio del corpo.
-	//Il problema è che il testo viene messo dopo! (quando c'è il tagclose)
-	/*
-	xmlNodePtr child=NULL;
-	child = nodo->children;
-	while(child!=NULL) {
-		if((!xmlStrcmp(child->name, (const xmlChar *)"corpo")))
-			break;
-		child=child->next;
+	if(msg == NULL) {
+		if(domPIAdded(nodo)) {
+			//printf("\nPI NODE already here!\n");
+			return;
+		}
+	} else {
+		if(domPIAddedMsg(nodo, msg)) {
+			//printf("\nPI NODE already here!\n");
+			return;
+		}
 	}
 
-	if(child==NULL) {
-		printf("\n Sequenza non rispettata -- CHILD NULL !!!\n");
-		return;
-	}
+	//Lo warning 105 va aggiunto direttamente ad articolato
+	if(ptag == virgolette  && !strcmp(msg, "Marker Warning 105") ) {
+		xmlAddChild(mRoot,pi);
+	} else if( !closing && !strcmp(msg, "Marker Warning 109") ) {
+		//nodo è un articolo, trova l'articolo precedente, attaccalo a quello.
+		//Vale solo quando non è l'ultimo articolo (chiamata da domClose)
+		//alternativa: usare codici di warning diversi.
+		xmlNodePtr cur = nodo->prev;
+		while(cur != NULL && xmlStrcmp(cur->name, (const char *) "articolo") ) {
+			cur = cur->prev;
+		}
 
-	addSibling(child,pi);
-	*/
+		if(cur == NULL) {
+			printf("\nPrevious articolo not found, using actual articolo...\n");
+			xmlAddChild(nodo, pi);
+		} else {
+			xmlAddChild(cur, pi);
+		}
+	} else {
+		xmlAddChild(nodo,pi);
+	}
 }
 
 //Ritorna 1 se nella lista children c'è un nodo error
@@ -528,6 +588,24 @@ int domPIAdded(xmlNodePtr node) {
 		//printf("\n name:%s\n", (char *)child->name);
 		if(!xmlStrcmp(child->name, (const xmlChar *)"error"))
 			return 1;
+		child=child->next;
+	}
+	return 0;
+}
+
+//Ritorna 1 se nella lista children c'è un nodo error con identico contenuto
+int domPIAddedMsg(xmlNodePtr node, char *content) {
+	xmlNodePtr child=NULL;
+	child = node->children;
+	//printf("\ndomPIAdded()");
+	while(child!=NULL) {
+		//printf("\n name:%s\n", (char *)child->name);
+		if(!xmlStrcmp(child->name, (const xmlChar *)"error")) {
+			//Controlla "Marker Warning XYZ"
+			if( !strncmp(BAD_CAST child->content, content, 18) ) {
+				return 1;
+			}
+		}
 		child=child->next;
 	}
 	return 0;

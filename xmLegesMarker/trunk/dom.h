@@ -52,7 +52,10 @@ extern "C" {
 	void 		domAddRango(xmlNodePtr node, char *t);
 	xmlNodePtr	domGetFirstNode(xmlNodePtr node);
 	void domAddSequenceWarning(tagTipo ptag, int num, int lat);
+	void domAddSequenceWarningMsg(tagTipo ptag, int num, int lat, char *msg);
+	void domAddSequenceWarningMsgClose(tagTipo ptag, int num, int lat, char *msg, int closing);
 	int domPIAdded(xmlNodePtr node);
+	int domPIAddedMsg(xmlNodePtr node, char *content);
 	void domInitStates();
 
 #ifdef __cplusplus
