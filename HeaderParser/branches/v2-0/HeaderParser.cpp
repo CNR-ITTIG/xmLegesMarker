@@ -341,7 +341,7 @@ int HeaderParser::parseHeader(std::string& header,
 	//printf("\nHeaderParser\ntdoc: %d\n", tdoc);
 	//printf("\nHeaderParser\nbuffer: %s\n\n\n", header.c_str());
 
-	adjustEntities(header);
+	//adjustEntities(header); //Deprecated.
 	adjustEsecutivita(header);
 
 	//Replace "1�" (primo) with "1" (> and < ?)
