@@ -25,6 +25,48 @@
 							}											
 */
 
+/*
+&#128;			prehtmlAppendChars(1, '\x80');		//mapping dei caratteri "windows"
+&#129;			prehtmlAppendChars(1, '\x81');
+&#130;			prehtmlAppendChars(1, '\x82');
+&#131;			prehtmlAppendChars(1, '\x83');
+&#132;			prehtmlAppendChars(1, '\x84');
+&#133;			prehtmlAppendChars(1, '\x85');
+&#134;			prehtmlAppendChars(1, '\x86');
+&#135;			prehtmlAppendChars(1, '\x87');
+&#136;			prehtmlAppendChars(1, '\x88');
+&#137;			prehtmlAppendChars(1, '\x89');
+&#138;			prehtmlAppendChars(1, '\x8A');
+&#139;			prehtmlAppendChars(1, '\x8B');
+&#140;			prehtmlAppendChars(1, '\x8C');
+&#141;			prehtmlAppendChars(1, '\x8D');
+&#142;			prehtmlAppendChars(1, '\x8E');
+&#143;			prehtmlAppendChars(1, '\x8F');
+&#144;			prehtmlAppendChars(1, '\x90');
+&#145;			prehtmlAppendChars(1, '\x91');
+&#146;			prehtmlAppendChars(1, '\x92');
+&#147;			prehtmlAppendChars(1, '\x93');
+&#148;			prehtmlAppendChars(1, '\x94');
+&#149;			prehtmlAppendChars(1, '\x95');
+&#150;			prehtmlAppendChars(1, '\x96');
+&#151;			prehtmlAppendChars(1, '\x97');
+&#152;			prehtmlAppendChars(1, '\x98');
+&#153;			prehtmlAppendChars(1, '\x99');
+&#154;			prehtmlAppendChars(1, '\x9A');
+&#155;			prehtmlAppendChars(1, '\x9B');
+&#156;			prehtmlAppendChars(1, '\x9C');
+&#157;			prehtmlAppendChars(1, '\x9D');
+&#158;			prehtmlAppendChars(1, '\x9E');
+&#159;			prehtmlAppendChars(1, '\x9F');
+
+&#171;			prehtmlAppendChars(1, '\xAB');		//#LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
+&#187;			prehtmlAppendChars(1, '\xBB');		//#RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
+
+&[a-z]+;		prehtmlAppendString(strdup(prehtmltext));	// lasciate entità simboliche
+
+
+*/
+
 %{
 #include <stdio.h>
 #include <string.h>
@@ -101,44 +143,24 @@ TAGDEL	(head|form|script|style)
 
 &quot;			prehtmlAppendChars(1, '"');		// convertite virgolette
 &nbsp;			prehtmlAppendChars(1, ' ');		// convertito spazio non divisibile
+&apos;			prehtmlAppendString(strdup("&#39;")); 	//TAKEN FROM http://www.w3schools.com/tags/ref_entities.asp
+&amp;			prehtmlAppendString(strdup("&#38;"));
+&lt;			prehtmlAppendString(strdup("&#60;")); 	
+&gt;			prehtmlAppendString(strdup("&#62;"));
 
-&[a-z]+;		prehtmlAppendString(strdup(prehtmltext));	// lasciate entità simboliche
 
-&#128;			prehtmlAppendChars(1, '\x80');		//mapping dei caratteri "windows"
-&#129;			prehtmlAppendChars(1, '\x81');
-&#130;			prehtmlAppendChars(1, '\x82');
-&#131;			prehtmlAppendChars(1, '\x83');
-&#132;			prehtmlAppendChars(1, '\x84');
-&#133;			prehtmlAppendChars(1, '\x85');
-&#134;			prehtmlAppendChars(1, '\x86');
-&#135;			prehtmlAppendChars(1, '\x87');
-&#136;			prehtmlAppendChars(1, '\x88');
-&#137;			prehtmlAppendChars(1, '\x89');
-&#138;			prehtmlAppendChars(1, '\x8A');
-&#139;			prehtmlAppendChars(1, '\x8B');
-&#140;			prehtmlAppendChars(1, '\x8C');
-&#141;			prehtmlAppendChars(1, '\x8D');
-&#142;			prehtmlAppendChars(1, '\x8E');
-&#143;			prehtmlAppendChars(1, '\x8F');
-&#144;			prehtmlAppendChars(1, '\x90');
-&#145;			prehtmlAppendChars(1, '\x91');
-&#146;			prehtmlAppendChars(1, '\x92');
-&#147;			prehtmlAppendChars(1, '\x93');
-&#148;			prehtmlAppendChars(1, '\x94');
-&#149;			prehtmlAppendChars(1, '\x95');
-&#150;			prehtmlAppendChars(1, '\x96');
-&#151;			prehtmlAppendChars(1, '\x97');
-&#152;			prehtmlAppendChars(1, '\x98');
-&#153;			prehtmlAppendChars(1, '\x99');
-&#154;			prehtmlAppendChars(1, '\x9A');
-&#155;			prehtmlAppendChars(1, '\x9B');
-&#156;			prehtmlAppendChars(1, '\x9C');
-&#157;			prehtmlAppendChars(1, '\x9D');
-&#158;			prehtmlAppendChars(1, '\x9E');
-&#159;			prehtmlAppendChars(1, '\x9F');
+&agrave;	prehtmlAppendString(strdup("&#224;"));
+&aacute;	prehtmlAppendString(strdup("&#225;"));
+&egrave;	prehtmlAppendString(strdup("&#232;"));
+&eacute; 	prehtmlAppendString(strdup("&#233;"));
+&igrave; 	prehtmlAppendString(strdup("&#236;"));
+&iacute;	prehtmlAppendString(strdup("&#237;"));
+&ograve;	prehtmlAppendString(strdup("&#242;")); 	
+&oacute;	prehtmlAppendString(strdup("&#243;")); 	
+&ugrave;	prehtmlAppendString(strdup("&#249;"));  	
+&uacute;	prehtmlAppendString(strdup("&#250;"));
 
-&#171;			prehtmlAppendChars(1, '\xAB');		//#LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
-&#187;			prehtmlAppendChars(1, '\xBB');		//#RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
+
 
 &#[0-9]+;		prehtmlAppendString(strdup(prehtmltext));	// lasciate entità numeriche  //(..se ne rimangono..)
 

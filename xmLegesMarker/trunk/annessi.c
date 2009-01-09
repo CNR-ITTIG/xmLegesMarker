@@ -132,9 +132,16 @@ void AnnessiCicla(xmlNodePtr pNodoParent){
 			{
 				if (CurrErrorText->content)
 				{
-					char *realContent = (char *) xmlNodeListGetString(NULL,
-																		CurrErrorText,
-																		0);
+					char *realContent = NULL;
+					if(configTipoInput() == txt) {
+						realContent = (char *) xmlNodeListGetString(NULL, CurrErrorText, 0);
+//					} else if(configTipoInput() == html) {
+//						realContent = (char *) xmlNodeListGetRawString(NULL, CurrErrorText, 1);
+					} else if(configTipoInput() == xml) {
+						realContent = (char *) xmlNodeListGetRawString(NULL, CurrErrorText, 0);
+					} else {
+						realContent = (char *) xmlNodeListGetString(NULL, CurrErrorText, 0);
+					}
 					//Duplicazione del testo contenuto nel nodo
 					//tmpbuff=(char *)strdup((char *)CurrErrorText->content);
 					tmpbuff=(char *)strdup(realContent);
@@ -195,9 +202,16 @@ xmlNodePtr GerStrutturaPreAnnessi(xmlNodePtr pParentNode)
 	{
 		if (CurrErrorText->content)
 		{
-			char *realContent = (char *) xmlNodeListGetString(NULL,
-																CurrErrorText,
-																0);
+			char *realContent = NULL;
+			if(configTipoInput() == txt) {
+				realContent = (char *) xmlNodeListGetString(NULL, CurrErrorText, 0);
+//			} else if(configTipoInput() == html) {
+//				realContent = (char *) xmlNodeListGetRawString(NULL, CurrErrorText, 1);
+			} else if(configTipoInput() == xml) {
+				realContent = (char *) xmlNodeListGetRawString(NULL, CurrErrorText, 0);
+			} else {
+				realContent = (char *) xmlNodeListGetString(NULL, CurrErrorText, 0);
+			}
 			//Duplicazione del testo contenuto nel nodo
 			//tmpbuff=(char *)strdup((char *)CurrErrorText->content);
 			tmpbuff=(char *)strdup(realContent);

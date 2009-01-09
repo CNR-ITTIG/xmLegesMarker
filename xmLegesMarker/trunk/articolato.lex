@@ -360,7 +360,6 @@ SEZIONE		({S}*{NUMSEZIONE})
 
 COMMADEC	([.]?{S}*{DECORAZ}{S}*[.]?{FR})
 ARTBASE		({S}*{NUMARTICOLO}{S}*)
-ARTICOLO	({S}*{NUMARTICOLO}{S}*{DECORAZ}?{FR})
 /* COMMA1		({S}*(1|0){PS}?{LATINO}?{S}*[).]) */
 COMMA1		((({NL}1)|({S}+1)){PS}?{LATINO}?{S}*[).])
 COMMA		({FR}*{S}*{NUM}{PS}?{LATINO}?{S}*[).])
@@ -378,21 +377,19 @@ PARTIZIONE_1 ({LIBRO}|{PARTE}|{PARTE2}|{TITOLO}|{CAPO}|{SEZIONE})
 PARTIZIONE_2 ({COMMA}|{ARTBASE})
 PARTIZIONE ({PARTIZIONE_1}|{PARTIZIONE_2})
 
+RUBRICASEP	([ \-(])
 DASH		(-|\x2D|&#x2d;|\x20\x13|&#x2013;|&#x96;|\x20\x14|&#x2014;|&#x97;)
 OPENBRAC	(\()
 CLOSEBRAC	(\))
-ROPEN		(-|\x2D|&#x2d;|\x20\x13|&#x2013;|&#x96;|\x20\x14|&#x2014;|&#x97;|[(])
-RCLOSE		(-|\x2D|&#x2d;|\x20\x13|&#x2013;|&#x96;|\x20\x14|&#x2014;|&#x97;|[)])
-RUBRICASEP	([ \-(])
 RUBRICALIGHT 	({S}*[^10][a-z]+.*{FR})
-/* RUBRICASTRICT 	({FR}*{S}*{ROPEN}.*{RCLOSE}{S}*{FR}*) */
-ENDR1		({CLOSEBRAC}{S}*{DASH})
-ENDR2		({CLOSEBRAC})
-ENDR3		({DASH})
-RSTRICT1 	({FR}*{S}*{DASH}{S}*{OPENBRAC}([^{ENDR1}])*{ENDR1}{S}*{FR}*)
-RSTRICT2 	({FR}*{S}*{OPENBRAC}([^{ENDR2}])*{ENDR2}{S}*{FR}*)
-RSTRICT3 	({FR}*{S}*{DASH}([^{ENDR3}])*{ENDR3}{S}*{FR}*)
-RUBRICASTRICT 	({RSTRICT1}|{RSTRICT2}|{RSTRICT3})
+RUBRICALIGHTNN 	({S}*[^10\n][a-z]+.*{FR})
+
+/* Va dato un limite altrimenti se separatori non bilanciati la rubrica genera un overflow */
+CORPORUB	((.)*{NL}?(.)*{NL}?(.)*{NL}?(.)*)
+RSTRICT1 	({FR}*{S}*{OPENBRAC}{CORPORUB}{CLOSEBRAC}{S}*{FR}+)
+RSTRICT2	({FR}*{S}*{DASH}{CORPORUB}{DASH}{S}*{FR}+)
+RUBRICASTRICT 	({RSTRICT1}|{RSTRICT2})
+
 
 /* Evitare il "Dangerous trailing context" warning del flex (dovuto agli {S}*):  */
 /* PTACAPODEC	(([.]{FR})|({NL}{FR})) */
@@ -680,8 +677,9 @@ ROMANO		([ivxl]+{S}*)
 	saveDec();
 }
 
-<InArtRubNN>{RUBRICALIGHT}	{
-	if(stacklog) printf("\nRubNN - RUBRICALIGHT");
+<InArtRubNN>{RUBRICALIGHTNN}	{
+	if(configGetVirgoMode()) {REJECT;} //Nelle virgolette non ci sono gli \n...? vai al comma subito
+	if(stacklog) printf("\nRubNN - RUBRICALIGHTNN");
 	saveRub();
 	flagCom = 1;
 	saveCommaNN();
