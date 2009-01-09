@@ -366,6 +366,7 @@ COMMA		({FR}*{S}*{NUM}{PS}?{LATINO}?{S}*[).])
 COMMANN		({FR}{S}*)
 COMMANN1	({FR}{1,}{S}*)
 COMMANN2	({FR}*{S}*)
+COMMANNFIRST	([^1\n ])
 LETTERA1	({S}*(a){PS}?{LATINO}?[).])
 LETTERA		({FR}*{S}*{LET}{PS}?{LATINO}?[).])
 NUMERO1		({S}*(1|0){PS}?{LATINO}?[).])
@@ -386,10 +387,11 @@ RUBRICALIGHTNN 	({S}*[^10\n][a-z]+.*{FR})
 
 /* Va dato un limite altrimenti se separatori non bilanciati la rubrica genera un overflow */
 CORPORUB	((.)*{NL}?(.)*{NL}?(.)*{NL}?(.)*)
-RSTRICT1 	({FR}*{S}*{OPENBRAC}{CORPORUB}{CLOSEBRAC}{S}*{FR}+)
+/* Temp.Fix: Tolto {FR}+ a fine rstrict3 (caso comma non num singolo in virgolette) */
+RSTRICT1 	({FR}*{S}*{DASH}{S}*{OPENBRAC}{CORPORUB}{CLOSEBRAC}{S}*[\.]?{S}*{DASH}{S}*{FR}*{S}*)
 RSTRICT2	({FR}*{S}*{DASH}{CORPORUB}{DASH}{S}*{FR}+)
-RUBRICASTRICT 	({RSTRICT1}|{RSTRICT2})
-
+RSTRICT3 	({FR}*{S}*{OPENBRAC}{CORPORUB}{CLOSEBRAC}{S}*{FR}+)
+RUBRICASTRICT 	({RSTRICT1}|{RSTRICT2}|{RSTRICT3})
 
 /* Evitare il "Dangerous trailing context" warning del flex (dovuto agli {S}*):  */
 /* PTACAPODEC	(([.]{FR})|({NL}{FR})) */
@@ -438,7 +440,7 @@ ROMANO		([ivxl]+{S}*)
 %s InLettera InNumero InPuntata
 %s InLetteraAlinea InNumeroAlinea InPuntataAlinea
 %s InPreLet InPreNum InPrePunt
-%s InArtRubNum InArtRubNN
+%s InArtRubNum InArtRubNN InArtRubVirgo
 %s InNota
 %x Disegno
 
@@ -649,13 +651,19 @@ ROMANO		([ivxl]+{S}*)
 	BEGIN(InLettera);
 }
 
-<InArtRubNum>{RUBRICASTRICT}	{
-	if(stacklog) printf("RubNum - RUBRICASTRICT - leng:%d\n", artleng);
-	artpos+=artleng;
+
+<InArtRubNum>{RUBRICASTRICT}/{COMMANNFIRST}	{
+	/* Fix temporaneo per gestire il comma singolo non numerato nelle virgolette */
+	if( !configGetVirgoMode() ) { REJECT; }
+	if(stacklog) printf("RubNum - RUBRICASTRICT in COMMA NN - leng:%d\n", artleng);
+	saveRub();
+	flagCom = 1;
+	saveCommaNN();
+	commiNN++;
+	BEGIN(InComma);
 }
 
 <InArtRubNum>{COMMA1}	{
-
 	if (configTipoCommi() != commiNumerati)
 		REJECT;
 	if (!checkCardinale(comma))
@@ -667,7 +675,6 @@ ROMANO		([ivxl]+{S}*)
 	if(stacklog) puts("IN ARTICOLO - IN COMMA 1");
 	BEGIN(InComma);
 }
-
 
 <InArtRubNum>{DECORAZ}	{
 	if(art_dec==1)
