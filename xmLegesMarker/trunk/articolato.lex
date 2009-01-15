@@ -360,7 +360,6 @@ SEZIONE		({S}*{NUMSEZIONE})
 
 COMMADEC	([.]?{S}*{DECORAZ}{S}*[.]?{FR})
 ARTBASE		({S}*{NUMARTICOLO}{S}*)
-/* COMMA1		({S}*(1|0){PS}?{LATINO}?{S}*[).]) */
 COMMA1		((({NL}1)|({S}+1)){PS}?{LATINO}?{S}*[).])
 COMMA		({FR}*{S}*{NUM}{PS}?{LATINO}?{S}*[).])
 COMMANN		({FR}{S}*)
@@ -391,6 +390,7 @@ CORPORUB	((.)*{NL}?(.)*{NL}?(.)*{NL}?(.)*)
 RSTRICT1 	({FR}*{S}*{DASH}{S}*{OPENBRAC}{CORPORUB}{CLOSEBRAC}{S}*[\.]?{S}*{DASH}{S}*{FR}*{S}*)
 RSTRICT2	({FR}*{S}*{DASH}{CORPORUB}{DASH}{S}*{FR}+)
 RSTRICT3 	({FR}*{S}*{OPENBRAC}{CORPORUB}{CLOSEBRAC}{S}*{FR}+)
+/* RSTRICT4 	({FR}*{S}*{DASH}.*\.{FR}+{S}*) */
 RUBRICASTRICT 	({RSTRICT1}|{RSTRICT2}|{RSTRICT3})
 
 /* Evitare il "Dangerous trailing context" warning del flex (dovuto agli {S}*):  */
@@ -652,7 +652,7 @@ ROMANO		([ivxl]+{S}*)
 }
 
 
-<InArtRubNum>{RUBRICASTRICT}/{COMMANNFIRST}	{
+<InArtRubNum>{RUBRICASTRICT}/{COMMANNFIRST}	{ 
 	/* Fix temporaneo per gestire il comma singolo non numerato nelle virgolette */
 	if( !configGetVirgoMode() ) { REJECT; }
 	if(stacklog) printf("RubNum - RUBRICASTRICT in COMMA NN - leng:%d\n", artleng);
