@@ -25,7 +25,7 @@
 #include "xml.h"
 #include "prexml.h"
 
-const char *versione = "4.01.9";
+const char *versione = "4.01.9b";
 int visErrore = 0;
 char *bufferEnd;
 char *namebin = "";
@@ -552,7 +552,7 @@ void help(void)
 	puts("               cnr=provvedimento CNR       del=delibera");
 	puts("               stc=Statuto Comunale       regc=Regolamento Comunale");
 	puts("               delc=Delibera Consiliare");
-	puts("-I            : disabilita l'analisi dell'intestazione (header)");
+	puts("-Z            : disabilita l'analisi dell'intestazione (header)");
 	puts("-F            : disabilita l'analisi del footer");
 	puts("-T nomeTipo  : nome tipo di atto da analizzare; valido solo per -t nir");
 	puts("-M <dir>     : directory dei modelli per scansione testa e coda");

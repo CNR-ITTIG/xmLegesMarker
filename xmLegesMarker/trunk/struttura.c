@@ -293,10 +293,12 @@ xmlNodePtr StrutturaAnalizza (char *buffer, ruoloDoc ruolo)
 
 		mnotes=testa(mFirstErrorText,mNodoTipoDocumento,nmeta,ndescrittori,nintestazione,nformulainiziale,tdoc);
 
-		//Sgancia il nodo TAGERRORE e lo libera
-		utilNodeDelete(mFirstError);
-		mFirstErrorText=NULL;
-		mFirstError=NULL;
+		//Sgancia il nodo TAGERRORE e lo libera  //Nel caso sia stata disabilitata l'analisi dell'header, lascia l'intestazione in error per successiva analisi
+		if(!configGetDisableHeader()) {
+			utilNodeDelete(mFirstError);
+			mFirstErrorText=NULL;
+			mFirstError=NULL;
+		}
 
 		//Rimuovi eventuali rubriche vuote
 		checkEmptyRubrica(mNodoArticolato);
